@@ -32,6 +32,16 @@ const { openPage, search, searchEnded } = require("./helpers.js");
     }
     return false;
   };
+  // What is saved, once the browser has finished writing it: saving runs alongside the page, so a check
+  // right after an action could read the state from just before. Waits up to 3 s for `want(count)`.
+  const savedWhen = async (page, want) => {
+    let n = await savedCount(page);
+    for (let i = 0; i < 60 && !want(n); i++) {
+      await page.waitForTimeout(50);
+      n = await savedCount(page);
+    }
+    return n;
+  };
   const reopen = async page => {
     await page.reload();
     await page.waitForFunction(() => map !== null);
@@ -59,7 +69,11 @@ const { openPage, search, searchEnded } = require("./helpers.js");
   ok(!(await p.evaluate(() => running)), "nothing runs until the visitor chooses");
 
   // Continue: the settings, the locations and the progress come back, and the search runs to the end
-  const saved = await savedCount(p);
+  // The saved locations, read before continuing. The search goes on right away and may find more before
+  // the check below runs, so the check is that every saved one is back, not an exact count.
+  const savedIds = await p.evaluate(async () =>
+    (await dbRequest("readonly", s => s.get(DB_KEY))).results.map(l => l.panoId),
+  );
   await p.click("#resumeGo");
   await p.waitForFunction(() => running);
   const restored = await p.evaluate(() => ({
@@ -68,8 +82,8 @@ const { openPage, search, searchEnded } = require("./helpers.js");
     chosen: chosenCountries.join(),
   }));
   ok(
-    restored.n === saved && restored.chosen === "MT,LU",
-    `continue puts back ${restored.n} locations and the countries`,
+    savedIds.length > 0 && savedIds.every(id => restored.ids.includes(id)) && restored.chosen === "MT,LU",
+    `continue puts back all ${savedIds.length} saved locations (${restored.n} now) and the countries`,
   );
   ok(
     before.slice(0, 10).every(id => restored.ids.includes(id)),
@@ -92,7 +106,7 @@ const { openPage, search, searchEnded } = require("./helpers.js");
     hist.length === 1 && hist[0].outcome === "120 locations",
     "the history entry of the search is completed, not doubled",
   );
-  ok((await savedCount(p)) === -1, "a finished search is no longer kept");
+  ok((await savedWhen(p, n => n === -1)) === -1, "a finished search is no longer kept");
   await reopen(p);
   ok(await p.isHidden("#resume"), "so nothing is offered after reopening");
 
@@ -102,7 +116,10 @@ const { openPage, search, searchEnded } = require("./helpers.js");
   await p.click("#stop");
   await searchEnded(p);
   const stoppedAt = await p.evaluate(() => results.length);
-  ok((await savedCount(p)) === stoppedAt, "a stopped search is kept, with everything found: " + stoppedAt);
+  ok(
+    (await savedWhen(p, n => n === stoppedAt)) === stoppedAt,
+    "a stopped search is kept, with everything found: " + stoppedAt,
+  );
   await reopen(p);
   await p.click("#resumeShow");
   ok(
@@ -141,14 +158,13 @@ const { openPage, search, searchEnded } = require("./helpers.js");
   // 4. Discard; Keep what was found; Clear: nothing kept
   await reopen(tab);
   await tab.click("#resumeDrop");
-  ok((await savedCount(tab)) === -1 && (await tab.isHidden("#resume")), "Discard removes it");
+  ok((await savedWhen(tab, n => n === -1)) === -1 && (await tab.isHidden("#resume")), "Discard removes it");
   await search(tab, { country: "Malta", target: 400 });
   await tab.waitForFunction(() => results.length >= 5);
   await tab.click("#stop");
   await searchEnded(tab);
   await tab.click("#clear");
-  await tab.waitForTimeout(100);
-  ok((await savedCount(tab)) === -1, "Clear removes it");
+  ok((await savedWhen(tab, n => n === -1)) === -1, "Clear removes it");
 
   // A search that ended short is kept until the visitor chooses; "Keep what was found" removes it
   await tab.fill("#giveUpAfter", "50");
@@ -159,10 +175,12 @@ const { openPage, search, searchEnded } = require("./helpers.js");
   });
   await search(tab, { country: ["Malta", "Luxembourg"], target: 20 });
   await searchEnded(tab);
-  ok((await tab.isVisible("#shortfall")) && (await savedCount(tab)) > 0, "a search that ended short is kept");
+  ok(
+    (await tab.isVisible("#shortfall")) && (await savedWhen(tab, n => n > 0)) > 0,
+    "a search that ended short is kept",
+  );
   await tab.click("#keepFound");
-  await tab.waitForTimeout(100);
-  ok((await savedCount(tab)) === -1, "Keep what was found removes it");
+  ok((await savedWhen(tab, n => n === -1)) === -1, "Keep what was found removes it");
 
   // 5. A tampered saved search: broken locations are left out, a broken record is not offered
   await tab.evaluate(() =>

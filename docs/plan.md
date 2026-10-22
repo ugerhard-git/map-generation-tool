@@ -41,3 +41,4 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 - The country borders built into the page include the sea around coasts and islands, so in island countries more random spots land on water and find nothing. A larger radius helps.
 - France's borders include Clipperton Island, which the borders count as France itself; a few spots land there.
+- Trekker coverage (taken on foot) is not filtered out: Google's official API does not say which camera took a panorama. Indirect signs (closer spacing between panoramas, image size) were discussed and parked for now (October 2026).
