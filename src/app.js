@@ -935,13 +935,15 @@ function askGoogle(sv, request) {
     });
   });
 }
-/* The nearest official panorama within radius metres of a point, with its arrows. @returns {Promise<PanoAnswer>} */
+/* The nearest official outdoor panorama within radius metres of a point, with its arrows. @returns {Promise<PanoAnswer>} */
 async function lookup(p, radius, key) {
   const sv = await loadGoogleScript(key);
   const near = await askGoogle(sv, {
     location: { lat: p.lat, lng: p.lng },
     radius,
-    sources: ["google"],
+    // Official Google coverage that is also outdoor coverage: without "outdoor", Google's own indoor
+    // panoramas (a museum, say) could be found too. Several sources mean all of them must hold.
+    sources: ["google", "outdoor"],
     preference: "nearest",
   });
   if (near.status !== "OK" || !near.data?.location) return { status: near.status };

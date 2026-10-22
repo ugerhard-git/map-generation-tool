@@ -50,8 +50,8 @@ const path = require("path");
   let r = await exported(p);
   const req = await p.evaluate(() => window.__requests[0]);
   ok(
-    req.sources.join() === "google" && req.preference === "nearest" && req.radius === 1000,
-    "asks Google for the nearest official panorama within the radius: " + JSON.stringify(req),
+    req.sources.join() === "google,outdoor" && req.preference === "nearest" && req.radius === 1000,
+    "asks Google for the nearest official outdoor panorama within the radius: " + JSON.stringify(req),
   );
   ok(r.customCoordinates.length === 8, "finds the number asked for: " + r.customCoordinates.length);
   ok(/Done: 8 locations found in Malta/.test(await p.textContent("#now")), "says it is done");
