@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Map Generation Tool: the page's markup. The build (src/build.js) fills in the placeholders (the
+    styles, the app code, the icons and the security policy) and turns this into the single published
+    file, dist/index.html. Sections are labelled with the same names as in src/style.css and src/app.js.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Map Generation Tool: map-making.app maps from your criteria</title>
+    <meta http-equiv="Content-Security-Policy" content="/*CSP*/" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!-- Icons from src/icon.svg, built into the page as data: addresses (the build fills these in) -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/*ICON_PNG*/" />
+    <link rel="icon" type="image/svg+xml" href="/*ICON_SVG*/" />
+    <link rel="apple-touch-icon" href="/*ICON_TOUCH*/" />
+    <!-- ------------------------------------------------------------------
+  SITE OWNER SETTINGS. Edit only the values between the quotes.
+
+  googleApiKey         Your Google API key. Leave it empty in the repository: the build
+                       fills it in from the GOOGLE_API_KEY environment variable.
+                       It needs the "Street View Static API" enabled. In the Google
+                       Cloud console, restrict it to this site's address and to that
+                       API, and set a daily quota. If left empty, visitors are asked
+                       for their own key.
+
+  Do not edit the script blocks further down: the page only runs scripts
+  whose fingerprint matches the security policy above.
+------------------------------------------------------------------- -->
+    <script type="application/json" id="app-config">
+      {
+        "googleApiKey": ""
+      }
+    </script>
+    <style>
+      /*FONT_CSS*/
+      /*LEAFLET_CSS*/
+    </style>
+    <style>
+      /*APP_CSS*/
+    </style>
+  </head>
+  <body>
+    <!-- Shown instead of the app when another site puts this page in a frame (the check is in the scripts at the end) -->
+    <div class="framed" id="framed" hidden>
+      <p><b>This tool cannot be used inside another page.</b></p>
+      <p><a id="framedLink" href="./" target="_top" rel="noopener">Open it on its own</a></p>
+    </div>
+    <!-- First-visit dialog, also opened by "How it works" (app.js: dialogs) -->
+    <div class="dialog" id="welcome" hidden>
+      <div
+        class="dialog-box"
+        id="welcomeBox"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcomeTitle"
+        tabindex="-1"
+      >
+        <button type="button" class="dialog-x" id="welcomeX" aria-label="Close">×</button>
+        <h2 id="welcomeTitle">Welcome</h2>
+        <p>
+          This tool builds a map of Street View locations from criteria you choose, and you import the result
+          into map-making.app.
+        </p>
+        <div class="welcome-warn">
+          <b>Work in progress.</b>
+          The criteria are not built yet. For now you can click the map to add the nearest Street View
+          location by hand, then download the map file.
+        </div>
+        <button type="button" class="btn primary" id="welcomeOk">Start</button>
+      </div>
+    </div>
+    <!-- The app: settings panel on the left, map on the right (stacked on phones) -->
+    <div class="app">
+      <form class="panel" id="form" autocomplete="off">
+        <h1>Map Generation Tool</h1>
+        <p class="lede">Build a map-making.app map of Street View locations from criteria you choose.</p>
+        <div class="toplinks">
+          <button type="button" class="howbtn" id="howBtn">How it works</button>
+        </div>
+
+        <!-- Step 1: the criteria (app.js: step 1). For now only picking by hand on the map. -->
+        <section class="step" id="stepCriteria">
+          <h2><span class="n">1</span>Choose locations</h2>
+          <p class="hint">
+            The criteria are not built yet. Click the map to add the nearest Street View location to the spot
+            you clicked.
+          </p>
+          <div class="field">
+            <label for="radius">Search up to</label>
+            <div class="unit">
+              <input type="number" id="radius" min="10" max="1000" step="10" value="50" /><span>m</span>
+            </div>
+            <p class="hint">How far from your click a location may be.</p>
+          </div>
+        </section>
+
+        <!-- Step 2: map name and Google key (app.js: step 2) -->
+        <section class="step" id="stepExport">
+          <h2><span class="n">2</span>Name and download</h2>
+          <div class="field">
+            <label for="mapName">Map name</label>
+            <input type="text" id="mapName" maxlength="100" placeholder="My map" />
+          </div>
+          <div class="field" id="keyBox" hidden>
+            <label for="apiKey">Google API key</label>
+            <input type="password" id="apiKey" placeholder="AIza…" spellcheck="false" />
+            <p class="hint">Needs the Street View Static API enabled. Kept only until you close this tab.</p>
+          </div>
+        </section>
+        <div class="msg error" id="error" hidden role="alert"></div>
+      </form>
+
+      <div class="stage">
+        <!-- Map (app.js: map) -->
+        <div class="mapwrap"><div id="map"></div></div>
+        <!-- Bottom bar: status line, counter, export buttons (app.js: export) -->
+        <div class="bar">
+          <div class="status" aria-live="polite">
+            <div class="now" id="now">Ready. Click the map to add a location.</div>
+          </div>
+          <div class="out">
+            <div class="count"><span id="count">0</span><small>locations</small></div>
+            <button class="btn primary" id="download" type="button" disabled>Download map file</button>
+            <button class="btn" id="copy" type="button" disabled>Copy</button>
+            <button class="btn" id="clear" type="button" disabled>Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts. The build fills these in and fingerprints them for the security policy: the libraries
+         (Leaflet for the map, country-coder for finding a location's country), the framing check, and
+         src/app.js -->
+    <script>
+      /*LEAFLET_JS*/
+      /*COUNTRY_CODER_JS*/
+    </script>
+    <script>
+      /* Inside another site's frame, show only a link to open the app on its own, so nobody can lay a fake
+         page over it and trick clicks (the security policy in the page itself cannot forbid framing). */
+      let FRAMED = false;
+      try {
+        FRAMED = window.top !== window.self;
+      } catch {
+        FRAMED = true;
+      }
+      if (FRAMED) {
+        document.querySelector(".app").hidden = true;
+        document.getElementById("framed").hidden = false;
+        document.getElementById("framedLink").href = location.href.split("#")[0];
+      }
+    </script>
+    <script>
+      /*APP_JS*/
+    </script>
+  </body>
+</html>
