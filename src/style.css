@@ -1,0 +1,355 @@
+/*
+ * Map Generation Tool: the page's styles. The build puts them into the page together with Leaflet's own
+ * styles. Sections follow the page from top to bottom and use the same names as src/page.html and
+ * src/app.js. Order matters in a few places, as later rules win over earlier ones of the same strength.
+ * Copied from Lookout (osm-tool) and trimmed to what this page uses.
+ */
+
+/* ---------- colours ----------
+   ink: text and dark accents; muted: secondary text; paper: page background; panel: settings panel;
+   line: borders; blue: links and main buttons; amber: found locations and warnings; red: errors. */
+:root {
+  --ink: #14213d;
+  --muted: #586583;
+  --paper: #eef1f6;
+  --panel: #ffffff;
+  --line: #d3dae6;
+  --blue: #1d5fd1;
+  --blue-dark: #164aa6;
+  --amber: #f2a900;
+  --amber-soft: #fff4d6;
+  --red: #b3261e;
+  --red-soft: #fdecea;
+}
+
+/* ---------- page layout ---------- */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family:
+    "Overpass",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  font-size: 16px;
+  line-height: 1.45;
+}
+.app {
+  display: grid;
+  grid-template-columns: minmax(340px, 420px) 1fr;
+  height: 100vh;
+}
+.panel {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 28px 28px 40px;
+}
+.stage {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+h1 {
+  font-size: 2.5rem;
+  line-height: 1;
+  font-weight: 800;
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+}
+.lede {
+  margin: 0 0 26px;
+  color: var(--muted);
+  max-width: 34ch;
+}
+
+/* ---------- shown inside another site's frame ---------- */
+.framed {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+.framed p {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+/* ---------- "How it works" and the dialogs (first-visit welcome) ---------- */
+.howbtn {
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--blue-dark);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+.toplinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: -16px 0 26px;
+}
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(20, 33, 61, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.dialog-box {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  max-width: 580px;
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 28px 30px 26px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.dialog-box:focus {
+  outline: none;
+}
+.dialog-box h2 {
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 34px 12px 0;
+  letter-spacing: -0.01em;
+}
+.dialog-box p {
+  margin: 0 0 12px;
+}
+.welcome-warn {
+  background: var(--amber-soft);
+  border: 1.5px solid #f0d58a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 0 0 12px;
+}
+.welcome-warn b {
+  display: block;
+  margin-bottom: 2px;
+}
+.dialog-x {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.dialog-x:hover {
+  background: var(--line);
+}
+.dialog-box > .btn.primary {
+  margin-top: 14px;
+  padding: 11px 26px;
+  font-size: 1.05rem;
+}
+
+/* ---------- steps and form fields ---------- */
+.step {
+  border-top: 2px solid var(--ink);
+  padding: 16px 0 22px;
+}
+.step h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0 0 12px;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.step h2 .n {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.8rem;
+  flex: none;
+  transform: translateY(-1px);
+}
+label {
+  display: block;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 6px 0 0;
+}
+input[type="text"],
+input[type="number"],
+input[type="password"] {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+.field {
+  margin-top: 14px;
+}
+.unit {
+  position: relative;
+}
+.unit input {
+  padding-right: 3.2em;
+}
+.unit span {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.msg {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.msg.error {
+  background: var(--red-soft);
+  color: var(--red);
+  border: 1.5px solid #f3c4bf;
+}
+
+/* ---------- map ---------- */
+.mapwrap {
+  flex: 1;
+  min-height: 300px;
+  position: relative;
+}
+#map {
+  position: absolute;
+  inset: 0;
+  background: #dfe5ee;
+  cursor: crosshair;
+}
+.leaflet-container {
+  font-family: inherit;
+}
+
+/* ---------- bottom bar: status line, counter, export ---------- */
+.bar {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: 14px 22px;
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.status {
+  flex: 1;
+  min-width: 240px;
+}
+.status .now {
+  font-weight: 600;
+}
+.out {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.count {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-right: 6px;
+}
+.count small {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  font: inherit;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border: 1.5px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+}
+.btn.primary {
+  background: var(--ink);
+  color: #fff;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---------- small shared rules ---------- */
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- phones and narrow windows ---------- */
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .panel {
+    border-right: 0;
+    padding: 22px 16px 28px;
+  }
+  .stage {
+    height: 80vh;
+  }
+  h1 {
+    font-size: 2rem;
+  }
+}

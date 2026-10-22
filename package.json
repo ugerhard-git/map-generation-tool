@@ -1,0 +1,28 @@
+{
+  "name": "map-generation-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build map-making.app maps of Street View locations from chosen criteria.",
+  "license": "MIT",
+  "scripts": {
+    "build": "node src/build.js",
+    "test": "node tests/run.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "icons": "node tools/icons.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@fontsource/overpass": "5.3.0",
+    "@rapideditor/country-coder": "5.6.1",
+    "eslint": "10.12.0",
+    "globals": "17.13.0",
+    "leaflet": "1.9.4",
+    "playwright": "1.64.0",
+    "prettier": "3.9.10"
+  }
+}
