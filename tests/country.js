@@ -84,7 +84,7 @@ const path = require("path");
   ok(await p.isVisible("#distributionBox"), "two countries: the distribution can be chosen");
   ok(
     (await p.getAttribute("#mapName", "placeholder")) ===
-      "United Kingdom, Malta (A Community World): Official coverage",
+      "United Kingdom, Malta (An Arbitrary World): Official coverage",
     "two countries: the map name names both and the map",
   );
 

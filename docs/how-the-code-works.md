@@ -17,20 +17,20 @@ Much of the code is copied from [Lookout (osm-tool)](https://github.com/ugerhard
 
 ## Files
 
-| File                 | What is in it                                                                                                                                                                                  |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/page.html`      | The markup, the site owner settings (Google key) and placeholders such as `/*APP_JS*/` that the build fills in.                                                                                |
-| `src/style.css`      | The styles.                                                                                                                                                                                    |
-| `src/icon.svg`       | The page icon (for now Lookout's). `npm run icons` (`tools/icons.js`) makes `icon-32.png` and `icon-180.png` from it for Safari and phones; the build puts all three into the page.            |
-| `src/app.js`         | All app code. Starts with an overview of how the app works, the shared state and what is saved in the browser.                                                                                 |
-| `src/build.js`       | Puts everything into one file, `dist/index.html`: markup, styles, app code, the Vali data, Leaflet, country-coder and the font. Then fingerprints the scripts for the Content Security Policy. |
-| `src/data/vali.json` | The country distributions of well-known GeoGuessr maps and the continent lists, from Vali. Made by `tools/vali.js`; never edit it by hand.                                                     |
-| `tools/vali.js`      | Imports `src/data/vali.json` from a copy of Vali: `node tools/vali.js <folder>`. Checks the data and stops instead of writing a file that looks wrong. See "Updates".                          |
-| `tests/run.js`       | Runs every test file. On GitHub it also reports failures as notes on the run.                                                                                                                  |
-| `tests/site.js`      | Serves `dist/` at the made-up address `https://mapgen.test/` for the tests.                                                                                                                    |
-| `tests/pw.js`        | Playwright with the first-visit dialog already dismissed.                                                                                                                                      |
-| `tests/helpers.js`   | Opens the page with Google's script simulated (`openPage`), fills in and starts a search (`search`), waits for it to end (`searchEnded`).                                                      |
-| `tests/*.js`         | One file per feature area. Every outside service (Google, map tiles) is simulated with Playwright routes, so the tests run offline and need no key.                                            |
+| File                 | What is in it                                                                                                                                                                                             |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/page.html`      | The markup, the site owner settings (Google key) and placeholders such as `/*APP_JS*/` that the build fills in.                                                                                           |
+| `src/style.css`      | The styles.                                                                                                                                                                                               |
+| `src/icon.svg`       | The page icon: a folded map with three random locations. `npm run icons` (`tools/icons.js`) makes `icon-32.png` and `icon-180.png` from it for Safari and phones; the build puts all three into the page. |
+| `src/app.js`         | All app code. Starts with an overview of how the app works, the shared state and what is saved in the browser.                                                                                            |
+| `src/build.js`       | Puts everything into one file, `dist/index.html`: markup, styles, app code, the Vali data, Leaflet, country-coder and the font. Then fingerprints the scripts for the Content Security Policy.            |
+| `src/data/vali.json` | The country distributions of well-known GeoGuessr maps and the continent lists, from Vali. Made by `tools/vali.js`; never edit it by hand.                                                                |
+| `tools/vali.js`      | Imports `src/data/vali.json` from a copy of Vali: `node tools/vali.js <folder>`. Checks the data and stops instead of writing a file that looks wrong. See "Updates".                                     |
+| `tests/run.js`       | Runs every test file. On GitHub it also reports failures as notes on the run.                                                                                                                             |
+| `tests/site.js`      | Serves `dist/` at the made-up address `https://mapgen.test/` for the tests.                                                                                                                               |
+| `tests/pw.js`        | Playwright with the first-visit dialog already dismissed.                                                                                                                                                 |
+| `tests/helpers.js`   | Opens the page with Google's script simulated (`openPage`), fills in and starts a search (`search`), waits for it to end (`searchEnded`).                                                                 |
+| `tests/*.js`         | One file per feature area. Every outside service (Google, map tiles) is simulated with Playwright routes, so the tests run offline and need no key.                                                       |
 
 The three source files use the same section names, in the same order as the page: steps 1 to 3, locations per country, the search buttons, the map, the bottom bar, buttons and dialogs. `app.js` adds sections for random spots, Street View and the run. Search for `---------- step 2` (for example) to find the matching part in each file.
 

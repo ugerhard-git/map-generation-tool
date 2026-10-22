@@ -5,7 +5,7 @@ The plan agreed with the owner on 22 October 2026. Each step is one pull request
 ## What the app does
 
 - **Area:** the whole world, a continent, or chosen countries (one or several). Only countries and territories with official Google Street View are offered.
-- **Distribution:** the visitor picks one of Vali's maps (A Community World, A Balanced World, …). The app splits the requested number of locations (up to 130,000) across the countries of the chosen area in that map's proportions (largest remainder method), and shows the per-country table before the search starts. For several countries or a continent, the chosen map's proportions for just those countries are used; for a continent, Vali's own continent distribution is offered too. A single country gets the full number.
+- **Distribution:** the visitor picks one of Vali's maps (An Arbitrary World by default, A Community World, A Balanced World, …). The app splits the requested number of locations (up to 130,000) across the countries of the chosen area in that map's proportions (largest remainder method), and shows the per-country table before the search starts. For several countries or a continent, the chosen map's proportions for just those countries are used; for a continent, Vali's own continent distribution is offered too. A single country gets the full number.
 - **Criteria**, ticked separately:
   - **No road name:** none of the panorama's arrows has a label.
   - **End of coverage (dead end):** exactly one arrow. The camera faces away from the arrow, towards where the coverage stops.

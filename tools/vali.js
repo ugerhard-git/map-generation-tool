@@ -33,7 +33,7 @@ const MAP_NAMES = {
   geotime: "GeoTime",
   lerg: "Less Extreme Region Guessing",
   amw: "A Moving World",
-  yellowbelly: "Yellowbelly",
+  yellowbelly: "Yellow Belly",
   "5kable": "A 5Kable World",
 };
 /* Maps that must be in Vali's data: if one disappears, something is wrong and nothing is written. */
