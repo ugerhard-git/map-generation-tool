@@ -1002,7 +1002,7 @@ async function lookup(p, radius, key) {
     links: d.links,
   });
 }
-/* One panorama by its id, with its arrows; used when following a road. @returns {Promise<PanoAnswer>} */
+/* One panorama by its id, with its arrows; used for older photos at a spot. @returns {Promise<PanoAnswer>} */
 async function lookupPano(panoId, key) {
   const sv = await loadGoogleScript(key);
   const a = await askGoogle(sv, { pano: panoId });

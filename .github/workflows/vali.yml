@@ -1,7 +1,9 @@
 # Once a month, checks Vali (https://github.com/slashP/Vali) for changed map distributions and continent
-# lists. If they changed, it updates src/data/vali.json on the branch "vali-update", runs the same checks
-# as for any pull request, and opens a pull request for the owner to review (or updates the one still
-# open). If nothing changed, nothing happens. If Vali's files look wrong, tools/vali.js stops, the run
+# lists. If they changed, it runs the same checks as for any pull request on the new src/data/vali.json,
+# then updates it on the branch "vali-update" and opens a pull request for the owner to review (or
+# updates the one still open). Two jobs, for safety: "check" runs the packages and tests and gets no
+# write access; "propose" can push and open pull requests, but runs only this repository's own
+# tools/vali.js, git and gh, so no outside code ever sees its token. If nothing changed, nothing happens. If Vali's files look wrong, tools/vali.js stops, the run
 # fails and GitHub sends a notification. Start it by hand under Actions → Update Vali data → Run workflow.
 name: Update Vali data
 
@@ -18,32 +20,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  update:
+  check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      contents: write # push the branch vali-update
-      pull-requests: write # open or update its pull request
-      actions: write # start the Tests workflow on that branch (see the last step)
-    env:
-      GH_TOKEN: ${{ github.token }}
-      BRANCH: vali-update
+      contents: read
+    outputs:
+      changed: ${{ steps.import.outputs.changed }}
+      commit: ${{ steps.import.outputs.commit }}
     steps:
       # Actions are pinned to exact commits, so a changed tag upstream cannot change what runs here.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: true # needed to push the branch
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --ignore-scripts
       - name: Get the latest Vali
         run: git clone --depth 1 https://github.com/slashP/Vali.git "$RUNNER_TEMP/vali"
       - name: Import its data
         id: import
         run: |
-          node tools/vali.js "$RUNNER_TEMP/vali" --summary "$RUNNER_TEMP/summary.md"
+          node tools/vali.js "$RUNNER_TEMP/vali"
+          # The exact Vali commit checked here, so "propose" imports the same one
+          echo "commit=$(git -C "$RUNNER_TEMP/vali" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           if git diff --quiet -- src/data/vali.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -52,13 +53,45 @@ jobs:
       - name: Check, as for every pull request
         if: steps.import.outputs.changed == 'true'
         run: |
+          npm ci --ignore-scripts
           npx playwright install --with-deps chromium
           npm run format:check
           npm run lint
           npm run build
           npm test
+
+  propose:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push the branch vali-update
+      pull-requests: write # open or update its pull request
+      actions: write # start the Tests workflow on that branch (see the last step)
+    env:
+      BRANCH: vali-update
+      VALI_COMMIT: ${{ needs.check.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # needed to push the branch
+      # No npm packages are installed in this job: tools/vali.js needs only Node itself.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Import the Vali commit that was checked
+        run: |
+          [[ "$VALI_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "unexpected Vali commit: $VALI_COMMIT"; exit 1; }
+          git init -q "$RUNNER_TEMP/vali"
+          git -C "$RUNNER_TEMP/vali" fetch -q --depth 1 https://github.com/slashP/Vali.git "$VALI_COMMIT"
+          git -C "$RUNNER_TEMP/vali" checkout -q FETCH_HEAD
+          node tools/vali.js "$RUNNER_TEMP/vali" --summary "$RUNNER_TEMP/summary.md"
+          # Only the generated file may change
+          test -z "$(git status --porcelain -- . ':!src/data/vali.json')"
       - name: Push the branch and open or update the pull request
-        if: steps.import.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }} # only this step gets the token for gh
         run: |
           commit=$(node -p 'require("./src/data/vali.json").source.commit')
           date=$(node -p 'require("./src/data/vali.json").source.date')

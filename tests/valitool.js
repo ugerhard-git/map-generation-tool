@@ -147,6 +147,7 @@ const broken = [
   ],
   ["a required map missing", { dropMaps: ["acw"] }],
   ["a map with too few countries", { SuperWorld: codes.slice(0, 5).map(c => [c, 1]) }],
+  ["a share far too large", { SuperWorld: codes.map((c, i) => [c, i ? 1 : "999999999999999999999999"]) }],
 ];
 for (const [what, change] of broken) {
   r = run(makeVali(path.join(work, what.replace(/\W+/g, "-")), change));
@@ -155,6 +156,7 @@ for (const [what, change] of broken) {
     `${what}: stops, file unchanged: ${r.stderr.trim()}`,
   );
 }
+ok(/above 1000000/.test(r.stderr), "a share far too large is named");
 fs.rmSync(path.join(work, "good/src/Vali.Core/Weights.cs"));
 r = run(good);
 ok(r.status === 1 && /missing; has Vali moved its files/.test(r.stderr), "a missing file is explained");

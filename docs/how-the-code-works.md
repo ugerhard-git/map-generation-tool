@@ -110,8 +110,9 @@ Only versions that have been out for at least a week are proposed. Security fixe
 
 **Vali's data** is not a package, so Dependabot cannot watch it. `.github/workflows/vali.yml` does instead, on the 3rd of every month (and when started by hand under Actions → Update Vali data → Run workflow):
 
-1. It clones the latest Vali and runs `tools/vali.js`. If the distributions and continents are the same as in `src/data/vali.json`, it stops there.
-2. If they changed, it runs the formatting check, lint, build and all tests, pushes the new file to the branch `vali-update` and opens a pull request (or updates the open one) that lists what changed: maps added or removed, countries added or removed, the largest changes in shares, and any slips found in Vali's data.
-3. Pull requests opened by a workflow do not start the Tests workflow, so it starts that workflow on the branch itself; the required "test" check then runs as usual.
+1. The job "check" clones the latest Vali and runs `tools/vali.js`. If the distributions and continents are the same as in `src/data/vali.json`, it stops there.
+2. If they changed, the same job runs the formatting check, lint, build and all tests. It has no write access: it installs and runs the npm packages, and a package that turned bad could otherwise misuse the token.
+3. The job "propose" imports the same Vali commit again, with only `tools/vali.js` (no packages installed), checks that nothing but `src/data/vali.json` changed, pushes it to the branch `vali-update` and opens a pull request (or updates the open one) that lists what changed: maps added or removed, countries added or removed, the largest changes in shares, and any slips found in Vali's data. Only this job can push, and only its last step gets the token for `gh`. Keep it that way: no `npm ci` or tests in "propose".
+4. Pull requests opened by a workflow do not start the Tests workflow, so "propose" starts that workflow on the branch itself; the required "test" check then runs as usual.
 
 If Vali's files look wrong, the import stops, the run fails and GitHub notifies the owner. For this to work, the repository setting "Allow GitHub Actions to create and approve pull requests" must be on. A new map in Vali gets a name made from its list name; add a proper name to `MAP_NAMES` in `tools/vali.js`.
