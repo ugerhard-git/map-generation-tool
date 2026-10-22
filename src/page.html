@@ -192,6 +192,22 @@
                 ></span
               ></label
             >
+            <!-- Following the road from a found spot to its end (app.js: step 2, walkToEnd) -->
+            <div class="indent" id="walkBox">
+              <label class="check"
+                ><input type="checkbox" id="walkOn" checked /><span
+                  >Follow the road to find the end<br /><span class="hint"
+                    >From a spot that is not an end, follow the road in one direction for a short way. Finds
+                    the ends of side roads faster. A step is about 10 m and one more lookup.</span
+                  ></span
+                ></label
+              >
+              <div class="years">
+                <label for="walkSteps">Up to</label>
+                <input type="number" id="walkSteps" min="10" max="1000" step="10" value="150" />
+                <span>steps</span>
+              </div>
+            </div>
             <label class="check"
               ><input type="checkbox" id="yearsOn" /><span
                 >Photos taken in certain years<br /><span class="hint"

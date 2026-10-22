@@ -333,6 +333,24 @@ a:focus-visible {
   accent-color: var(--blue);
   flex: none;
 }
+/* Options that belong to the tick box above them ("Follow the road to find the end") */
+.indent {
+  margin-left: 28px;
+}
+.indent .check {
+  margin-top: 8px;
+}
+.indent .years {
+  flex-wrap: wrap;
+}
+.years label,
+.years span {
+  white-space: nowrap;
+}
+.years input[type="number"] {
+  width: 90px;
+  padding: 6px 10px;
+}
 /* "From [year] to [year]", indented under its tick box */
 .years {
   display: flex;

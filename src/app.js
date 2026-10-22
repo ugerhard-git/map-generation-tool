@@ -22,7 +22,8 @@
  *      pickCountry() chooses a country that still needs locations, randomPointIn() a random spot inside
  *      it (from the country borders built into the page), lookup() asks Google's script for the nearest
  *      official panorama within the radius. The panorama's arrows (`links`) tell whether a road name is
- *      shown and whether the coverage ends; its date tells the year of the photos.
+ *      shown and whether the coverage ends; its date tells the year of the photos. When looking for the
+ *      end of coverage, walkToEnd() follows the road a short way from a panorama that is not an end.
  *   3. A panorama that matches, lies in that country and is at least MIN_SPACING from every location so
  *      far becomes a Location: counted for its country (`foundBy`), drawn on the map (drawLocation, the
  *      first MAX_DRAWN only) and exported (exportJson). paint() keeps the status line, progress, counters
@@ -44,7 +45,7 @@
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, yearTo, target,
- *   radius, giveUpAfter, mapName, tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit
+ *   radius, giveUpAfter, walkOn, walkSteps, mapName, tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
  *   A visitor's own Google key is only kept in sessionStorage ("mapgen.key"), never on disk.
@@ -78,6 +79,7 @@
  * @typedef {object} Arrow
  * @property {number} heading    compass direction, 0–360
  * @property {string} description the road name on the arrow, or "" when none is shown
+ * @property {string} pano       the id of the panorama the arrow leads to, or "" if Google did not say
  */
 /**
  * Google's answer for one lookup, cleaned by cleanPano().
@@ -631,6 +633,7 @@ for (const id of ["noRoadName", "deadEnd", "yearsOn"]) {
   $(id).onchange = () => {
     store.set(id, $(id).checked);
     updateYears();
+    updateWalk();
     updateMapName();
   };
 }
@@ -646,6 +649,30 @@ function updateYears() {
   $("yearFrom").disabled = $("yearTo").disabled = !$("yearsOn").checked;
 }
 updateYears();
+// Following the road to its end: only for "End of coverage", and on unless the visitor switched it off.
+const WALK_MIN = 10,
+  WALK_MAX = 1000,
+  WALK_DEFAULT = 150; // panoramas, about 10 m apart: 150 is about 1.5 km
+$("walkOn").checked = store.get("walkOn", true) !== false;
+$("walkOn").onchange = () => {
+  store.set("walkOn", $("walkOn").checked);
+  updateWalk();
+};
+$("walkSteps").value = wholeNumber(store.get("walkSteps", WALK_DEFAULT), WALK_MIN, WALK_MAX, WALK_DEFAULT);
+$("walkSteps").onchange = () =>
+  store.set("walkSteps", wholeNumber($("walkSteps").value, WALK_MIN, WALK_MAX, WALK_DEFAULT));
+/* How many panoramas to follow a road for, or 0 when roads are not followed. */
+function walkSteps() {
+  if (!$("deadEnd").checked || !$("walkOn").checked) return 0;
+  return wholeNumber($("walkSteps").value, WALK_MIN, WALK_MAX, WALK_DEFAULT);
+}
+/* The road options can only be changed while "End of coverage" is ticked (the number also needs the
+   road option itself). */
+function updateWalk() {
+  $("walkOn").disabled = !$("deadEnd").checked;
+  $("walkSteps").disabled = !$("deadEnd").checked || !$("walkOn").checked;
+}
+updateWalk();
 /* True if a photo date ("2023-04" or "2023") lies within the chosen years. Unknown dates do not. */
 function inYears(date, y) {
   const year = parseInt(date, 10);
@@ -884,6 +911,7 @@ function cleanPano(r) {
     .map(l => ({
       heading: ((l.heading % 360) + 360) % 360,
       description: cleanText(l.description, 120).trim(),
+      pano: typeof l.pano === "string" && /^[^\s<>"'`\\]{4,300}$/.test(l.pano) ? l.pano : "",
     }));
   const date = cleanText(r.date, 10);
   return {
@@ -932,6 +960,22 @@ async function lookup(p, radius, key) {
     links: d.links,
   });
 }
+/* One panorama by its id, with its arrows; used when following a road. @returns {Promise<PanoAnswer>} */
+async function lookupPano(panoId, key) {
+  const sv = await loadGoogleScript(key);
+  const a = await askGoogle(sv, { pano: panoId });
+  if (a.status !== "OK" || !a.data?.location) return { status: a.status };
+  const d = a.data;
+  return cleanPano({
+    status: "OK",
+    lat: d.location.latLng?.lat(),
+    lng: d.location.latLng?.lng(),
+    panoId: d.location.pano,
+    copyright: d.copyright,
+    date: d.imageDate,
+    links: d.links,
+  });
+}
 /* Official Google coverage says "© 2024 Google" (or "Google LLC"); photos from others name the uploader. */
 const isOfficial = c =>
   c
@@ -970,6 +1014,8 @@ function emptyStats() {
     tooClose: 0, // already found, or too close to a location found before
     outside: 0, // the panorama lies in a neighbouring country
     failed: 0, // lookups that failed (network, Google errors)
+    walkSteps: 0, // panoramas looked up while following roads (see walkToEnd)
+    walkEnds: 0, // ends of coverage found by following a road
     failedInRow: 0,
   };
 }
@@ -1032,6 +1078,8 @@ function paint(status) {
   if (stats.tooClose) add(stats.tooClose, "too close to another");
   if (stats.outside) add(stats.outside, "across the border");
   if (stats.failed) add(stats.failed, "failed lookups");
+  if (stats.walkSteps) add(stats.walkSteps, "steps along roads");
+  if (stats.walkEnds) add(stats.walkEnds, "ends found by following roads");
   if (results.length > MAX_DRAWN) add(MAX_DRAWN, "shown on the map");
   renderShares();
 }
@@ -1079,6 +1127,34 @@ function miss(code) {
   // (a country that is already full, through another worker's lookup, does not give up)
   if (n >= searchSettings.giveUpAfter && (foundBy.get(code) || 0) < searchTargets.get(code)) gaveUp.add(code);
 }
+/* Smallest angle between two compass directions, 0–180. */
+const angleBetween = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+/* Follows the road from a panorama, one arrow at a time, to find where the coverage ends: starts along a
+   random arrow, and at every junction carries on as straight as possible. Gives up (null) after
+   maxSteps panoramas, at unofficial coverage, outside the country, on coming back to a panorama already
+   seen, or when a lookup fails. Never walks whole highways: Chile's Ruta 5 alone is about 300,000
+   panoramas, so the walk is meant for side roads, tracks and cul-de-sacs.
+   @returns {Promise<PanoAnswer|null>} the panorama with one arrow, or null */
+async function walkToEnd(start, code, maxSteps, key) {
+  const seen = new Set([start.panoId]);
+  const ways = start.links.filter(l => l.pano);
+  let way = ways[Math.floor(Math.random() * ways.length)];
+  for (let step = 0; way && step < maxSteps; step++) {
+    if (stopRequested || fatal) return null;
+    stats.walkSteps++;
+    const here = await lookupPano(way.pano, key);
+    if (here.status !== "OK" || !isOfficial(here.copyright) || seen.has(here.panoId)) return null;
+    if (countryAt(here.lat, here.lng) !== code) return null;
+    seen.add(here.panoId);
+    if (here.links.length === 1) return here;
+    // Carry on as straight as possible, never back to where the walk came from.
+    const ahead = way.heading;
+    way = here.links
+      .filter(l => l.pano && !seen.has(l.pano))
+      .sort((a, b) => angleBetween(a.heading, ahead) - angleBetween(b.heading, ahead))[0];
+  }
+  return null;
+}
 /* One random spot in a country: look it up and keep the panorama if it matches. */
 async function attempt(code, want, rad, key) {
   const p = randomPointIn(code);
@@ -1087,7 +1163,7 @@ async function attempt(code, want, rad, key) {
     return;
   }
   stats.tries++;
-  const r = await lookup(p, rad, key);
+  let r = await lookup(p, rad, key);
   if (keyRefused) {
     fatal = "Google refused the API key. Check that it is right and has the Maps JavaScript API enabled.";
     return;
@@ -1109,7 +1185,26 @@ async function attempt(code, want, rad, key) {
     return;
   }
   stats.failedInRow = 0;
-  const facts = arrowFacts(r.links);
+  let facts = arrowFacts(r.links);
+  // Looking for the end of coverage and this is not it: follow the road a little way to find one.
+  if (
+    want.deadEnd &&
+    !facts.deadEnd &&
+    searchSettings.walkSteps > 0 &&
+    isOfficial(r.copyright) &&
+    countryAt(r.lat, r.lng) === code
+  ) {
+    const end = await walkToEnd(r, code, searchSettings.walkSteps, key);
+    if (keyRefused) {
+      fatal = "Google refused the API key. Check that it is right and has the Maps JavaScript API enabled.";
+      return;
+    }
+    if (end) {
+      stats.walkEnds++;
+      r = end;
+      facts = arrowFacts(r.links);
+    }
+  }
   if (
     !isOfficial(r.copyright) ||
     (want.noRoadName && !facts.noRoadName) ||
@@ -1179,7 +1274,7 @@ async function startSearch() {
     return;
   }
   if (!GOOGLE_API_KEY) keyStore.set(key);
-  searchSettings = { want: wanted(), rad: radius(), key, giveUpAfter: giveUpAfter() };
+  searchSettings = { want: wanted(), rad: radius(), key, giveUpAfter: giveUpAfter(), walkSteps: walkSteps() };
   showNote("");
   historyId = recordSearch();
   $("target").value = target();
@@ -1267,8 +1362,8 @@ async function runSearch() {
   if (!stopRequested && !fatal) showShortfall();
 }
 /** The settings of the current search, kept for going on after "Fill the gap".
- *  @type {{want: object, rad: number, key: string, giveUpAfter: number}} */
-let searchSettings = { want: {}, rad: RADIUS_DEFAULT, key: "", giveUpAfter: GIVE_UP_DEFAULT };
+ *  @type {{want: object, rad: number, key: string, giveUpAfter: number, walkSteps: number}} */
+let searchSettings = { want: {}, rad: RADIUS_DEFAULT, key: "", giveUpAfter: GIVE_UP_DEFAULT, walkSteps: 0 };
 $("form").onsubmit = e => {
   e.preventDefault();
   startSearch();
@@ -1412,6 +1507,8 @@ const HISTORY_MAX = 20;
  * @property {number} target
  * @property {number} radius
  * @property {number} giveUpAfter
+ * @property {boolean} walkOn       follow roads to find the end of coverage
+ * @property {number} walkSteps     how far, in panoramas
  * @property {string} mapName       the name typed in step 3, or "" for the suggested one
  */
 /**
@@ -1439,6 +1536,8 @@ function currentSettings() {
     target: target(),
     radius: radius(),
     giveUpAfter: giveUpAfter(),
+    walkOn: $("walkOn").checked,
+    walkSteps: wholeNumber($("walkSteps").value, WALK_MIN, WALK_MAX, WALK_DEFAULT),
     mapName: $("mapName").value.trim().slice(0, 100),
   };
 }
@@ -1463,6 +1562,9 @@ function cleanSettings(raw) {
     target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
     radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
     giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
+    // (entries from before roads could be followed have neither: they get the defaults)
+    walkOn: r.walkOn !== false,
+    walkSteps: wholeNumber(r.walkSteps, WALK_MIN, WALK_MAX, WALK_DEFAULT),
     mapName: cleanText(r.mapName, 100).trim(),
   };
 }
@@ -1538,6 +1640,7 @@ function historyDetails(s) {
       years: s.yearsOn ? { from: Math.min(s.yearFrom, s.yearTo), to: Math.max(s.yearFrom, s.yearTo) } : null,
     }),
   );
+  if (s.deadEnd && s.walkOn) bits.push(`roads followed up to ${fmt(s.walkSteps)} steps`);
   bits.push(`${fmt(s.target)} ${s.target === 1 ? "location" : "locations"}`, `${fmt(s.radius)} m`);
   return bits.join(" · ");
 }
@@ -1593,15 +1696,16 @@ function applySettings(s) {
   if ([...$("distribution").options].some(o => o.value === s.distribution))
     $("distribution").value = s.distribution;
   whereChanged();
-  for (const id of ["noRoadName", "deadEnd", "yearsOn"]) {
+  for (const id of ["noRoadName", "deadEnd", "yearsOn", "walkOn"]) {
     $(id).checked = s[id];
     store.set(id, s[id]);
   }
-  for (const id of ["yearFrom", "yearTo", "target", "radius", "giveUpAfter", "mapName"]) {
+  for (const id of ["yearFrom", "yearTo", "target", "radius", "giveUpAfter", "walkSteps", "mapName"]) {
     $(id).value = String(s[id]);
     store.set(id, s[id]);
   }
   updateYears();
+  updateWalk();
   updateMapName();
   renderShares();
 }
