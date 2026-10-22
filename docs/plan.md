@@ -29,7 +29,7 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 1. **Search one country** (done): the search loop, official coverage only, both criteria, the count, spacing, live progress, stop and download, tags. Since then: the country field suggests countries while typing, a larger "Open in Street View" button, tag options (country name, what it has, year), and the photo years criterion.
 2. **Areas and distributions** (done): whole world, continents, chosen countries, the Vali import and the monthly workflow, the per-country table.
-3. **Shortfalls:** attempt budgets and the end-of-search offer.
+3. **Shortfalls** (done): attempt budgets (a setting, 2,000 spots by default) and the end-of-search offer.
 4. **History** of search settings.
 5. **Later, if needed:** following roads to dead ends; resuming a long search after closing the tab.
 
@@ -37,7 +37,6 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 - Vali's data has two slips (August 2026): An Arbitrary Rural World lists Bermuda as 0 and as 1 (1 is used), and An Improved World lists Costa Rica as 200 and as 20 (200 is used, as Vali does where it picks countries from a list). The update pull requests report such slips.
 - A few countries in Vali's maps have no official coverage (Belarus, Pakistan and others, about 0.01% of a map); they are left out.
-- Until step 3, a country where matching locations are very rare can keep a search going for a long time; stop it and download what was found.
 
 - The country borders built into the page include the sea around coasts and islands, so in island countries more random spots land on water and find nothing. A larger radius helps.
 - France's borders include Clipperton Island, which the borders count as France itself; a few spots land there.
