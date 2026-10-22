@@ -1,6 +1,6 @@
 // Builds the published page, dist/index.html, from the files in src/. It fills the placeholders in
-// page.html (such as /*APP_JS*/) with the styles, the app code, Leaflet, country-coder, the font and the
-// icon, then fingerprints the scripts for the Content Security Policy. The Google key comes from the
+// page.html (such as /*APP_JS*/) with the styles, the app code, the Vali data, Leaflet, country-coder,
+// the font and the icon, then fingerprints the scripts for the Content Security Policy. The Google key comes from the
 // GOOGLE_API_KEY environment variable; dist/index.nokey.html is the same page without it, for the
 // tests. Run with `npm run build`.
 const fs = require("fs"),
@@ -24,7 +24,7 @@ const appCss = src("style.css"),
   appJs = src("app.js");
 if (/<\/style/i.test(appCss)) throw new Error("style.css contains a closing style tag");
 if (/<\/script/i.test(appJs)) throw new Error("app.js contains a closing script tag");
-if (/\/\*(LEAFLET_JS|COUNTRY_CODER_JS|LEAFLET_CSS|FONT_CSS|CSP)\*\//.test(appCss + appJs))
+if (/\/\*(VALI|LEAFLET_JS|COUNTRY_CODER_JS|LEAFLET_CSS|FONT_CSS|CSP)\*\//.test(appCss + appJs))
   throw new Error("a build placeholder appears in style.css or app.js");
 put("/*APP_CSS*/", appCss);
 put("/*APP_JS*/", appJs);
@@ -36,6 +36,16 @@ const dataUrl = (file, type) =>
 put("/*ICON_SVG*/", dataUrl("icon.svg", "image/svg+xml"));
 put("/*ICON_PNG*/", dataUrl("icon-32.png", "image/png"));
 put("/*ICON_TOUCH*/", dataUrl("icon-180.png", "image/png"));
+
+// Country distributions and continents from Vali, made by tools/vali.js. "<" is escaped so the data can
+// never close the script it sits in.
+const vali = JSON.parse(fs.readFileSync(path.join(__dirname, "data/vali.json"), "utf8"));
+put(
+  "/*VALI*/",
+  JSON.stringify({ source: vali.source, maps: vali.maps, continents: vali.continents })
+    .replace(/</g, "\\u003c")
+    .replace(/[\u2028\u2029]/g, ""),
+);
 
 // Leaflet 1.9.4, from the npm package (no CDN at runtime)
 const leafletJs = fs

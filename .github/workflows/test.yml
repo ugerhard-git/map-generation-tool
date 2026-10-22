@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Started by the monthly Vali update (vali.yml) on its branch, as its pull requests do not start this
+  # workflow themselves; can also be started by hand.
+  workflow_dispatch:
 
 permissions:
   contents: read

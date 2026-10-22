@@ -1,0 +1,93 @@
+# Once a month, checks Vali (https://github.com/slashP/Vali) for changed map distributions and continent
+# lists. If they changed, it updates src/data/vali.json on the branch "vali-update", runs the same checks
+# as for any pull request, and opens a pull request for the owner to review (or updates the one still
+# open). If nothing changed, nothing happens. If Vali's files look wrong, tools/vali.js stops, the run
+# fails and GitHub sends a notification. Start it by hand under Actions → Update Vali data → Run workflow.
+name: Update Vali data
+
+on:
+  schedule:
+    - cron: "17 5 3 * *" # the 3rd of every month, 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vali-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # push the branch vali-update
+      pull-requests: write # open or update its pull request
+      actions: write # start the Tests workflow on that branch (see the last step)
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: vali-update
+    steps:
+      # Actions are pinned to exact commits, so a changed tag upstream cannot change what runs here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # needed to push the branch
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Get the latest Vali
+        run: git clone --depth 1 https://github.com/slashP/Vali.git "$RUNNER_TEMP/vali"
+      - name: Import its data
+        id: import
+        run: |
+          node tools/vali.js "$RUNNER_TEMP/vali" --summary "$RUNNER_TEMP/summary.md"
+          if git diff --quiet -- src/data/vali.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check, as for every pull request
+        if: steps.import.outputs.changed == 'true'
+        run: |
+          npx playwright install --with-deps chromium
+          npm run format:check
+          npm run lint
+          npm run build
+          npm test
+      - name: Push the branch and open or update the pull request
+        if: steps.import.outputs.changed == 'true'
+        run: |
+          commit=$(node -p 'require("./src/data/vali.json").source.commit')
+          date=$(node -p 'require("./src/data/vali.json").source.date')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add src/data/vali.json
+          git commit -m "Update the Vali data to Vali ${commit:0:7} ($date)"
+          # The branch only ever holds this one generated change, so it is replaced each month.
+          git push --force origin "$BRANCH"
+          {
+            echo "Vali's map distributions or continent lists changed. This updates \`src/data/vali.json\`, made by \`tools/vali.js\` from [Vali at ${commit:0:7}](https://github.com/slashP/Vali/commit/$commit) ($date)."
+            echo
+            echo "## What changed"
+            echo
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "## Checks"
+            echo
+            echo "Formatting, lint, build and all tests passed in [the update run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). The Tests workflow was also started on this branch, because pull requests opened by a workflow do not start it themselves; merging waits for it."
+            echo
+            echo "After merging, open the published page and check the list of maps and a few countries in the table of locations per country."
+          } > "$RUNNER_TEMP/body.md"
+          open=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh pr edit "$open" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --base main --head "$BRANCH" --title "Update the Vali data" --body-file "$RUNNER_TEMP/body.md"
+          fi
+          # Runs started with the workflow's own token do not start other workflows, except when started
+          # by hand like this, so the required "test" check gets its run on this branch.
+          gh workflow run test.yml --ref "$BRANCH"
