@@ -45,7 +45,8 @@
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, yearTo, target,
  *   radius, giveUpAfter, mapName, tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit
- *   dialog seen).
+ *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
+ *   historyOn (whether that history is kept).
  *   A visitor's own Google key is only kept in sessionStorage ("mapgen.key"), never on disk.
  *   Saved values can be edited by anyone, so everything read back is checked first.
  *
@@ -55,7 +56,8 @@
  *   - Text from outside (Google, saved values) is put on the page with textContent, or passed through
  *     esc() before it goes into innerHTML.
  *   - The sections below follow the page from top to bottom: data, helpers, random spots, step 1, step 2,
- *     step 3, locations per country, map, Google Street View, run, shortfalls, export, dialogs. src/page.html and
+ *     step 3, locations per country, map, Google Street View, run, shortfalls, export, history of searches,
+ *     dialogs. src/page.html and
  *     src/style.css use the same section names.
  */
 
@@ -215,6 +217,12 @@ function wholeNumber(value, lo, hi, d) {
 }
 /* Lower case without accents, for file names: "Château" -> "chateau". */
 const foldAccents = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+/* A new element with properties and children: makeElement("b", {}, "text"). Copied from Lookout. */
+const makeElement = (tag, props = {}, ...kids) => {
+  const n = Object.assign(document.createElement(tag), props);
+  n.append(...kids);
+  return n;
+};
 
 /* ---------- random spots inside a country ---------- */
 // The borders come from country-coder (the same library as countryAt). A country can have many parts
@@ -992,6 +1000,11 @@ function remember(l) {
   seenPanos.add(l.panoId);
 }
 /* Shows an error under the form, or hides it when text is empty. */
+/* Shows a note under the form (not an error), or hides it when text is empty. */
+function showNote(text) {
+  $("note").textContent = text;
+  $("note").hidden = !text;
+}
 function showError(text) {
   $("error").textContent = text;
   $("error").hidden = !text;
@@ -1167,6 +1180,8 @@ async function startSearch() {
   }
   if (!GOOGLE_API_KEY) keyStore.set(key);
   searchSettings = { want: wanted(), rad: radius(), key, giveUpAfter: giveUpAfter() };
+  showNote("");
+  historyId = recordSearch();
   $("target").value = target();
   $("giveUpAfter").value = searchSettings.giveUpAfter;
   hideShortfall();
@@ -1201,6 +1216,10 @@ async function startSearch() {
     setRunning(false);
     searchTargets = new Map();
     paint("Ready.");
+    finishSearch(
+      historyId,
+      e.message === "denied" ? "Google refused the key" : "Google could not be reached",
+    );
     return showError(
       e.message === "denied"
         ? "Google refused the API key. Check that it is right and has the Maps JavaScript API enabled."
@@ -1238,6 +1257,12 @@ async function runSearch() {
     results.length >= currentTarget
       ? `Done: ${fmt(results.length)} locations found ${where}.`
       : `${stopRequested ? "Stopped" : "Search ended"}: ${fmt(results.length)} of ${fmt(currentTarget)} locations found ${where}.`,
+  );
+  finishSearch(
+    historyId,
+    results.length >= currentTarget
+      ? `${fmt(results.length)} locations`
+      : `${stopRequested ? "Stopped after" : "Ended with"} ${fmt(results.length)} of ${fmt(currentTarget)} locations${gaveUp.size ? `; ${gaveUp.size === 1 ? "1 country" : fmt(gaveUp.size) + " countries"} gave up` : ""}`,
   );
   if (!stopRequested && !fatal) showShortfall();
 }
@@ -1365,6 +1390,247 @@ $("clear").onclick = () => {
   paint("Ready.");
 };
 paint();
+
+/* ---------- history of searches ----------
+   Every search started with "Find locations" is kept in this browser ("mapgen.history", newest first,
+   at most HISTORY_MAX), so it can be run again or its settings used again. Copied from Lookout and
+   adapted: without shareable links, an entry holds the search settings themselves (see SearchSettings).
+   An entry never holds the Google key, and the results are not kept. */
+const HISTORY_MAX = 20;
+/**
+ * The settings of a search, as kept in the history.
+ * @typedef {object} SearchSettings
+ * @property {"countries"|"continent"|"world"} scope
+ * @property {string[]} countries   country codes, for scope "countries"
+ * @property {string} continent     Vali's continent code ("europe")
+ * @property {string} distribution  Vali's map code ("aaw"), or "continent" for a continent's own map
+ * @property {boolean} noRoadName
+ * @property {boolean} deadEnd
+ * @property {boolean} yearsOn
+ * @property {number} yearFrom
+ * @property {number} yearTo
+ * @property {number} target
+ * @property {number} radius
+ * @property {number} giveUpAfter
+ * @property {string} mapName       the name typed in step 3, or "" for the suggested one
+ */
+/**
+ * @typedef {object} HistoryEntry
+ * @property {string} id
+ * @property {number} at            when the search started (milliseconds since 1970)
+ * @property {string} title         the map name
+ * @property {SearchSettings} settings
+ * @property {string} [outcome]     "87 locations", "Stopped after 12 of 100 locations", …
+ */
+let historyId = null; // the history entry of the current search, to note how it ended
+const historyOn = () => store.get("historyOn", true) !== false;
+/* The settings in the form now. @returns {SearchSettings} */
+function currentSettings() {
+  return {
+    scope: scope(),
+    countries: [...chosenCountries],
+    continent: $("continent").value,
+    distribution: $("distribution").value,
+    noRoadName: $("noRoadName").checked,
+    deadEnd: $("deadEnd").checked,
+    yearsOn: $("yearsOn").checked,
+    yearFrom: wholeNumber($("yearFrom").value, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
+    yearTo: wholeNumber($("yearTo").value, YEAR_FIRST, YEAR_LAST, YEAR_LAST),
+    target: target(),
+    radius: radius(),
+    giveUpAfter: giveUpAfter(),
+    mapName: $("mapName").value.trim().slice(0, 100),
+  };
+}
+/* Settings read back from the history, checked like everything saved: anything not well-formed becomes
+   the default. @returns {SearchSettings} */
+function cleanSettings(raw) {
+  const r = raw && typeof raw === "object" ? raw : {};
+  const known = (obj, k) => typeof k === "string" && Object.hasOwn(obj, k);
+  return {
+    scope: ["countries", "continent", "world"].includes(r.scope) ? r.scope : "countries",
+    countries: Array.isArray(r.countries)
+      ? [...new Set(r.countries.filter(c => typeof c === "string" && COVERAGE.includes(c)))]
+      : [],
+    continent: known(VALI.continents, r.continent) ? r.continent : DEFAULT_CONTINENT,
+    distribution:
+      r.distribution === "continent" || known(VALI.maps, r.distribution) ? r.distribution : DEFAULT_MAP,
+    noRoadName: r.noRoadName === true,
+    deadEnd: r.deadEnd === true,
+    yearsOn: r.yearsOn === true,
+    yearFrom: wholeNumber(r.yearFrom, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
+    yearTo: wholeNumber(r.yearTo, YEAR_FIRST, YEAR_LAST, YEAR_LAST),
+    target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
+    radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
+    giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
+    mapName: cleanText(r.mapName, 100).trim(),
+  };
+}
+/* The saved history. Saved values can be edited by anyone, so entries that are not well-formed are
+   dropped and their settings checked. @returns {HistoryEntry[]} */
+function loadHistory() {
+  const raw = store.get("history", []);
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const e of raw.slice(0, HISTORY_MAX)) {
+    if (
+      !e ||
+      typeof e !== "object" ||
+      !inRange(e.at, 0, 1e14) ||
+      !e.settings ||
+      typeof e.settings !== "object"
+    )
+      continue;
+    out.push({
+      id: cleanText(e.id, 40) || String(e.at),
+      at: e.at,
+      title: cleanText(e.title, 200) || "Search",
+      settings: cleanSettings(e.settings),
+      outcome: cleanText(e.outcome, 200) || undefined,
+    });
+  }
+  return out;
+}
+const saveHistory = list => store.set("history", list.slice(0, HISTORY_MAX));
+/* Adds the search that is starting to the history. The same settings again move to the top instead of
+   being added twice. Returns the entry's id, or null when the history is switched off. */
+function recordSearch() {
+  if (!historyOn()) return null;
+  const settings = currentSettings(),
+    same = JSON.stringify(settings);
+  const list = loadHistory().filter(e => JSON.stringify(e.settings) !== same);
+  const entry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    at: Date.now(),
+    title: mapName(),
+    settings,
+  };
+  saveHistory([entry, ...list]);
+  return entry.id;
+}
+/* Notes how a search ended on its history entry. */
+function finishSearch(id, outcome) {
+  if (!id) return;
+  const list = loadHistory(),
+    e = list.find(x => x.id === id);
+  if (!e) return;
+  e.outcome = outcome;
+  saveHistory(list);
+  if (!$("history").hidden) renderHistory();
+}
+/* One line about an entry's settings: "Whole world · An Arbitrary World · No road name · 1,000 locations · 1,000 m". */
+function historyDetails(s) {
+  const bits = [];
+  if (s.scope === "world") bits.push("Whole world");
+  else if (s.scope === "continent") bits.push(VALI.continents[s.continent]?.name || "A continent");
+  else if (s.countries.length <= 2) bits.push(s.countries.map(countryName).join(" and ") || "No countries");
+  else bits.push(`${s.countries.length} countries`);
+  if (s.scope !== "countries" || s.countries.length > 1)
+    bits.push(
+      s.distribution === "continent"
+        ? `Vali's ${VALI.continents[s.continent]?.name || "continent"} map`
+        : VALI.maps[s.distribution]?.name || s.distribution,
+    );
+  bits.push(
+    wantedLabel({
+      noRoadName: s.noRoadName,
+      deadEnd: s.deadEnd,
+      years: s.yearsOn ? { from: Math.min(s.yearFrom, s.yearTo), to: Math.max(s.yearFrom, s.yearTo) } : null,
+    }),
+  );
+  bits.push(`${fmt(s.target)} ${s.target === 1 ? "location" : "locations"}`, `${fmt(s.radius)} m`);
+  return bits.join(" · ");
+}
+/* "Today, 14:03", "12 Oct, 09:41", or with the year when it is not this year. */
+function historyWhen(at) {
+  const d = new Date(at),
+    now = new Date();
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return `Today, ${time}`;
+  const opts = { day: "numeric", month: "short" };
+  if (d.getFullYear() !== now.getFullYear()) opts.year = "numeric";
+  return `${d.toLocaleDateString("en-GB", opts)}, ${time}`;
+}
+/* Fills the History dialog. Everything from the saved history is put on the page as text. */
+function renderHistory() {
+  const list = $("historyList"),
+    entries = historyOn() ? loadHistory() : [];
+  list.textContent = "";
+  $("historyEmpty").hidden = entries.length > 0;
+  $("historyEmpty").textContent = historyOn()
+    ? 'No searches yet. Each search you start with "Find locations" appears here.'
+    : "The history is switched off. Tick the box below to keep one.";
+  $("historyClear").hidden = !entries.length;
+  for (const e of entries) {
+    const run = makeElement("button", { type: "button", className: "btn primary" }, "Run again");
+    run.onclick = () => useHistory(e, true);
+    const use = makeElement("button", { type: "button", className: "btn" }, "Use these settings");
+    use.onclick = () => useHistory(e, false);
+    const remove = makeElement("button", { type: "button", className: "linkbtn rm" }, "Remove");
+    remove.setAttribute("aria-label", `Remove "${e.title}" from the history`);
+    remove.onclick = () => {
+      saveHistory(loadHistory().filter(x => x.id !== e.id));
+      renderHistory();
+    };
+    list.append(
+      makeElement(
+        "li",
+        {},
+        makeElement("b", {}, e.title),
+        makeElement("span", { className: "hint" }, historyDetails(e.settings)),
+        makeElement("span", { className: "hint" }, historyWhen(e.at) + (e.outcome ? " · " + e.outcome : "")),
+        makeElement("div", { className: "hist-acts" }, run, use, remove),
+      ),
+    );
+  }
+}
+/* Puts settings from the history into the form and saves them, as if the visitor had chosen them. */
+function applySettings(s) {
+  document.querySelector(`input[name=scope][value="${s.scope}"]`).checked = true;
+  chosenCountries = [...s.countries];
+  $("continent").value = s.continent;
+  whereChanged(); // fills the list of maps for this area
+  if ([...$("distribution").options].some(o => o.value === s.distribution))
+    $("distribution").value = s.distribution;
+  whereChanged();
+  for (const id of ["noRoadName", "deadEnd", "yearsOn"]) {
+    $(id).checked = s[id];
+    store.set(id, s[id]);
+  }
+  for (const id of ["yearFrom", "yearTo", "target", "radius", "giveUpAfter", "mapName"]) {
+    $(id).value = String(s[id]);
+    store.set(id, s[id]);
+  }
+  updateYears();
+  updateMapName();
+  renderShares();
+}
+/* "Run again" (run = true) or "Use these settings" (run = false) on a history entry. */
+function useHistory(e, run) {
+  if (running) return;
+  closeDialog();
+  applySettings(e.settings);
+  if (run) startSearch();
+  else
+    showNote(
+      'These settings come from your history. Check them, then select "Find locations". The locations will be a new random selection.',
+    );
+}
+$("historyBtn").onclick = () => {
+  renderHistory();
+  openDialog("history");
+};
+$("historyX").onclick = closeDialog;
+$("historyClear").onclick = () => {
+  saveHistory([]);
+  renderHistory();
+};
+$("historyOn").checked = historyOn();
+$("historyOn").onchange = () => {
+  store.set("historyOn", $("historyOn").checked);
+  if (!$("historyOn").checked) saveHistory([]); // switching it off also clears it
+  renderHistory();
+};
 
 /* ---------- dialogs: welcome (shown once per browser) ---------- */
 /* Opens a dialog (an element with class "dialog" around a "dialog-box"). While it is open, Escape and a
