@@ -44,7 +44,7 @@
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
- *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, yearTo, target,
+ *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, yearTo, noBadCamera, useOlder, target,
  *   radius, giveUpAfter, walkOn, walkSteps, mapName, tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -92,6 +92,9 @@
  * @property {string} [copyright] "© 2024 Google" for official coverage, else the uploader's name
  * @property {string} [date]
  * @property {Arrow[]} [links]
+ * @property {number} [height]   the full image's height in pixels (8192 now, 6656 for older cameras and the
+ *                               bad camera), or 0 when Google did not say
+ * @property {{pano: string, date: string}[]} [older] the other photos at the same spot, newest first
  * @property {string} [detail]   what was wrong with the answer, if anything
  */
 
@@ -109,11 +112,11 @@ const GOOGLE_API_KEY =
   typeof CONFIG.googleApiKey === "string" && /^[A-Za-z0-9_-]{20,80}$/.test(CONFIG.googleApiKey.trim())
     ? CONFIG.googleApiKey.trim()
     : "";
-/* Countries and territories with official Street View along roads (the same list as Lookout's). In step 2
-   of the plan this list is matched against the countries in Vali's map distributions. */
+/* Countries and territories with official Street View along roads: Lookout's list, plus Lebanon (LB),
+   added at the owner's request (October 2026). All of them are in Vali's map distributions. */
 const COVERAGE = (
   "AD AE AL AR AS AT AU AX BA BD BE BG BM BO BR BT BW CA CC CH CL CO CR CW CX CY CZ DE DK DO EC EE ES FI FO FR " +
-  "GB GE GH GI GL GR GT GU HK HR HU ID IE IL IM IN IS IT JE JO JP KE KG KH KR KZ LA LI LK LS LT LU LV MC ME MK " +
+  "GB GE GH GI GL GR GT GU HK HR HU ID IE IL IM IN IS IT JE JO JP KE KG KH KR KZ LA LB LI LK LS LT LU LV MC ME MK " +
   "MN MO MP MT MX MY NA NG NL NO NP NZ OM PA PE PH PL PR PS PT PY QA RE RO RS RU RW SE SG SI SK SM SN ST SZ TH " +
   "TN TR TW UA UG US UY VI VN XK ZA"
 ).split(" ");
@@ -127,6 +130,13 @@ const PARALLEL = 6; // lookups running at the same time
 const ERROR_LIMIT = 20; // failed lookups in a row (not "nothing found") before the search gives up
 const ERROR_WAIT = 3000; // ms to wait after a failed lookup, before trying again
 const MAX_DRAWN = 5000; // locations drawn on the map; more would make the map slow
+/* The bad camera ("badcam"): low-quality photos, 6656 pixels high. Older cameras made images of that
+   height too, so as in Vali (github.com/slashP/Vali), only photos from BAD_CAMERA_FROM on count as bad
+   camera, and only outside BAD_CAMERA_KEPT, where it is much of the coverage (Vali's India, Nepal and
+   Nigeria, plus Lebanon and São Tomé and Príncipe, chosen by the owner). Current photos are 8192 high. */
+const BAD_CAMERA_HEIGHT = 6656,
+  BAD_CAMERA_FROM = 2020;
+const BAD_CAMERA_KEPT = ["IN", "NP", "NG", "LB", "ST"];
 const GIVE_UP_MIN = 50,
   GIVE_UP_MAX = 100000,
   GIVE_UP_DEFAULT = 2000; // random spots in a row without a new location before a country gives up
@@ -628,13 +638,19 @@ function years() {
   return { from: Math.min(a, b), to: Math.max(a, b) };
 }
 /* What each location must have: { noRoadName, deadEnd, years: {from, to} | null }. */
-const wanted = () => ({ noRoadName: $("noRoadName").checked, deadEnd: $("deadEnd").checked, years: years() });
-for (const id of ["noRoadName", "deadEnd", "yearsOn"]) {
+const wanted = () => ({
+  noRoadName: $("noRoadName").checked,
+  deadEnd: $("deadEnd").checked,
+  years: years(),
+  noBadCamera: $("noBadCamera").checked,
+});
+for (const id of ["noRoadName", "deadEnd", "yearsOn", "noBadCamera"]) {
   $(id).checked = store.get(id, false) === true;
   $(id).onchange = () => {
     store.set(id, $(id).checked);
     updateYears();
     updateWalk();
+    updateOlder();
     updateMapName();
   };
 }
@@ -674,6 +690,15 @@ function updateWalk() {
   $("walkSteps").disabled = !$("deadEnd").checked || !$("walkOn").checked;
 }
 updateWalk();
+// Using an older photo instead of bad camera: only with "No bad camera", and on unless switched off.
+$("useOlder").checked = store.get("useOlder", true) !== false;
+$("useOlder").onchange = () => store.set("useOlder", $("useOlder").checked);
+const useOlder = () => $("noBadCamera").checked && $("useOlder").checked;
+/* The older-photo option can only be changed while "No bad camera" is ticked. */
+function updateOlder() {
+  $("useOlder").disabled = !$("noBadCamera").checked;
+}
+updateOlder();
 /* True if a photo date ("2023-04" or "2023") lies within the chosen years. Unknown dates do not. */
 function inYears(date, y) {
   const year = parseInt(date, 10);
@@ -686,6 +711,7 @@ function wantedLabel(w) {
   if (w.deadEnd) parts.push("end of coverage");
   if (w.years)
     parts.push(w.years.from === w.years.to ? String(w.years.from) : `${w.years.from}–${w.years.to}`);
+  if (w.noBadCamera) parts.push("no bad camera");
   const text = parts.join(", ") || "official coverage";
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -923,7 +949,31 @@ function cleanPano(r) {
     copyright: cleanText(r.copyright),
     date: /^\d{4}(-\d{2})?$/.test(date) ? date : "",
     links,
+    // the full image's height in pixels, which tells the camera (see BAD_CAMERA_HEIGHT); 0 if not given
+    height: inRange(r.height, 1, 100000) ? Math.round(r.height) : 0,
+    older: olderPhotos(r.time, r.panoId),
   };
+}
+/* The other photos at the same spot, newest first: [{ pano, date: "YYYY-MM" }]. They come from the list
+   Google's answers carry as `time`, which Google does not document (checked with the owner, October 2026),
+   so it is read with care: an entry needs a panorama id and a date, and the date is found by its type,
+   not by its name, which is a shortened name ("gD") that can change with any update of Google's script.
+   Without the list, there are simply no other photos. */
+function olderPhotos(time, current) {
+  if (!Array.isArray(time)) return [];
+  const out = [];
+  for (const t of time.slice(0, 50)) {
+    if (!t || typeof t !== "object") continue;
+    const pano = t.pano;
+    if (typeof pano !== "string" || pano === current || !/^[^\s<>"'`\\]{4,300}$/.test(pano)) continue;
+    const when = Object.values(t).find(v => v instanceof Date && !isNaN(v));
+    if (!when) continue;
+    // Google gives the first day of the month, at midnight in the visitor's time zone, so the year and
+    // month are read in local time.
+    const date = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, "0")}`;
+    out.push({ pano, date });
+  }
+  return out.sort((a, b) => b.date.localeCompare(a.date));
 }
 /* Asks Google's script once; resolves to its raw answer and status, or status "NETWORK" after 15 s. */
 function askGoogle(sv, request) {
@@ -960,6 +1010,8 @@ async function lookup(p, radius, key) {
     panoId: d.location?.pano,
     copyright: d.copyright,
     date: d.imageDate,
+    height: d.tiles?.worldSize?.height,
+    time: d.time,
     links: d.links,
   });
 }
@@ -976,6 +1028,8 @@ async function lookupPano(panoId, key) {
     panoId: d.location.pano,
     copyright: d.copyright,
     date: d.imageDate,
+    height: d.tiles?.worldSize?.height,
+    time: d.time,
     links: d.links,
   });
 }
@@ -985,6 +1039,17 @@ const isOfficial = c =>
     .replace(/[©\d\s]/g, "")
     .replace(/LLC|Inc\.?/gi, "")
     .replace(/[,.]/g, "") === "Google";
+/* Whether a panorama in a country is bad camera: 6656 pixels high, photos from BAD_CAMERA_FROM on, and not
+   in a country where bad camera is kept. Without a known height or year, it is not counted as bad camera. */
+function isBadCamera(r, code) {
+  const year = parseInt(r.date, 10);
+  return (
+    r.height === BAD_CAMERA_HEIGHT &&
+    Number.isFinite(year) &&
+    year >= BAD_CAMERA_FROM &&
+    !BAD_CAMERA_KEPT.includes(code)
+  );
+}
 /* What a panorama's arrows say: whether a road name is shown and whether the coverage ends here. */
 function arrowFacts(links) {
   return {
@@ -1019,6 +1084,9 @@ function emptyStats() {
     failed: 0, // lookups that failed (network, Google errors)
     walkSteps: 0, // panoramas looked up while following roads (see walkToEnd)
     walkEnds: 0, // ends of coverage found by following a road
+    badCamera: 0, // left out as bad camera
+    olderLookups: 0, // older photos looked up instead of bad camera
+    olderUsed: 0, // locations that are an older photo used instead of bad camera
     failedInRow: 0,
   };
 }
@@ -1081,6 +1149,8 @@ function paint(status) {
   if (stats.tooClose) add(stats.tooClose, "too close to another");
   if (stats.outside) add(stats.outside, "across the border");
   if (stats.failed) add(stats.failed, "failed lookups");
+  if (stats.badCamera) add(stats.badCamera, "bad camera");
+  if (stats.olderUsed) add(stats.olderUsed, "older photos used instead");
   if (stats.walkSteps) add(stats.walkSteps, "steps along roads");
   if (stats.walkEnds) add(stats.walkEnds, "ends found by following roads");
   if (results.length > MAX_DRAWN) add(MAX_DRAWN, "shown on the map");
@@ -1158,6 +1228,19 @@ async function walkToEnd(start, code, maxSteps, key) {
   }
   return null;
 }
+/* An older photo at the same spot that is not bad camera, for a panorama that is: the newest of up to
+   OLDER_TRIES other photos that Google confirms as official and not bad camera. One lookup each.
+   @returns {Promise<PanoAnswer|null>} */
+const OLDER_TRIES = 3;
+async function olderPhoto(r, code, key) {
+  for (const o of r.older.slice(0, OLDER_TRIES)) {
+    if (stopRequested || fatal) return null;
+    stats.olderLookups++;
+    const a = await lookupPano(o.pano, key);
+    if (a.status === "OK" && isOfficial(a.copyright) && !isBadCamera(a, code)) return a;
+  }
+  return null;
+}
 /* One random spot in a country: look it up and keep the panorama if it matches. */
 async function attempt(code, want, rad, key) {
   const p = randomPointIn(code);
@@ -1208,6 +1291,21 @@ async function attempt(code, want, rad, key) {
       facts = arrowFacts(r.links);
     }
   }
+  let fromOlder = false;
+  // Bad camera, with an older photo allowed: use the newest older photo that is not bad camera. It then
+  // goes through every check below, as its arrows and date can differ.
+  if (want.noBadCamera && searchSettings.useOlder && isOfficial(r.copyright) && isBadCamera(r, code)) {
+    const older = await olderPhoto(r, code, key);
+    if (keyRefused) {
+      fatal = "Google refused the API key. Check that it is right and has the Maps JavaScript API enabled.";
+      return;
+    }
+    if (older) {
+      fromOlder = true;
+      r = older;
+      facts = arrowFacts(r.links);
+    }
+  }
   if (
     !isOfficial(r.copyright) ||
     (want.noRoadName && !facts.noRoadName) ||
@@ -1220,6 +1318,11 @@ async function attempt(code, want, rad, key) {
   }
   if (countryAt(r.lat, r.lng) !== code) {
     stats.outside++;
+    miss(code);
+    return;
+  }
+  if (want.noBadCamera && isBadCamera(r, code)) {
+    stats.badCamera++;
     miss(code);
     return;
   }
@@ -1242,6 +1345,7 @@ async function attempt(code, want, rad, key) {
     deadEnd: facts.deadEnd,
   };
   results.push(l);
+  if (fromOlder) stats.olderUsed++; // counted only when it became a location
   foundBy.set(code, (foundBy.get(code) || 0) + 1);
   missesInRow.set(code, 0);
   remember(l);
@@ -1277,7 +1381,14 @@ async function startSearch() {
     return;
   }
   if (!GOOGLE_API_KEY) keyStore.set(key);
-  searchSettings = { want: wanted(), rad: radius(), key, giveUpAfter: giveUpAfter(), walkSteps: walkSteps() };
+  searchSettings = {
+    want: wanted(),
+    rad: radius(),
+    key,
+    giveUpAfter: giveUpAfter(),
+    walkSteps: walkSteps(),
+    useOlder: useOlder(),
+  };
   showNote("");
   historyId = recordSearch();
   $("target").value = target();
@@ -1380,8 +1491,15 @@ async function runSearch() {
   if (!stopRequested && !fatal) showShortfall();
 }
 /** The settings of the current search, kept for going on after "Fill the gap".
- *  @type {{want: object, rad: number, key: string, giveUpAfter: number, walkSteps: number}} */
-let searchSettings = { want: {}, rad: RADIUS_DEFAULT, key: "", giveUpAfter: GIVE_UP_DEFAULT, walkSteps: 0 };
+ *  @type {{want: object, rad: number, key: string, giveUpAfter: number, walkSteps: number, useOlder: boolean}} */
+let searchSettings = {
+  want: {},
+  rad: RADIUS_DEFAULT,
+  key: "",
+  giveUpAfter: GIVE_UP_DEFAULT,
+  walkSteps: 0,
+  useOlder: false,
+};
 $("form").onsubmit = e => {
   e.preventDefault();
   startSearch();
@@ -1522,6 +1640,8 @@ const HISTORY_MAX = 20;
  * @property {boolean} noRoadName
  * @property {boolean} deadEnd
  * @property {boolean} yearsOn
+ * @property {boolean} noBadCamera  leave out bad camera coverage
+ * @property {boolean} useOlder     use an older photo at the spot instead of bad camera, if there is one
  * @property {number} yearFrom
  * @property {number} yearTo
  * @property {number} target
@@ -1551,6 +1671,8 @@ function currentSettings() {
     noRoadName: $("noRoadName").checked,
     deadEnd: $("deadEnd").checked,
     yearsOn: $("yearsOn").checked,
+    noBadCamera: $("noBadCamera").checked,
+    useOlder: $("useOlder").checked,
     yearFrom: wholeNumber($("yearFrom").value, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
     yearTo: wholeNumber($("yearTo").value, YEAR_FIRST, YEAR_LAST, YEAR_LAST),
     target: target(),
@@ -1577,6 +1699,8 @@ function cleanSettings(raw) {
     noRoadName: r.noRoadName === true,
     deadEnd: r.deadEnd === true,
     yearsOn: r.yearsOn === true,
+    noBadCamera: r.noBadCamera === true,
+    useOlder: r.useOlder !== false,
     yearFrom: wholeNumber(r.yearFrom, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
     yearTo: wholeNumber(r.yearTo, YEAR_FIRST, YEAR_LAST, YEAR_LAST),
     target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
@@ -1658,8 +1782,10 @@ function historyDetails(s) {
       noRoadName: s.noRoadName,
       deadEnd: s.deadEnd,
       years: s.yearsOn ? { from: Math.min(s.yearFrom, s.yearTo), to: Math.max(s.yearFrom, s.yearTo) } : null,
+      noBadCamera: s.noBadCamera,
     }),
   );
+  if (s.noBadCamera && s.useOlder) bits.push("older photos instead");
   if (s.deadEnd && s.walkOn) bits.push(`roads followed up to ${fmt(s.walkSteps)} steps`);
   bits.push(`${fmt(s.target)} ${s.target === 1 ? "location" : "locations"}`, `${fmt(s.radius)} m`);
   return bits.join(" · ");
@@ -1716,7 +1842,7 @@ function applySettings(s) {
   if ([...$("distribution").options].some(o => o.value === s.distribution))
     $("distribution").value = s.distribution;
   whereChanged();
-  for (const id of ["noRoadName", "deadEnd", "yearsOn", "walkOn"]) {
+  for (const id of ["noRoadName", "deadEnd", "yearsOn", "noBadCamera", "useOlder", "walkOn"]) {
     $(id).checked = s[id];
     store.set(id, s[id]);
   }
@@ -1726,6 +1852,7 @@ function applySettings(s) {
   }
   updateYears();
   updateWalk();
+  updateOlder();
   updateMapName();
   renderShares();
 }
@@ -1963,7 +2090,14 @@ async function continueSearch() {
   if (!GOOGLE_API_KEY) keyStore.set(key);
   hideResume();
   restoreSearch(savedSearch);
-  searchSettings = { want: wanted(), rad: radius(), key, giveUpAfter: giveUpAfter(), walkSteps: walkSteps() };
+  searchSettings = {
+    want: wanted(),
+    rad: radius(),
+    key,
+    giveUpAfter: giveUpAfter(),
+    walkSteps: walkSteps(),
+    useOlder: useOlder(),
+  };
   if (!(await googleReady(key))) {
     offerSavedSearch(); // still there, for another try
     return;

@@ -1,6 +1,6 @@
 # Map Generation Tool
 
-Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random official Google Street View locations in one or more countries, a continent or the whole world, optionally only where Street View shows no road name, where the coverage ends (one arrow), where the photos are from certain years, or any mix of these.
+Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random official Google Street View locations in one or more countries, a continent or the whole world, optionally only where Street View shows no road name, where the coverage ends (one arrow), where the photos are from certain years, without the low-quality "bad camera" (using an older photo at the spot instead, where there is one), or any mix of these.
 
 **Work in progress.** See [the plan](docs/plan.md) for what comes next.
 

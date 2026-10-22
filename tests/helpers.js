@@ -3,8 +3,9 @@ const { PAGE, isSite, serveSite } = require("./site.js");
 
 /** A stand-in for Google's Maps JavaScript API. Each getPanorama request is answered by the page's
  *  window.__sv(request), which a test sets with page.evaluate: it returns null (nothing found), an
- *  object with a `status` (an error), or { id, lat, lng, copyright?, links?, date? } (a panorama; the
- *  photo date is "2023-04" unless `date` says otherwise, "" for none).
+ *  object with a `status` (an error), or { id, lat, lng, copyright?, links?, date?, height? } (a
+ *  panorama; the photo date is "2023-04" unless `date` says otherwise, "" for none; `height` is the full
+ *  image's height in pixels, none if left out; `time` lists the photos at the spot as { pano, date }).
  *  mode "denied" makes Google refuse the key, as it does on a wrong key. */
 const googleScript = mode =>
   mode === "denied"
@@ -19,6 +20,14 @@ const googleScript = mode =>
             const d = { location: { pano: a.id, latLng: { lat: () => a.lat, lng: () => a.lng } },
               copyright: a.copyright || "© 2024 Google", imageDate: a.date ?? "2023-04" };
             if (a.links !== undefined) d.links = a.links;
+            if (a.height) d.tiles = { worldSize: { width: a.height * 2, height: a.height } };
+            // the other photos at the spot, shaped like Google's undocumented "time" list: the date is a
+            // Date for the first of the month, under a shortened name ("gD", or a.dateKey to test a rename)
+            if (a.time)
+              d.time = a.time.map(t => ({
+                pano: t.pano,
+                [a.dateKey || "gD"]: new Date(Number(t.date.slice(0, 4)), Number(t.date.slice(5, 7)) - 1, 1),
+              }));
             cb(d, "OK");
           };
           setTimeout(answer, window.__svDelay || 0);

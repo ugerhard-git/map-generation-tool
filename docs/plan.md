@@ -33,6 +33,7 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 4. **History** of search settings (done): the last 20 searches in this browser, with "Run again", "Use these settings", remove, clear, and a switch to turn it off.
 5. **Following roads to the end of coverage** (done): from a found panorama that is not an end, up to 150 steps (a setting) in one random direction, straight on at junctions; on by default for "End of coverage". Whole roads are never walked: Chile's Ruta 5 alone would be about 300,000 lookups.
 6. **Resuming a long search** after closing the tab (done): saved in IndexedDB while it runs; on the next visit, continue, download what was found, or discard. One unfinished search is kept; never the key.
+7. **No bad camera** (done): leaves out panoramas 6656 pixels high from 2020 on, as Vali does, except in India, Nepal, Nigeria, Lebanon, and São Tomé and Príncipe; off by default. With it, "Use an older photo instead" (on by default) uses the newest photo at the spot that is not bad camera, from the list of photos Google's answers carry (`time`, undocumented: without it, nothing changes). Lebanon was added to the countries offered.
 
 ## Known limits
 
@@ -41,4 +42,5 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 - The country borders built into the page include the sea around coasts and islands, so in island countries more random spots land on water and find nothing. A larger radius helps.
 - France's borders include Clipperton Island, which the borders count as France itself; a few spots land there.
+- The older photos come from a list that Google's official API carries but does not document (`time`); Google could change or remove it. The app reads it defensively, and without it simply leaves bad camera out.
 - Trekker coverage (taken on foot) is not filtered out: Google's official API does not say which camera took a panorama. Indirect signs (closer spacing between panoramas, image size) were discussed and parked for now (October 2026).
