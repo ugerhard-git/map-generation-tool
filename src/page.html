@@ -77,6 +77,9 @@
           <li>
             <b>Download the map file</b> when the search is done, or stop it and download what was found.
           </li>
+          <li>
+            <b>Run a search again</b> later from "History": your last 20 searches are kept in this browser.
+          </li>
         </ol>
         <div class="welcome-warn">
           <b>Large searches take a long time.</b>
@@ -84,6 +87,34 @@
           of them can take hours. You can stop at any time and keep what was found.
         </div>
         <button type="button" class="btn primary" id="welcomeOk">Start</button>
+      </div>
+    </div>
+    <!-- History dialog, opened by "History" next to "How it works" (app.js: history of searches) -->
+    <div class="dialog" id="history" hidden>
+      <div
+        class="dialog-box"
+        id="historyBox"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="historyTitle"
+        tabindex="-1"
+      >
+        <button type="button" class="dialog-x" id="historyX" aria-label="Close">×</button>
+        <h2 id="historyTitle">History</h2>
+        <p class="hint">
+          Your last searches, kept in this browser only. Only the settings are kept, not the results: running
+          a search again gives a new random selection.
+        </p>
+        <p id="historyEmpty" hidden></p>
+        <ul class="history-list" id="historyList"></ul>
+        <button type="button" class="linkbtn" id="historyClear" hidden>Clear history</button>
+        <label class="check"
+          ><input type="checkbox" id="historyOn" checked /><span
+            >Keep a history of my searches<br /><span class="hint"
+              >Up to 20 searches, in this browser only. Switching it off also clears it.</span
+            ></span
+          ></label
+        >
       </div>
     </div>
     <!-- The app: settings panel on the left, map on the right (stacked on phones) -->
@@ -95,6 +126,7 @@
         <p class="lede">Build a map-making.app map of random official Street View locations.</p>
         <div class="toplinks">
           <button type="button" class="howbtn" id="howBtn">How it works</button>
+          <button type="button" class="howbtn" id="historyBtn">History</button>
         </div>
 
         <fieldset id="fields">
@@ -255,6 +287,7 @@
         <button class="go" id="go" type="submit">Find locations</button>
         <button class="btn stop" id="stop" type="button" hidden>Stop and keep what was found</button>
         <div class="msg error" id="error" hidden role="alert"></div>
+        <div class="msg note" id="note" hidden role="status"></div>
         <!-- At the end of a search where countries fell short: fill the gap or keep what was found
              (app.js: shortfalls) -->
         <div class="msg note" id="shortfall" hidden role="status">

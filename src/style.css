@@ -103,7 +103,7 @@ fieldset:disabled {
   font-size: 1.1rem;
 }
 
-/* ---------- "How it works" and the dialogs (first-visit welcome) ---------- */
+/* ---------- "How it works", "History" and the dialogs (first-visit welcome, history) ---------- */
 .howbtn {
   font: inherit;
   border: 0;
@@ -189,6 +189,51 @@ fieldset:disabled {
 }
 .dialog-x:hover {
   background: var(--line);
+}
+/* A button that looks like a link ("Remove", "Clear history"); copied from Lookout */
+.linkbtn {
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--blue-dark);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.linkbtn.rm {
+  color: var(--red);
+}
+/* The list in the History dialog */
+.history-list {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+}
+.history-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.history-list li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.history-list .hint {
+  margin: 0;
+}
+.hist-acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 6px;
+}
+.hist-acts .btn {
+  padding: 6px 12px;
+}
+.hist-acts .rm {
+  margin-left: auto;
 }
 .dialog-box > .btn.primary {
   margin-top: 14px;

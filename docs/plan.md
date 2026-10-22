@@ -30,7 +30,7 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 1. **Search one country** (done): the search loop, official coverage only, both criteria, the count, spacing, live progress, stop and download, tags. Since then: the country field suggests countries while typing, a larger "Open in Street View" button, tag options (country name, what it has, year), and the photo years criterion.
 2. **Areas and distributions** (done): whole world, continents, chosen countries, the Vali import and the monthly workflow, the per-country table.
 3. **Shortfalls** (done): attempt budgets (a setting, 2,000 spots by default) and the end-of-search offer.
-4. **History** of search settings.
+4. **History** of search settings (done): the last 20 searches in this browser, with "Run again", "Use these settings", remove, clear, and a switch to turn it off.
 5. **Later, if needed:** following roads to dead ends; resuming a long search after closing the tab.
 
 ## Known limits
