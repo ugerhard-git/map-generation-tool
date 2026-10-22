@@ -84,7 +84,8 @@
         <div class="welcome-warn">
           <b>Large searches take a long time.</b>
           Every location is found by trying random spots until one matches. Dead ends are rare, so thousands
-          of them can take hours. You can stop at any time and keep what was found.
+          of them can take hours. You can stop at any time and keep what was found. If you close the tab, the
+          search is kept: you can continue it next time.
         </div>
         <button type="button" class="btn primary" id="welcomeOk">Start</button>
       </div>
@@ -127,6 +128,17 @@
         <div class="toplinks">
           <button type="button" class="howbtn" id="howBtn">How it works</button>
           <button type="button" class="howbtn" id="historyBtn">History</button>
+        </div>
+
+        <!-- An unfinished search from an earlier visit, kept in this browser (app.js: unfinished search) -->
+        <div class="msg note" id="resume" hidden role="status">
+          <b id="resumeTitle"></b>
+          <p id="resumeText"></p>
+          <div class="acts">
+            <button type="button" class="btn primary" id="resumeGo">Continue</button>
+            <button type="button" class="btn" id="resumeShow">Download what was found</button>
+            <button type="button" class="btn" id="resumeDrop">Discard</button>
+          </div>
         </div>
 
         <fieldset id="fields">

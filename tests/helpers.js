@@ -26,10 +26,13 @@ const googleScript = mode =>
       window.__mapgenReady();`;
 
 /** Opens the page in a new context. `google` is the mode of the simulated script ("ok", "denied" or
- *  "unreachable"). Waits shorter than 10 s are cut to 20 ms, so retries do not slow the tests down.
+ *  "unreachable"), `context` an existing browser context for a second tab. Waits shorter than 10 s are
+ *  cut to 20 ms, so retries do not slow the tests down.
  *  Returns { page, errors }. */
-async function openPage(browser, google = "ok") {
-  const ctx = await browser.newContext({ viewport: { width: 1360, height: 860 } });
+async function openPage(browser, google = "ok", context = null) {
+  // With `context`, the page opens as another tab of the same browser: it shares what is saved in the
+  // browser (localStorage, IndexedDB) but not what is kept for one tab only (sessionStorage).
+  const ctx = context || (await browser.newContext({ viewport: { width: 1360, height: 860 } }));
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", e => errors.push(String(e)));

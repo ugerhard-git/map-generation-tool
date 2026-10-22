@@ -48,6 +48,7 @@
  *   radius, giveUpAfter, walkOn, walkSteps, mapName, tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
+ *   An unfinished search (settings, locations, progress) is kept in IndexedDB, see "unfinished search".
  *   A visitor's own Google key is only kept in sessionStorage ("mapgen.key"), never on disk.
  *   Saved values can be edited by anyone, so everything read back is checked first.
  *
@@ -58,7 +59,7 @@
  *     esc() before it goes into innerHTML.
  *   - The sections below follow the page from top to bottom: data, helpers, random spots, step 1, step 2,
  *     step 3, locations per country, map, Google Street View, run, shortfalls, export, history of searches,
- *     dialogs. src/page.html and
+ *     unfinished search, dialogs. src/page.html and
  *     src/style.css use the same section names.
  */
 
@@ -1303,25 +1304,36 @@ async function startSearch() {
           : `${codes.length} countries`;
   if (layer) layer.clearLayers();
   showArea(codes);
+  hideResume();
+  clearSavedSearch(); // a new search replaces an unfinished one
+  if (!(await googleReady(key))) {
+    searchTargets = new Map();
+    paint("Ready.");
+    return;
+  }
+  await runSearch();
+}
+/* Loads Google's script for a search. On failure, says why (and notes it in the history) and returns
+   false. */
+async function googleReady(key) {
   setRunning(true);
   paint("Loading Google's Street View service…");
   try {
     await loadGoogleScript(key);
+    return true;
   } catch (e) {
     setRunning(false);
-    searchTargets = new Map();
-    paint("Ready.");
     finishSearch(
       historyId,
       e.message === "denied" ? "Google refused the key" : "Google could not be reached",
     );
-    return showError(
+    showError(
       e.message === "denied"
         ? "Google refused the API key. Check that it is right and has the Maps JavaScript API enabled."
         : "Google's Street View service could not be loaded. Check your connection, or switch off a blocker for this page.",
     );
+    return false;
   }
-  await runSearch();
 }
 /* Runs the workers until every country has its number, has given up, or the visitor stops; then says
    how it went, and offers to fill the gap when countries fell short. Used for a new search and to go on
@@ -1332,6 +1344,7 @@ async function runSearch() {
   stopRequested = false;
   lastPaint = 0;
   paintSoon();
+  keepSaving();
   const worker = async () => {
     while (!stopRequested && !fatal) {
       const code = pickCountry();
@@ -1359,6 +1372,9 @@ async function runSearch() {
       ? `${fmt(results.length)} locations`
       : `${stopRequested ? "Stopped after" : "Ended with"} ${fmt(results.length)} of ${fmt(currentTarget)} locations${gaveUp.size ? `; ${gaveUp.size === 1 ? "1 country" : fmt(gaveUp.size) + " countries"} gave up` : ""}`,
   );
+  // A finished search needs no resuming; any other end is kept, so it can be continued later.
+  if (results.length >= currentTarget) clearSavedSearch();
+  else saveSearch();
   if (!stopRequested && !fatal) showShortfall();
 }
 /** The settings of the current search, kept for going on after "Fill the gap".
@@ -1431,6 +1447,7 @@ async function fillGap() {
 $("fillGap").onclick = fillGap;
 $("keepFound").onclick = () => {
   hideShortfall();
+  clearSavedSearch();
   paint(`Kept ${fmt(results.length)} locations. Download the map file when you are ready.`);
 };
 
@@ -1477,6 +1494,7 @@ $("copy").onclick = async () => {
 };
 $("clear").onclick = () => {
   hideShortfall();
+  clearSavedSearch();
   results = [];
   stats = emptyStats();
   searchTargets = new Map();
@@ -1735,6 +1753,235 @@ $("historyOn").onchange = () => {
   if (!$("historyOn").checked) saveHistory([]); // switching it off also clears it
   renderHistory();
 };
+
+/* ---------- unfinished search ----------
+   While a search runs, its state is saved in this browser every SAVE_EVERY ms, and again when it stops
+   or ends short, so that it can be continued after the tab was closed. It goes into IndexedDB, the
+   browser's built-in database, because 130,000 locations are more than localStorage holds (about 5 MB).
+   Only one search is kept: a new search replaces it, and a finished search, "Keep what was found",
+   "Clear" and "Discard" remove it. It holds the settings, the locations and each country's progress,
+   never the Google key: a visitor's own key has to be entered again in a new tab. Like every saved
+   value, it is checked when read back (cleanSaved). */
+const SAVE_EVERY = 5000;
+const DB_NAME = "mapgen",
+  DB_STORE = "search",
+  DB_KEY = "unfinished";
+/* Runs one request on the database; resolves to its result, or null if the browser has no IndexedDB
+   or refuses it (some private windows). */
+function dbRequest(mode, makeRequest) {
+  return new Promise(resolve => {
+    let open;
+    try {
+      open = indexedDB.open(DB_NAME, 1);
+    } catch {
+      return resolve(null);
+    }
+    open.onupgradeneeded = () => open.result.createObjectStore(DB_STORE);
+    open.onerror = () => resolve(null);
+    open.onsuccess = () => {
+      const db = open.result;
+      try {
+        const req = makeRequest(db.transaction(DB_STORE, mode).objectStore(DB_STORE));
+        req.onsuccess = () => {
+          db.close();
+          resolve(req.result ?? null);
+        };
+        req.onerror = () => {
+          db.close();
+          resolve(null);
+        };
+      } catch {
+        db.close();
+        resolve(null);
+      }
+    };
+  });
+}
+let saving = false,
+  saveAgain = false,
+  saveTimer = 0;
+/* Saves the current search as it is now. A save asked for while one is being written follows right
+   after it, so the last state is never lost. */
+async function saveSearch() {
+  if (saving) {
+    saveAgain = true;
+    return;
+  }
+  if (!searchTargets.size) return;
+  saving = true;
+  await dbRequest("readwrite", store =>
+    store.put(
+      {
+        version: 1,
+        savedAt: Date.now(),
+        title: mapName(),
+        settings: currentSettings(),
+        area: searchArea,
+        historyId,
+        total: currentTarget,
+        targets: [...searchTargets],
+        found: [...foundBy],
+        gaveUp: [...gaveUp],
+        noSpots: [...noSpots],
+        misses: [...missesInRow],
+        stats: { ...stats },
+        results: results.map(l => ({ ...l })),
+      },
+      DB_KEY,
+    ),
+  );
+  saving = false;
+  if (saveAgain) {
+    saveAgain = false;
+    await saveSearch();
+  }
+}
+/* Saves every SAVE_EVERY ms while the search runs. */
+function keepSaving() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    if (!running) return;
+    saveSearch();
+    keepSaving();
+  }, SAVE_EVERY);
+}
+function clearSavedSearch() {
+  clearTimeout(saveTimer);
+  saveAgain = false;
+  return dbRequest("readwrite", store => store.delete(DB_KEY));
+}
+/* A location read back from the database, checked; null if it is not well-formed. @returns {Location|null} */
+function cleanLocation(l) {
+  if (!l || typeof l !== "object") return null;
+  if (!inRange(l.lat, -90, 90) || !inRange(l.lng, -180, 180) || !inRange(l.heading, 0, 360)) return null;
+  if (typeof l.panoId !== "string" || !/^[^\s<>"'`\\]{4,300}$/.test(l.panoId) || !COVERAGE.includes(l.cc))
+    return null;
+  const date = cleanText(l.date, 10);
+  return {
+    lat: l.lat,
+    lng: l.lng,
+    heading: l.heading,
+    panoId: l.panoId,
+    date: /^\d{4}(-\d{2})?$/.test(date) ? date : "",
+    cc: l.cc,
+    noRoadName: l.noRoadName === true,
+    deadEnd: l.deadEnd === true,
+  };
+}
+/* The saved search, checked like every saved value, or null if there is none or it is broken. */
+function cleanSaved(raw) {
+  if (!raw || typeof raw !== "object" || raw.version !== 1 || !inRange(raw.savedAt, 0, 1e14)) return null;
+  const count = n => (Number.isInteger(n) && n >= 0 && n <= TARGET_MAX ? n : 0);
+  const pairs = list =>
+    Array.isArray(list)
+      ? list.filter(x => Array.isArray(x) && COVERAGE.includes(x[0])).map(([c, n]) => [c, count(n)])
+      : [];
+  const codes = list => (Array.isArray(list) ? list.filter(c => COVERAGE.includes(c)) : []);
+  const targets = pairs(raw.targets).filter(([, n]) => n > 0);
+  if (!targets.length) return null;
+  const results = Array.isArray(raw.results)
+    ? raw.results.slice(0, TARGET_MAX).map(cleanLocation).filter(Boolean)
+    : [];
+  const stats = emptyStats();
+  for (const k of Object.keys(stats))
+    if (Number.isInteger(raw.stats?.[k]) && raw.stats[k] >= 0) stats[k] = raw.stats[k];
+  return {
+    savedAt: raw.savedAt,
+    title: cleanText(raw.title, 200) || "Search",
+    settings: cleanSettings(raw.settings),
+    area: cleanText(raw.area, 200) || "your search",
+    historyId: cleanText(raw.historyId, 40) || null,
+    total: count(raw.total) || targets.reduce((n, [, t]) => n + t, 0),
+    targets,
+    found: pairs(raw.found),
+    gaveUp: codes(raw.gaveUp),
+    noSpots: codes(raw.noSpots),
+    misses: pairs(raw.misses),
+    stats,
+    results,
+  };
+}
+let savedSearch = null;
+/* On opening the page: offers to continue an unfinished search, if there is one. */
+async function offerSavedSearch() {
+  savedSearch = cleanSaved(await dbRequest("readonly", store => store.get(DB_KEY)));
+  if (!savedSearch || running) return;
+  const s = savedSearch;
+  $("resumeTitle").textContent = `An unfinished search: ${s.title}`;
+  $("resumeText").textContent =
+    `${historyWhen(s.savedAt)} · ${historyDetails(s.settings)}. ` +
+    `${fmt(s.results.length)} of ${fmt(s.total)} locations found so far.`;
+  $("resume").hidden = false;
+}
+function hideResume() {
+  $("resume").hidden = true;
+}
+/* Puts the saved search back: its settings in the form, its locations on the map and in the table. */
+function restoreSearch(s) {
+  applySettings(s.settings);
+  $("mapName").value = s.settings.mapName;
+  searchTargets = new Map(s.targets);
+  foundBy = new Map();
+  noSpots = new Set(s.noSpots);
+  gaveUp = new Set(s.gaveUp);
+  missesInRow = new Map(s.misses);
+  currentTarget = s.total;
+  searchArea = s.area;
+  historyId = s.historyId;
+  stats = s.stats;
+  stats.failedInRow = 0;
+  results = [];
+  cells = new Map();
+  seenPanos = new Set();
+  fatal = "";
+  stopRequested = false;
+  if (layer) layer.clearLayers();
+  for (const l of s.results) {
+    // Only locations that fit the saved targets, and never the same panorama twice.
+    if (seenPanos.has(l.panoId) || (foundBy.get(l.cc) || 0) >= (searchTargets.get(l.cc) || 0)) continue;
+    results.push(l);
+    foundBy.set(l.cc, (foundBy.get(l.cc) || 0) + 1);
+    remember(l);
+    if (results.length <= MAX_DRAWN) drawLocation(l);
+  }
+  showArea([...searchTargets.keys()]);
+}
+/* "Continue": puts the search back and runs it on. */
+async function continueSearch() {
+  if (running || !savedSearch) return;
+  showError("");
+  const key = GOOGLE_API_KEY || $("apiKey").value.trim();
+  if (!key) {
+    showError(
+      'Enter your Google API key in step 3, then select "Continue" again. Your own key is not kept after the tab is closed.',
+    );
+    $("apiKey").focus();
+    return;
+  }
+  if (!GOOGLE_API_KEY) keyStore.set(key);
+  hideResume();
+  restoreSearch(savedSearch);
+  searchSettings = { want: wanted(), rad: radius(), key, giveUpAfter: giveUpAfter(), walkSteps: walkSteps() };
+  if (!(await googleReady(key))) {
+    offerSavedSearch(); // still there, for another try
+    return;
+  }
+  await runSearch();
+}
+$("resumeGo").onclick = continueSearch;
+$("resumeShow").onclick = () => {
+  if (running || !savedSearch) return;
+  hideResume();
+  showError("");
+  restoreSearch(savedSearch);
+  paint(`${fmt(results.length)} locations from your unfinished search. Download them, or search again.`);
+};
+$("resumeDrop").onclick = () => {
+  hideResume();
+  savedSearch = null;
+  clearSavedSearch();
+};
+offerSavedSearch();
 
 /* ---------- dialogs: welcome (shown once per browser) ---------- */
 /* Opens a dialog (an element with class "dialog" around a "dialog-box"). While it is open, Escape and a

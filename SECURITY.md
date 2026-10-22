@@ -13,4 +13,5 @@ Please do not report security problems in public issues. Use GitHub's private re
 - No libraries are loaded from CDNs at runtime; they are embedded by the build (Leaflet, country-coder), pinned to exact versions and covered by the script fingerprints.
 - API keys are never committed. The site's Google key is added at publish time from a GitHub secret. It is visible in the published page, as for any browser app, so it must be restricted in the Google Cloud console to the site's address and to the Maps JavaScript API, with a daily quota.
 - A visitor's own Google key is kept only for the browser tab, and never shown in error messages.
+- An unfinished search (its settings, the locations found and each country's progress) is kept in the visitor's browser only, in IndexedDB, never with the key, and is checked when read back.
 - The history of searches is kept in the visitor's browser only. It holds the search settings, never the key or the results, and is checked when read back.

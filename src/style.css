@@ -528,6 +528,10 @@ a:focus-visible {
   color: var(--red);
   border: 1.5px solid #f3c4bf;
 }
+/* The unfinished search, at the top of the panel */
+#resume {
+  margin: -8px 0 22px;
+}
 /* The offer at the end of a search where countries fell short */
 .msg.note {
   background: var(--amber-soft);
