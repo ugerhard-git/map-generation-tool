@@ -31,7 +31,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 2. **Areas and distributions** (done): whole world, continents, chosen countries, the Vali import and the monthly workflow, the per-country table.
 3. **Shortfalls** (done): attempt budgets (a setting, 2,000 spots by default) and the end-of-search offer.
 4. **History** of search settings (done): the last 20 searches in this browser, with "Run again", "Use these settings", remove, clear, and a switch to turn it off.
-5. **Later, if needed:** following roads to dead ends; resuming a long search after closing the tab.
+5. **Following roads to the end of coverage** (done): from a found panorama that is not an end, up to 150 steps (a setting) in one random direction, straight on at junctions; on by default for "End of coverage". Whole roads are never walked: Chile's Ruta 5 alone would be about 300,000 lookups.
+6. **Resuming a long search** after closing the tab (next).
 
 ## Known limits
 
