@@ -53,9 +53,15 @@ async function openPage(browser, google = "ok") {
   return { page, errors };
 }
 
-/** Fills the form and starts a search: country, criteria, number, key. */
-async function search(page, { country = "MT", noRoadName = false, deadEnd = false, target = 5 } = {}) {
-  await page.selectOption("#country", country);
+/** Chooses a country in step 1 as a visitor would: type its name, pick the first suggestion. */
+async function chooseCountry(page, name) {
+  await page.fill("#country", name);
+  await page.keyboard.press("Enter");
+}
+
+/** Fills the form and starts a search: country (its name), criteria, number, key. */
+async function search(page, { country = "Malta", noRoadName = false, deadEnd = false, target = 5 } = {}) {
+  await chooseCountry(page, country);
   await page.setChecked("#noRoadName", noRoadName);
   await page.setChecked("#deadEnd", deadEnd);
   await page.fill("#target", String(target));
@@ -69,4 +75,4 @@ const searchEnded = page =>
     timeout: 60000,
   });
 
-module.exports = { openPage, search, searchEnded };
+module.exports = { openPage, chooseCountry, search, searchEnded };

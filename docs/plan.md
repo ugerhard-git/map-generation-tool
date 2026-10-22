@@ -9,7 +9,7 @@ The plan agreed with the owner on 22 October 2026. Each step is one pull request
 - **Criteria**, ticked separately:
   - **No road name:** none of the panorama's arrows has a label.
   - **End of coverage (dead end):** exactly one arrow. The camera faces away from the arrow, towards where the coverage stops.
-  - With both ticked, a location must have both. Every location is tagged with what it has ("No road name", "Dead end") and its country.
+  - With both ticked, a location must have both. The export can tag each location with its country's name (ticked by default), what it has ("No road name", "Dead end") and the year of the photos; the visitor chooses.
 - **Search:** random spots inside the country; the nearest official panorama within a radius (a setting); locations at least 100 m apart. A live table shows each country's target, found count and state. The visitor can stop at any time and download what was found.
 - **Shortfalls:** a country stops after a set number of lookups in a row that find nothing new. At the end, the app offers to fill the gap from the other countries, keeping their proportions, or to keep what was found.
 - **History** of search settings, as in Lookout. No shareable links.
@@ -26,7 +26,7 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 ## Steps
 
-1. **Search one country** (done): the search loop, official coverage only, both criteria, the count, spacing, live progress, stop and download, tags.
+1. **Search one country** (done): the search loop, official coverage only, both criteria, the count, spacing, live progress, stop and download, tags. Since then: the country field suggests countries while typing, a larger "Open in Street View" button, and tag options (country name, what it has, year).
 2. **Areas and distributions:** whole world, continents, chosen countries, the Vali import and the monthly workflow, the per-country table.
 3. **Shortfalls:** attempt budgets and the end-of-search offer.
 4. **History** of search settings.

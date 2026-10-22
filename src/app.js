@@ -27,7 +27,8 @@
  *   running      true while a search runs; stopRequested asks the workers to finish
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
- *   country, noRoadName, deadEnd, target, radius, mapName, welcomed (first-visit dialog seen).
+ *   country (a country code), noRoadName, deadEnd, target, radius, mapName, tagCountry, tagFeatures,
+ *   tagYear (which tags the export gets), welcomed (first-visit dialog seen).
  *   A visitor's own Google key is only kept in sessionStorage ("mapgen.key"), never on disk.
  *   Saved values can be edited by anyone, so everything read back is checked first.
  *
@@ -50,7 +51,8 @@
  * @property {string} panoId     Google's panorama id
  * @property {string} date       photo date "YYYY-MM" or "YYYY", or ""
  * @property {string} cc         two-letter country code
- * @property {string[]} tags     tags for the export
+ * @property {boolean} noRoadName no road name shown on the arrows
+ * @property {boolean} deadEnd   only one arrow: the coverage ends here
  */
 /**
  * One arrow of a panorama: the direction to a neighbouring panorama and the road name shown on it.
@@ -280,23 +282,142 @@ function randomPointIn(code) {
   return null;
 }
 
-/* ---------- step 1: where ---------- */
-{
-  const choices = COVERAGE.map(code => ({ code, name: countryName(code) })).sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
-  for (const c of choices) {
-    const o = document.createElement("option");
-    o.value = c.code;
-    o.textContent = c.name;
-    $("country").append(o);
+/* ---------- step 1: where ----------
+   The country field suggests matching countries while typing (the same pattern as Lookout's kind picker).
+   The field shows the country's name; `chosenCountry` holds its code, or "" while none is chosen. */
+/** @type {{code: string, name: string, folded: string}[]} the countries offered, sorted by name */
+const COUNTRY_CHOICES = COVERAGE.map(code => {
+  const name = countryName(code);
+  return { code, name, folded: foldAccents(name) };
+}).sort((a, b) => a.name.localeCompare(b.name));
+let chosenCountry = "",
+  countryMatches = [],
+  countryActive = -1;
+const countryEl = $("country"),
+  countryListEl = $("countryList");
+/* The countries matching typed text: the country with that two-letter code ("de": Germany) first, then
+   names starting with it, names with a word starting with it, names containing it. All for empty text. */
+function matchCountries(text) {
+  const q = foldAccents(text.trim());
+  if (!q) return COUNTRY_CHOICES;
+  const byCode = [],
+    starts = [],
+    wordStarts = [],
+    contains = [];
+  for (const c of COUNTRY_CHOICES) {
+    if (c.code.toLowerCase() === q) byCode.push(c);
+    else if (c.folded.startsWith(q)) starts.push(c);
+    else if (c.folded.split(/[\s\-–(]+/).some(w => w.startsWith(q))) wordStarts.push(c);
+    else if (c.folded.includes(q)) contains.push(c);
   }
+  return [...byCode, ...starts, ...wordStarts, ...contains];
+}
+/* Shows the list of matching countries under the field. */
+function showCountryList() {
+  countryMatches = matchCountries(countryEl.value === countryName(chosenCountry) ? "" : countryEl.value);
+  countryListEl.textContent = "";
+  if (!countryMatches.length) {
+    const li = document.createElement("li");
+    li.className = "none";
+    li.setAttribute("role", "presentation");
+    li.textContent = "No country with official Street View matches";
+    countryListEl.append(li);
+  }
+  countryMatches.forEach((c, i) => {
+    const li = document.createElement("li");
+    li.id = "country" + i;
+    li.dataset.i = i;
+    li.setAttribute("role", "option");
+    li.setAttribute("aria-selected", "false");
+    li.textContent = c.name;
+    countryListEl.append(li);
+  });
+  countryListEl.hidden = false;
+  countryEl.setAttribute("aria-expanded", "true");
+  setCountryActive(
+    countryMatches.length
+      ? Math.max(
+          0,
+          countryMatches.findIndex(c => c.code === chosenCountry),
+        )
+      : -1,
+  );
+}
+function setCountryActive(i) {
+  countryActive = i;
+  countryListEl
+    .querySelectorAll("li[role=option]")
+    .forEach(li => li.setAttribute("aria-selected", +li.dataset.i === i ? "true" : "false"));
+  if (i >= 0) {
+    countryEl.setAttribute("aria-activedescendant", "country" + i);
+    $("country" + i)?.scrollIntoView({ block: "nearest" });
+  } else countryEl.removeAttribute("aria-activedescendant");
+}
+function closeCountryList() {
+  countryListEl.hidden = true;
+  countryEl.setAttribute("aria-expanded", "false");
+  countryEl.removeAttribute("aria-activedescendant");
+  countryActive = -1;
+}
+/* Makes a country the chosen one, shows its name in the field and saves it. */
+function chooseCountry(code) {
+  chosenCountry = COVERAGE.includes(code) ? code : "";
+  countryEl.value = chosenCountry ? countryName(chosenCountry) : "";
+  store.set("country", chosenCountry);
+  closeCountryList();
+  updateMapName();
+}
+countryEl.addEventListener("input", showCountryList);
+countryEl.addEventListener("focus", () => {
+  countryEl.select(); // typing replaces the name shown
+  showCountryList();
+});
+countryEl.addEventListener("keydown", e => {
+  if (countryListEl.hidden) {
+    if (e.key === "ArrowDown") showCountryList();
+    return;
+  }
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    setCountryActive(Math.min(countryMatches.length - 1, countryActive + 1));
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    setCountryActive(Math.max(0, countryActive - 1));
+  } else if (e.key === "Enter") {
+    // Pick the highlighted country instead of starting the search.
+    e.preventDefault();
+    if (countryActive >= 0) chooseCountry(countryMatches[countryActive].code);
+  } else if (e.key === "Escape") {
+    countryEl.value = chosenCountry ? countryName(chosenCountry) : "";
+    closeCountryList();
+  }
+});
+countryListEl.addEventListener("mousedown", e => {
+  const li = e.target.closest("li[role=option]");
+  if (li) {
+    e.preventDefault(); // keep the focus in the field
+    chooseCountry(countryMatches[+li.dataset.i].code);
+  }
+});
+// Leaving the field: text that matches exactly one country (or a country's whole name) chooses it;
+// anything else puts back the country chosen before.
+countryEl.addEventListener("blur", () =>
+  setTimeout(() => {
+    if (countryListEl.hidden) return;
+    const typed = countryEl.value.trim();
+    const matches = matchCountries(typed);
+    const exact = matches.find(c => c.folded === foldAccents(typed));
+    if (typed && (exact || matches.length === 1)) chooseCountry((exact || matches[0]).code);
+    else {
+      countryEl.value = chosenCountry ? countryName(chosenCountry) : "";
+      closeCountryList();
+    }
+  }, 120),
+);
+{
   const saved = store.get("country", "");
-  $("country").value = COVERAGE.includes(saved) ? saved : "";
-  $("country").onchange = () => {
-    store.set("country", $("country").value);
-    updateMapName();
-  };
+  chosenCountry = COVERAGE.includes(saved) ? saved : "";
+  countryEl.value = chosenCountry ? countryName(chosenCountry) : "";
 }
 
 /* ---------- step 2: what to look for ---------- */
@@ -329,8 +450,7 @@ $("mapName").value = cleanText(store.get("mapName", ""), 100);
 $("mapName").oninput = () => store.set("mapName", $("mapName").value.slice(0, 100));
 /* The name suggested when the visitor types none: "Malta: No road name". */
 function suggestedName() {
-  const c = $("country").value;
-  return (c ? countryName(c) + ": " : "") + wantedLabel(wanted());
+  return (chosenCountry ? countryName(chosenCountry) + ": " : "") + wantedLabel(wanted());
 }
 /* Shows the suggested name in the empty map name field. */
 function updateMapName() {
@@ -339,6 +459,24 @@ function updateMapName() {
 updateMapName();
 /* The map name for the export: what the visitor typed, or the suggestion. */
 const mapName = () => $("mapName").value.trim().slice(0, 100) || suggestedName();
+/* Which tags the export gets. The country is ticked unless the visitor unticked it; the others are not. */
+const TAG_OPTIONS = { tagCountry: true, tagFeatures: false, tagYear: false };
+for (const [id, d] of Object.entries(TAG_OPTIONS)) {
+  const saved = store.get(id, d);
+  $(id).checked = typeof saved === "boolean" ? saved : d;
+  $(id).onchange = () => store.set(id, $(id).checked);
+}
+/* The tags of a location for the export, from the ticked options: "Malta", "No road name", "2023". */
+function tagsFor(l) {
+  const tags = [];
+  if ($("tagCountry").checked) tags.push(countryName(l.cc));
+  if ($("tagFeatures").checked) {
+    if (l.noRoadName) tags.push("No road name");
+    if (l.deadEnd) tags.push("Dead end");
+  }
+  if ($("tagYear").checked && l.date) tags.push(l.date.slice(0, 4));
+  return tags;
+}
 // The key field is only shown when the site has no key of its own.
 $("keyBox").hidden = !!GOOGLE_API_KEY;
 $("apiKey").value = keyStore.get();
@@ -373,9 +511,10 @@ function showCountry(code) {
 /* Street View at a location, facing its heading. */
 const streetViewLink = l =>
   `https://www.google.com/maps/@?api=1&map_action=pano&pano=${encodeURIComponent(l.panoId)}&heading=${Math.round(l.heading)}`;
-/* Draws a found location as a dot with a popup. */
+/* Draws a found location as a dot with a popup: country, what it has, photo date, Street View button. */
 function drawLocation(l) {
   if (!map) return;
+  const has = [l.noRoadName && "No road name", l.deadEnd && "End of coverage"].filter(Boolean).join(", ");
   L.circleMarker([l.lat, l.lng], {
     radius: 5,
     weight: 1.5,
@@ -384,7 +523,8 @@ function drawLocation(l) {
     fillOpacity: 1,
   })
     .bindPopup(
-      `<b>${esc(countryName(l.cc))}</b>${l.tags.length > 1 ? esc(l.tags.slice(1).join(", ")) + "<br />" : ""}${l.date ? "Photo from " + esc(l.date) + "<br />" : ""}<a href="${esc(streetViewLink(l))}" target="_blank" rel="noopener">Open in Street View</a>`,
+      `<div class="pop"><b>${esc(countryName(l.cc))}</b>${has ? esc(has) + "<br />" : ""}${l.date ? "Photo from " + esc(l.date) : ""}<a class="sv" href="${esc(streetViewLink(l))}" target="_blank" rel="noopener">Open in Street View</a></div>`,
+      { minWidth: 200 },
     )
     .addTo(layer);
 }
@@ -643,10 +783,9 @@ async function attempt(code, want, rad, key) {
     panoId: r.panoId,
     date: r.date,
     cc: code,
-    tags: [code],
+    noRoadName: facts.noRoadName,
+    deadEnd: facts.deadEnd,
   };
-  if (facts.noRoadName) l.tags.push("No road name");
-  if (facts.deadEnd) l.tags.push("Dead end");
   results.push(l);
   remember(l);
   if (results.length <= MAX_DRAWN) drawLocation(l);
@@ -662,8 +801,12 @@ function cameraHeading(links, facts) {
 async function startSearch() {
   if (running) return;
   showError("");
-  const code = $("country").value;
-  if (!COVERAGE.includes(code)) return showError("Choose a country in step 1.");
+  const code = chosenCountry;
+  if (!COVERAGE.includes(code)) {
+    showError("Choose a country in step 1.");
+    countryEl.focus();
+    return;
+  }
   const key = GOOGLE_API_KEY || $("apiKey").value.trim();
   if (!key) {
     showError("Enter your Google API key in step 3 first.");
@@ -726,20 +869,24 @@ $("stop").onclick = () => {
 
 /* ---------- export ---------- */
 /* The results in map-making.app's format: { name, customCoordinates: [{ lat, lng, heading, pitch, zoom,
-   panoId, countryCode, extra: { tags } }] }. */
+   panoId, countryCode, extra?: { tags } }] }. The tags follow the options ticked at the time of export. */
 function exportJson() {
   return JSON.stringify({
     name: mapName(),
-    customCoordinates: results.map(l => ({
-      lat: +l.lat.toFixed(7),
-      lng: +l.lng.toFixed(7),
-      heading: +l.heading.toFixed(1),
-      pitch: 0,
-      zoom: 0,
-      panoId: l.panoId,
-      countryCode: l.cc,
-      extra: { tags: l.tags },
-    })),
+    customCoordinates: results.map(l => {
+      const o = {
+        lat: +l.lat.toFixed(7),
+        lng: +l.lng.toFixed(7),
+        heading: +l.heading.toFixed(1),
+        pitch: 0,
+        zoom: 0,
+        panoId: l.panoId,
+        countryCode: l.cc,
+      };
+      const tags = tagsFor(l);
+      if (tags.length) o.extra = { tags };
+      return o;
+    }),
   });
 }
 $("download").onclick = () => {

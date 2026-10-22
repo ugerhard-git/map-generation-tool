@@ -9,8 +9,8 @@ The Map Generation Tool is a single web page with no server of its own. Everythi
 1. **Settings.** The visitor picks a country, what each location must have (no road name, the end of the coverage, or both) and how many locations.
 2. **Random spots.** The page picks random spots inside the country, using the country borders of the built-in country-coder library, spread evenly by area.
 3. **Google.** For each spot, Google's Maps JavaScript API is asked for the nearest official panorama within the chosen radius. Its answer includes the panorama's arrows: their labels are the road names, and a panorama with one arrow is where the coverage ends.
-4. **Keep or skip.** A panorama that matches, lies in the country and is at least 100 m from every location so far becomes a location, tagged with its country and what it has. Several lookups run at once until enough are found or the visitor stops.
-5. **Export.** The locations download as a map-making.app JSON file.
+4. **Keep or skip.** A panorama that matches, lies in the country and is at least 100 m from every location so far becomes a location. Several lookups run at once until enough are found or the visitor stops.
+5. **Export.** The locations download as a map-making.app JSON file, each with its country code and the tags the visitor ticked: the country's name (ticked by default), "No road name" and "Dead end" where they apply, and the year of the photos.
 
 Much of the code is copied from [Lookout (osm-tool)](https://github.com/ugerhard-git/osm-tool). The two apps keep separate copies on purpose. When a feature needs a part Lookout already has (Overpass queries, the official-coverage check, street names, shareable links, history of searches), copy it from Lookout's `src/app.js` and adapt it.
 
@@ -38,9 +38,9 @@ The three source files use the same section names, in the same order as the page
 | data               | The site owner settings, the countries with official coverage, and fixed limits (radius, spacing, lookups at once). |                                                                |
 | helpers            | Small tools: saving settings, country names, the country at a position, distances, escaping text.                   | `store`, `countryName`, `countryAt`, `distance`, `esc`         |
 | random spots       | Random spots inside a country, from the built-in borders.                                                           | `borderParts`, `randomPointIn`                                 |
-| step 1             | The country list.                                                                                                   |                                                                |
+| step 1             | The country field: suggestions while typing, picking with keyboard or mouse.                                        | `matchCountries`, `showCountryList`, `chooseCountry`           |
 | step 2             | What each location must have.                                                                                       | `wanted`, `wantedLabel`                                        |
-| step 3             | How many, the radius, the map name and the visitor's own Google key.                                                | `target`, `radius`, `mapName`                                  |
+| step 3             | How many, the radius, the map name, the tag options and the visitor's own Google key.                               | `target`, `radius`, `mapName`, `tagsFor`                       |
 | map                | The map and drawing locations.                                                                                      | `initMap`, `showCountry`, `drawLocation`                       |
 | Google Street View | Loading Google's script, looking up panoramas, reading their arrows.                                                | `loadGoogleScript`, `lookup`, `cleanPano`, `arrowFacts`        |
 | run                | The search from start to finish: the workers, spacing, camera direction, progress and messages.                     | `startSearch`, `attempt`, `tooClose`, `cameraHeading`, `paint` |
