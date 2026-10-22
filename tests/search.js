@@ -87,7 +87,8 @@ const path = require("path");
   // They can be changed after the search and apply to the next download.
   ok(
     (await p.isChecked("#tagCountry")) &&
-      !(await p.isChecked("#tagFeatures")) &&
+      !(await p.isChecked("#tagNoRoadName")) &&
+      !(await p.isChecked("#tagDeadEnd")) &&
       !(await p.isChecked("#tagYear")),
     "by default only the country is tagged",
   );
@@ -133,7 +134,8 @@ const path = require("path");
       };
     };
   });
-  await p.check("#tagFeatures");
+  await p.check("#tagNoRoadName");
+  await p.check("#tagDeadEnd");
   await search(p, { noRoadName: true, target: 6 });
   await searchEnded(p);
   r = await exported(p);
@@ -199,6 +201,19 @@ const path = require("path");
       ),
     "both criteria: only spots with both",
   );
+  // The two tags are separate options
+  await p.uncheck("#tagNoRoadName");
+  ok(
+    (await exported(p)).customCoordinates.every(c => c.extra.tags.join() === "Malta,Dead end"),
+    'only "Dead end" ticked: only that tag',
+  );
+  await p.check("#tagNoRoadName");
+  await p.uncheck("#tagDeadEnd");
+  ok(
+    (await exported(p)).customCoordinates.every(c => c.extra.tags.join() === "Malta,No road name"),
+    'only "No road name" ticked: only that tag',
+  );
+  await p.check("#tagDeadEnd");
   ok(
     r.name === "Malta: No road name, end of coverage",
     "map name names both criteria when none is typed: " + r.name,
@@ -356,11 +371,28 @@ const path = require("path");
     "country and number remembered",
   );
   ok(
-    (await p.isChecked("#tagFeatures")) &&
+    (await p.isChecked("#tagNoRoadName")) &&
+      (await p.isChecked("#tagDeadEnd")) &&
       (await p.isChecked("#tagCountry")) &&
       !(await p.isChecked("#tagYear")),
     "tag options remembered",
   );
+  // The older single option for both tags: its saved choice is moved over to both, then cleared
+  for (const old of [true, false]) {
+    await p.evaluate(v => {
+      localStorage.removeItem("mapgen.tagNoRoadName");
+      localStorage.removeItem("mapgen.tagDeadEnd");
+      localStorage.setItem("mapgen.tagFeatures", JSON.stringify(v));
+    }, old);
+    await p.reload();
+    await p.waitForFunction(() => map !== null);
+    ok(
+      (await p.isChecked("#tagNoRoadName")) === old &&
+        (await p.isChecked("#tagDeadEnd")) === old &&
+        (await p.evaluate(() => localStorage.getItem("mapgen.tagFeatures"))) === null,
+      `an older saved choice for both tags (${old}) is moved over to the two options`,
+    );
+  }
 
   // 11. Key refused, script unreachable
   p = await open("denied");
