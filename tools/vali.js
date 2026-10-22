@@ -56,6 +56,7 @@ function fail(message) {
 /* Slips found in Vali's data that do not stop the import; they are shown in the update pull request. */
 const warnings = [];
 
+const MAX_SHARE = 1000000; // largest share accepted for one country (Vali's are up to about 30,000)
 /* Every list in Weights.cs: { ListName: { DE: 1234, … } }. */
 function readWeights(text) {
   const lists = {};
@@ -68,6 +69,9 @@ function readWeights(text) {
       .replace(/\(\s*"([A-Za-z]{2})"\s*,\s*(\d+)\s*\)\s*,?/g, (all, code, n) => {
         const c = code.toUpperCase(),
           value = Number(n);
+        // Vali's shares are in the tens of thousands at most; a far larger number is a mistake, and
+        // would make the page's sums meaningless (or Infinity), so it stops the import.
+        if (value > MAX_SHARE) fail(`${name} gives ${c} a share of ${n.slice(0, 20)}, above ${MAX_SHARE}`);
         // A country listed twice: Vali drops zero shares first (An Arbitrary Rural World lists Bermuda as
         // 0 and as 1), and where it picks countries from a list it keeps the first share. As of August
         // 2026, An Improved World lists Costa Rica as 200 and as 20, so 200 is kept. Such a conflict is

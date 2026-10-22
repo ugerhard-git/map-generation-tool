@@ -6,10 +6,10 @@ Please do not report security problems in public issues. Use GitHub's private re
 
 ## How the app protects itself
 
-- Everything the page receives from outside (Google, saved settings) is checked before use and shown as text, never as HTML.
+- Everything the page receives from outside (Google, saved settings) is checked before use and shown as text, never as HTML. Panorama ids, dates and copyrights from Google must have the expected form; `tests/hostile.js` checks this with hostile answers.
 - A Content Security Policy only lets the page's own scripts run, plus Google's Street View script. The build fingerprints the page's scripts, so changed or injected scripts are refused. The page may only connect to Google's Maps service.
 - The page refuses to run inside another site's frame.
-- The country distributions from Vali are checked by `tools/vali.js` and built into the page; the page never contacts GitHub. The monthly update only proposes changes as a pull request for the owner to review.
+- The country distributions from Vali are checked by `tools/vali.js` and built into the page; the page never contacts GitHub. The monthly update only proposes changes as a pull request for the owner to review. Its checks (which run the npm packages) have no write access; the job that pushes the branch and opens the pull request runs no outside code. `tools/vali.js` refuses shares that are out of range.
 - No libraries are loaded from CDNs at runtime; they are embedded by the build (Leaflet, country-coder), pinned to exact versions and covered by the script fingerprints.
 - API keys are never committed. The site's Google key is added at publish time from a GitHub secret. It is visible in the published page, as for any browser app, so it must be restricted in the Google Cloud console to the site's address and to the Maps JavaScript API, with a daily quota.
 - A visitor's own Google key is kept only for the browser tab, and never shown in error messages.
