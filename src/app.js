@@ -58,7 +58,7 @@
  *   - Text from outside (Google, saved values) is put on the page with textContent, or passed through
  *     esc() before it goes into innerHTML.
  *   - The sections below follow the page from top to bottom: data, helpers, random spots, step 1, step 2,
- *     step 3, locations per country, map, Google Street View, run, shortfalls, export, history of searches,
+ *     step 3, locations per country, map, Google Street View, run, time left, shortfalls, export, history of searches,
  *     unfinished search, dialogs. src/page.html and
  *     src/style.css use the same section names.
  */
@@ -1154,7 +1154,7 @@ function paintSoon() {
   const now = Date.now();
   if (now - lastPaint < 250) return;
   lastPaint = now;
-  paint(`Searching ${searchArea}: ${fmt(results.length)} of ${fmt(currentTarget)} found…`);
+  paint(`Searching ${searchArea}: ${fmt(results.length)} of ${fmt(currentTarget)} found, ${timeLeftText()}`);
 }
 let searchArea = "",
   fatal = "";
@@ -1204,6 +1204,7 @@ async function attempt(code, want, rad, key) {
     return;
   }
   stats.tries++;
+  countPace(code);
   let r = await lookup(p, rad, key);
   if (keyRefused) {
     fatal = "Google refused the API key. Check that it is right and has the Maps JavaScript API enabled.";
@@ -1283,6 +1284,7 @@ async function attempt(code, want, rad, key) {
   results.push(l);
   if (fromOlder) stats.olderUsed++; // counted only when it became a location
   foundBy.set(code, (foundBy.get(code) || 0) + 1);
+  countPace(code, true);
   missesInRow.set(code, 0);
   remember(l);
   if (results.length <= MAX_DRAWN) drawLocation(l);
@@ -1390,6 +1392,7 @@ async function runSearch() {
   const { want, rad, key } = searchSettings;
   setRunning(true);
   stopRequested = false;
+  startPace();
   lastPaint = 0;
   paintSoon();
   keepSaving();
@@ -1443,6 +1446,68 @@ $("stop").onclick = () => {
   $("stop").disabled = true;
   paint("Stopping after the lookups that are under way…");
 };
+
+/* ---------- time left ----------
+   A forecast of how long the running search still takes, learnt while it runs: for each country, how
+   many random spots one new location has cost so far, and overall, how many spots per second the
+   search gets through. Time left = the spots still needed in all countries / spots per second.
+   A country that has found nothing yet is counted with the spots it has left before it gives up (see
+   giveUpAfter), the most it can still cost. The countries that are hard to fill decide most of the
+   result, as they also keep a search running at the end. Shown only after PACE_WAIT and PACE_SPOTS, as
+   the first numbers jump around, and smoothed, so it does not jump with every location found.
+   Learning starts again with every run (a new search, "Fill the gap", or continuing a saved one). */
+const PACE_WAIT = 20000, // ms of searching before a forecast is shown
+  PACE_SPOTS = 50, // random spots tried before a forecast is shown
+  PACE_SMOOTH = 0.2; // how much a new forecast moves the one shown (0–1)
+/** @type {{since: number, spots: number, tries: Map<string, number>, found: Map<string, number>, finishAt: number}} */
+let pace = null;
+/* Starts learning for a run. */
+function startPace() {
+  pace = { since: Date.now(), spots: 0, tries: new Map(), found: new Map(), finishAt: 0 };
+}
+/* Counts a random spot tried in a country, or (found = true) a new location there. */
+function countPace(code, found = false) {
+  if (!pace) return;
+  const m = found ? pace.found : pace.tries;
+  m.set(code, (m.get(code) || 0) + 1);
+  if (!found) pace.spots++;
+}
+/* Seconds the search still needs, or null while there is too little to go on. */
+function secondsLeft(now = Date.now()) {
+  if (!pace || now - pace.since < PACE_WAIT || pace.spots < PACE_SPOTS) return null;
+  const perSecond = pace.spots / ((now - pace.since) / 1000);
+  let spots = 0;
+  for (const [code, wanted] of searchTargets) {
+    const need = wanted - (foundBy.get(code) || 0);
+    if (need <= 0 || gaveUp.has(code) || noSpots.has(code)) continue;
+    const tries = pace.tries.get(code) || 0,
+      found = pace.found.get(code) || 0;
+    const beforeGivingUp = Math.max(0, searchSettings.giveUpAfter - (missesInRow.get(code) || 0));
+    spots += found ? need * (tries / found) : beforeGivingUp;
+  }
+  return spots / perSecond;
+}
+/* The forecast for the status line: "about 4 minutes left", or "estimating time left…" at first. The
+   finish time shown moves only part of the way towards each new forecast. */
+function timeLeftText(now = Date.now()) {
+  const left = secondsLeft(now);
+  if (left === null) return "estimating time left…";
+  const finish = now + left * 1000;
+  pace.finishAt = pace.finishAt ? pace.finishAt + (finish - pace.finishAt) * PACE_SMOOTH : finish;
+  return describeTimeLeft(Math.max(0, (pace.finishAt - now) / 1000));
+}
+/* Seconds as a rough time: "less than a minute left", "about 25 minutes left", "about 3 hours left". */
+function describeTimeLeft(seconds) {
+  const minutes = seconds / 60;
+  if (minutes < 1) return "less than a minute left";
+  if (minutes < 90) {
+    const m = minutes < 10 ? Math.round(minutes) : Math.round(minutes / 5) * 5;
+    return `about ${m} ${m === 1 ? "minute" : "minutes"} left`;
+  }
+  const hours = minutes / 60;
+  if (hours < 48) return `about ${Math.round(hours)} hours left`;
+  return `about ${fmt(Math.round(hours / 24))} days left`;
+}
 
 /* ---------- shortfalls ----------
    When countries gave up (or no spots could be made in them), the search ends short. The offer under the
