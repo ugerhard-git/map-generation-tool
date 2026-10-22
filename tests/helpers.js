@@ -3,7 +3,8 @@ const { PAGE, isSite, serveSite } = require("./site.js");
 
 /** A stand-in for Google's Maps JavaScript API. Each getPanorama request is answered by the page's
  *  window.__sv(request), which a test sets with page.evaluate: it returns null (nothing found), an
- *  object with a `status` (an error), or { id, lat, lng, copyright?, links? } (a panorama).
+ *  object with a `status` (an error), or { id, lat, lng, copyright?, links?, date? } (a panorama; the
+ *  photo date is "2023-04" unless `date` says otherwise, "" for none).
  *  mode "denied" makes Google refuse the key, as it does on a wrong key. */
 const googleScript = mode =>
   mode === "denied"
@@ -16,7 +17,7 @@ const googleScript = mode =>
             if (!a) return cb(null, "ZERO_RESULTS");
             if (a.status) return cb(null, a.status);
             const d = { location: { pano: a.id, latLng: { lat: () => a.lat, lng: () => a.lng } },
-              copyright: a.copyright || "© 2024 Google", imageDate: "2023-04" };
+              copyright: a.copyright || "© 2024 Google", imageDate: a.date ?? "2023-04" };
             if (a.links !== undefined) d.links = a.links;
             cb(d, "OK");
           };

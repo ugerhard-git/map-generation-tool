@@ -67,7 +67,7 @@
           <li><b>Choose a country:</b> start typing its name and pick it from the list.</li>
           <li>
             <b>Choose what to look for:</b> spots where Street View shows no road name, spots where the
-            coverage ends (only one arrow), or both.
+            coverage ends (only one arrow), photos from certain years, or a mix.
           </li>
           <li><b>Choose how many,</b> then select "Find locations".</li>
           <li>
@@ -129,8 +129,23 @@
                 ></span
               ></label
             >
+            <label class="check"
+              ><input type="checkbox" id="yearsOn" /><span
+                >Photos taken in certain years<br /><span class="hint"
+                  >Checks the photos Google shows by default at a spot, normally the newest. Older years are
+                  rarer and take longer to find.</span
+                ></span
+              ></label
+            >
+            <div class="years" id="yearsBox">
+              <label for="yearFrom">From</label>
+              <select id="yearFrom"></select>
+              <label for="yearTo">to</label>
+              <select id="yearTo"></select>
+            </div>
             <p class="hint">
-              With both ticked, a location must have both. With none ticked, any official location counts.
+              With several ticked, a location must have all of them. With none ticked, any official location
+              counts.
             </p>
           </section>
 

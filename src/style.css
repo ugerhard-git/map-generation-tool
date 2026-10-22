@@ -287,6 +287,21 @@ a:focus-visible {
   accent-color: var(--blue);
   flex: none;
 }
+/* "From [year] to [year]", indented under its tick box */
+.years {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0 28px;
+}
+.years label {
+  margin: 0;
+  font-weight: 400;
+}
+.years select {
+  width: auto;
+  padding: 6px 10px;
+}
 
 /* ---------- step 1: where ---------- */
 /* The country field with its list of suggestions (copied from Lookout's kind picker) */

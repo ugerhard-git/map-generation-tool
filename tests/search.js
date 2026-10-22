@@ -206,6 +206,49 @@ const path = require("path");
   await p.fill("#mapName", "My Malta");
   ok((await exported(p)).name === "My Malta", "a typed map name is used");
 
+  // 5b. Photo years: only panoramas whose photos are from the chosen years; the years can be given in
+  // either order; unknown dates do not count
+  ok(await p.isDisabled("#yearFrom"), "the years can only be chosen once ticked");
+  await p.fill("#mapName", "");
+  await p.check("#yearsOn");
+  await p.selectOption("#yearFrom", "2014");
+  await p.selectOption("#yearTo", "2010");
+  await p.evaluate(() => {
+    let n = 0;
+    const dates = ["2008-05", "2012-07", "2019-01", "", "2010", "2014-12", "2015-01"];
+    window.__sv = req => {
+      n++;
+      return {
+        id: "Y_" + n,
+        lat: req.location.lat,
+        lng: req.location.lng,
+        links: [],
+        date: dates[n % dates.length],
+      };
+    };
+  });
+  await p.check("#tagYear");
+  await search(p, { target: 6 });
+  await searchEnded(p);
+  r = await exported(p);
+  const yearsFound = r.customCoordinates.map(c => c.extra.tags[c.extra.tags.length - 1]);
+  ok(
+    r.customCoordinates.length === 6 && yearsFound.every(y => ["2010", "2012", "2014"].includes(y)),
+    "only photos from 2010 to 2014, tagged with their year: " + yearsFound.join(" "),
+  );
+  ok(r.name === "Malta: 2010–2014", "the map name names the years: " + r.name);
+  await p.selectOption("#yearFrom", "2012");
+  await p.selectOption("#yearTo", "2012");
+  ok((await p.getAttribute("#mapName", "placeholder")) === "Malta: 2012", "one year: the map name names it");
+  const lastYear = await p.$$eval("#yearTo option", o => o[o.length - 1].value);
+  const firstYear = await p.$eval("#yearFrom option", o => o.value);
+  ok(
+    firstYear === "2009" && lastYear === String(new Date().getFullYear()),
+    `years offered: ${firstYear} to ${lastYear}`,
+  );
+  await p.uncheck("#yearsOn");
+  await p.uncheck("#tagYear");
+
   // 6. Unofficial photos, panoramas across the border, repeats and spots too close are not kept
   await p.evaluate(() => {
     let n = 0;

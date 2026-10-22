@@ -6,7 +6,7 @@ A guide for developers. For using the app, see the [README](../README.md).
 
 The Map Generation Tool is a single web page with no server of its own. Everything happens in the visitor's browser. It builds [map-making.app](https://map-making.app) maps of random official Google Street View locations that match what the visitor chooses. What comes next is in [the plan](plan.md).
 
-1. **Settings.** The visitor picks a country, what each location must have (no road name, the end of the coverage, or both) and how many locations.
+1. **Settings.** The visitor picks a country, what each location must have (no road name, the end of the coverage, photos from certain years, in any mix) and how many locations.
 2. **Random spots.** The page picks random spots inside the country, using the country borders of the built-in country-coder library, spread evenly by area.
 3. **Google.** For each spot, Google's Maps JavaScript API is asked for the nearest official panorama within the chosen radius. Its answer includes the panorama's arrows: their labels are the road names, and a panorama with one arrow is where the coverage ends.
 4. **Keep or skip.** A panorama that matches, lies in the country and is at least 100 m from every location so far becomes a location. Several lookups run at once until enough are found or the visitor stops.
@@ -39,7 +39,7 @@ The three source files use the same section names, in the same order as the page
 | helpers            | Small tools: saving settings, country names, the country at a position, distances, escaping text.                   | `store`, `countryName`, `countryAt`, `distance`, `esc`         |
 | random spots       | Random spots inside a country, from the built-in borders.                                                           | `borderParts`, `randomPointIn`                                 |
 | step 1             | The country field: suggestions while typing, picking with keyboard or mouse.                                        | `matchCountries`, `showCountryList`, `chooseCountry`           |
-| step 2             | What each location must have.                                                                                       | `wanted`, `wantedLabel`                                        |
+| step 2             | What each location must have: no road name, end of coverage, photo years.                                           | `wanted`, `years`, `inYears`, `wantedLabel`                    |
 | step 3             | How many, the radius, the map name, the tag options and the visitor's own Google key.                               | `target`, `radius`, `mapName`, `tagsFor`                       |
 | map                | The map and drawing locations.                                                                                      | `initMap`, `showCountry`, `drawLocation`                       |
 | Google Street View | Loading Google's script, looking up panoramas, reading their arrows.                                                | `loadGoogleScript`, `lookup`, `cleanPano`, `arrowFacts`        |

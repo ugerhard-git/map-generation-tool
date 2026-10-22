@@ -11,12 +11,13 @@
  * place to look for more shared parts. Copy a part over when a feature here needs it, not ahead of time.
  *
  * HOW A SEARCH RUNS (see startSearch)
- *   1. Step 1 sets the country, step 2 what each location must have (`wanted`), step 3 how many and how
- *      far to look around each random spot.
+ *   1. Step 1 sets the country, step 2 what each location must have (`wanted`: no road name, end of
+ *      coverage, photo years), step 3 how many and how far to look around each random spot.
  *   2. PARALLEL workers repeat attempt() until enough locations are found or the visitor stops:
  *      randomPointIn() picks a random spot inside the country (from the country borders built into the
  *      page), lookup() asks Google's script for the nearest official panorama within the radius, and
- *      the panorama's arrows (`links`) tell whether a road name is shown and whether the coverage ends.
+ *      the panorama's arrows (`links`) tell whether a road name is shown and whether the coverage ends;
+ *      its date tells the year of the photos.
  *   3. A panorama that matches, lies in the country and is at least MIN_SPACING from every location so
  *      far becomes a Location: drawn on the map (drawLocation, the first MAX_DRAWN only) and exported
  *      (exportJson). paint() keeps the status line, progress and counters up to date.
@@ -27,8 +28,8 @@
  *   running      true while a search runs; stopRequested asks the workers to finish
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
- *   country (a country code), noRoadName, deadEnd, target, radius, mapName, tagCountry, tagFeatures,
- *   tagYear (which tags the export gets), welcomed (first-visit dialog seen).
+ *   country (a country code), noRoadName, deadEnd, yearsOn, yearFrom, yearTo, target, radius, mapName,
+ *   tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit dialog seen).
  *   A visitor's own Google key is only kept in sessionStorage ("mapgen.key"), never on disk.
  *   Saved values can be edited by anyone, so everything read back is checked first.
  *
@@ -421,20 +422,56 @@ countryEl.addEventListener("blur", () =>
 }
 
 /* ---------- step 2: what to look for ---------- */
-/* What each location must have: { noRoadName, deadEnd }. */
-const wanted = () => ({ noRoadName: $("noRoadName").checked, deadEnd: $("deadEnd").checked });
-for (const id of ["noRoadName", "deadEnd"]) {
+// Years offered for the photos: from 2009 (as agreed with the owner) to this year.
+const YEAR_FIRST = 2009,
+  YEAR_LAST = Math.max(YEAR_FIRST, new Date().getFullYear());
+for (const id of ["yearFrom", "yearTo"])
+  for (let y = YEAR_FIRST; y <= YEAR_LAST; y++) {
+    const o = document.createElement("option");
+    o.value = o.textContent = String(y);
+    $(id).append(o);
+  }
+/* The chosen years, earliest first, or null when the years are not ticked. */
+function years() {
+  if (!$("yearsOn").checked) return null;
+  const a = wholeNumber($("yearFrom").value, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
+    b = wholeNumber($("yearTo").value, YEAR_FIRST, YEAR_LAST, YEAR_LAST);
+  return { from: Math.min(a, b), to: Math.max(a, b) };
+}
+/* What each location must have: { noRoadName, deadEnd, years: {from, to} | null }. */
+const wanted = () => ({ noRoadName: $("noRoadName").checked, deadEnd: $("deadEnd").checked, years: years() });
+for (const id of ["noRoadName", "deadEnd", "yearsOn"]) {
   $(id).checked = store.get(id, false) === true;
   $(id).onchange = () => {
     store.set(id, $(id).checked);
+    updateYears();
     updateMapName();
   };
 }
-/* Short description of what is searched for, for the map name: "No road name, end of coverage". */
+$("yearFrom").value = wholeNumber(store.get("yearFrom", YEAR_FIRST), YEAR_FIRST, YEAR_LAST, YEAR_FIRST);
+$("yearTo").value = wholeNumber(store.get("yearTo", YEAR_LAST), YEAR_FIRST, YEAR_LAST, YEAR_LAST);
+for (const id of ["yearFrom", "yearTo"])
+  $(id).onchange = () => {
+    store.set(id, +$(id).value);
+    updateMapName();
+  };
+/* The year choices can only be changed while "Photos taken in certain years" is ticked. */
+function updateYears() {
+  $("yearFrom").disabled = $("yearTo").disabled = !$("yearsOn").checked;
+}
+updateYears();
+/* True if a photo date ("2023-04" or "2023") lies within the chosen years. Unknown dates do not. */
+function inYears(date, y) {
+  const year = parseInt(date, 10);
+  return Number.isFinite(year) && year >= y.from && year <= y.to;
+}
+/* Short description of what is searched for, for the map name: "No road name, end of coverage, 2010–2014". */
 function wantedLabel(w) {
   const parts = [];
   if (w.noRoadName) parts.push("no road name");
   if (w.deadEnd) parts.push("end of coverage");
+  if (w.years)
+    parts.push(w.years.from === w.years.to ? String(w.years.from) : `${w.years.from}–${w.years.to}`);
   const text = parts.join(", ") || "official coverage";
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -761,7 +798,8 @@ async function attempt(code, want, rad, key) {
   if (
     !isOfficial(r.copyright) ||
     (want.noRoadName && !facts.noRoadName) ||
-    (want.deadEnd && !facts.deadEnd)
+    (want.deadEnd && !facts.deadEnd) ||
+    (want.years && !inYears(r.date, want.years))
   ) {
     stats.notMatching++;
     return;

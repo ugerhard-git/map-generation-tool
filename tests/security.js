@@ -96,6 +96,8 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
     localStorage.setItem("mapgen.deadEnd", "{");
     localStorage.setItem("mapgen.tagCountry", JSON.stringify("no"));
     localStorage.setItem("mapgen.tagYear", JSON.stringify(1));
+    localStorage.setItem("mapgen.yearFrom", JSON.stringify("<b>"));
+    localStorage.setItem("mapgen.yearTo", JSON.stringify(3000));
   });
   await p.reload();
   await p.waitForTimeout(300);
@@ -108,6 +110,8 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
     chosen: chosenCountry,
     tagCountry: document.getElementById("tagCountry").checked,
     tagYear: document.getElementById("tagYear").checked,
+    yearFrom: document.getElementById("yearFrom").value,
+    yearTo: document.getElementById("yearTo").value,
   }));
   ok(
     t.radius === 1000 &&
@@ -117,6 +121,8 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
       t.chosen === "" &&
       t.tagCountry &&
       !t.tagYear &&
+      t.yearFrom === "2009" &&
+      t.yearTo === String(new Date().getFullYear()) &&
       !t.wanted.noRoadName &&
       !t.wanted.deadEnd,
     "tampered settings fall back to defaults: " + JSON.stringify(t),
