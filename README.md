@@ -12,6 +12,8 @@ Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random o
 4. **Check the arrows.** A panorama whose arrows carry no street name has no road name; a panorama with a single arrow is where the coverage ends; its date gives the year of the photos (Google's default photos at that spot, normally the newest). Matching locations at least 100 m apart are kept. At the end of the coverage, the camera faces where it stops. When looking for ends of coverage, the search can also follow the road a short way (150 steps by default) from a spot that is not an end. A country where matching locations are too rare gives up after a set number of tries; you can then fill the gap from the other countries.
 5. **Export** as a map-making.app JSON file, at the end or after stopping the search. Each location gets its country code and the tags you tick: the country's name (ticked by default), "No road name" and "Dead end" where they apply, and the year of the photos.
 
+A long search is saved in your browser as it runs: if you close the tab, you can continue it, or download what it found, the next time you open the page.
+
 Your last 20 searches are kept in your browser (only their settings, never the key), so you can run one again or reuse its settings under "History".
 
 It runs entirely in the browser as a single HTML page. There is no server of its own. It shares much of its code with [Lookout (osm-tool)](https://github.com/ugerhard-git/osm-tool).
