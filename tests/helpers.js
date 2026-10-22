@@ -54,15 +54,21 @@ async function openPage(browser, google = "ok") {
   return { page, errors };
 }
 
-/** Chooses a country in step 1 as a visitor would: type its name, pick the first suggestion. */
+/** Adds a country in step 1 as a visitor would: type its name, pick the first suggestion. */
 async function chooseCountry(page, name) {
   await page.fill("#country", name);
   await page.keyboard.press("Enter");
 }
 
-/** Fills the form and starts a search: country (its name), criteria, number, key. */
+/** Fills the form and starts a search: the countries (names; they replace those chosen before), the
+ *  criteria, the number and the key. */
 async function search(page, { country = "Malta", noRoadName = false, deadEnd = false, target = 5 } = {}) {
-  await chooseCountry(page, country);
+  await page.check("input[name=scope][value=countries]");
+  await page.evaluate(() => {
+    chosenCountries = [];
+    whereChanged();
+  });
+  for (const name of [country].flat()) await chooseCountry(page, name);
   await page.setChecked("#noRoadName", noRoadName);
   await page.setChecked("#deadEnd", deadEnd);
   await page.fill("#target", String(target));

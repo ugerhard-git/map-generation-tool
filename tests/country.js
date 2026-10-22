@@ -1,6 +1,7 @@
 // The country field in step 1: suggestions while typing (official coverage only, best matches first),
-// picking with the keyboard or the mouse, leaving the field with partial or wrong text, and the saved
-// choice coming back on the next visit.
+// adding countries as chips with the keyboard or the mouse, removing them, leaving the field with partial
+// or wrong text, and the chosen countries coming back on the next visit (also from the older saved
+// setting with one country).
 const { chromium } = require("./pw.js");
 const { openPage } = require("./helpers.js");
 const path = require("path");
@@ -13,7 +14,8 @@ const path = require("path");
   };
   const { page: p, errors } = await openPage(b);
   const shown = () => p.$$eval("#countryList li[role=option]", lis => lis.map(li => li.textContent));
-  const chosen = () => p.evaluate(() => chosenCountry);
+  const chosen = () => p.evaluate(() => chosenCountries.join());
+  const chips = () => p.$$eval("#countryChips .chip", c => c.map(x => x.textContent).join());
 
   // Focus: the whole list, official coverage only, sorted by name
   await p.click("#country");
@@ -25,7 +27,6 @@ const path = require("path");
       names.every((n, i) => !i || names[i - 1].localeCompare(n) <= 0),
     `focus shows every country with official coverage, sorted: ${names.length}, first ${names[0]}`,
   );
-  ok(await p.isVisible("#countryList"), "the list is shown");
 
   // Typing narrows the list; names starting with the text come first
   await p.fill("#country", "ger");
@@ -47,15 +48,16 @@ const path = require("path");
     "no match: says so",
   );
 
-  // Keyboard: arrow down and Enter pick a country, without starting a search
+  // Keyboard: arrow down and Enter add a country as a chip, without starting a search
   await p.fill("#country", "united");
   await p.keyboard.press("ArrowDown");
   await p.keyboard.press("Enter");
   ok(
-    (await chosen()) === "GB" && (await p.inputValue("#country")) === "United Kingdom",
-    "arrow down and Enter pick the second suggestion (after the United Arab Emirates)",
+    (await chosen()) === "GB" &&
+      (await chips()) === "United Kingdom" &&
+      (await p.inputValue("#country")) === "",
+    "arrow down and Enter add the second suggestion as a chip and empty the field",
   );
-  ok(await p.isHidden("#countryList"), "the list closes after picking");
   ok(
     !(await p.evaluate(() => running)) && (await p.textContent("#error")) === "",
     "Enter does not start a search",
@@ -64,35 +66,64 @@ const path = require("path");
     (await p.getAttribute("#mapName", "placeholder")) === "United Kingdom: Official coverage",
     "the suggested map name follows the country",
   );
+  ok(await p.isHidden("#distributionBox"), "one country: no choice of distribution");
+  ok(await p.isHidden("#sharesBox"), "one country: no table of locations per country");
 
-  // Mouse: a click on a suggestion picks it
+  // Mouse: a click on a suggestion adds it; chosen countries are not suggested again
   await p.fill("#country", "mal");
   await p.screenshot({ path: path.join(__dirname, "../dist/screens/country.png") });
   await p.click("#countryList li >> text=Malta");
-  ok((await chosen()) === "MT", "a click picks the country");
-
-  // Escape puts the chosen country back
-  await p.fill("#country", "fra");
+  ok((await chosen()) === "GB,MT", "a click adds the country");
+  await p.fill("#country", "united k");
+  ok((await shown()).length === 0, "a chosen country is not suggested again");
   await p.keyboard.press("Escape");
-  ok((await p.inputValue("#country")) === "Malta" && (await chosen()) === "MT", "Escape keeps Malta");
+  ok(
+    (await p.inputValue("#country")) === "" && (await p.isHidden("#countryList")),
+    "Escape empties the field",
+  );
+  ok(await p.isVisible("#distributionBox"), "two countries: the distribution can be chosen");
+  ok(
+    (await p.getAttribute("#mapName", "placeholder")) ===
+      "United Kingdom, Malta (A Community World): Official coverage",
+    "two countries: the map name names both and the map",
+  );
 
-  // Leaving the field: text matching one country chooses it; other text puts back the choice
+  // Leaving the field: text matching one country adds it; other text is cleared
   await p.fill("#country", "Norw");
   await p.click("#target");
   await p.waitForTimeout(250);
-  ok(
-    (await chosen()) === "NO" && (await p.inputValue("#country")) === "Norway",
-    "'Norw' and leaving: Norway",
-  );
+  ok((await chosen()) === "GB,MT,NO", "'Norw' and leaving: Norway added");
   await p.fill("#country", "s");
   await p.click("#target");
   await p.waitForTimeout(250);
-  ok((await chosen()) === "NO" && (await p.inputValue("#country")) === "Norway", "unclear text: Norway kept");
+  ok((await chosen()) === "GB,MT,NO" && (await p.inputValue("#country")) === "", "unclear text: cleared");
+
+  // Removing: a click on a chip, or Backspace in the empty field
+  await p.click("#countryChips .chip >> text=Malta");
+  ok((await chosen()) === "GB,NO", "a click on a chip removes it");
+  await p.focus("#country");
+  await p.keyboard.press("Backspace");
+  ok((await chosen()) === "GB", "Backspace in the empty field removes the last country");
+  await p.keyboard.press("Escape");
 
   // The choice is saved for the next visit
   await p.reload();
   await p.waitForFunction(() => map !== null);
-  ok((await chosen()) === "NO" && (await p.inputValue("#country")) === "Norway", "remembered after a reload");
+  ok((await chosen()) === "GB" && (await chips()) === "United Kingdom", "remembered after a reload");
+
+  // A browser that saved one country before several could be chosen keeps it
+  await p.evaluate(() => {
+    localStorage.removeItem("mapgen.countries");
+    localStorage.setItem("mapgen.country", JSON.stringify("MT"));
+  });
+  await p.reload();
+  await p.waitForFunction(() => map !== null);
+  ok(
+    (await chosen()) === "MT" &&
+      (await p.evaluate(() => localStorage.getItem("mapgen.country"))) === null &&
+      (await p.evaluate(() => localStorage.getItem("mapgen.countries"))) === '["MT"]',
+    "an older saved country is moved over to the new setting",
+  );
 
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();

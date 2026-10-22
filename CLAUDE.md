@@ -30,7 +30,8 @@ Much of this app is copied from Lookout, [ugerhard-git/osm-tool](https://github.
 
 ## Never break (details in CONTRIBUTING.md)
 
-- Saved settings (`mapgen.…`): keep the names; clear the saved value of a removed option; move an old shape over on load.
+- Saved settings (`mapgen.…`): keep the names; clear the saved value of a removed option; move an old shape over on load (one `country` → `countries`).
+- `src/data/vali.json` is made by `tools/vali.js`; never edit it by hand. The monthly workflow (`.github/workflows/vali.yml`) updates it through a pull request.
 - Once shared links exist, links people have already sent keep opening.
 - The security policy: no inline event handlers, no new outside scripts, never loosened.
 - Keys: never in the repository, links or error messages.

@@ -36,7 +36,7 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
     "no libraries or fonts from CDNs",
   );
   ok(
-    !/\/\*(APP_CSS|APP_JS|LEAFLET_JS|COUNTRY_CODER_JS|LEAFLET_CSS|FONT_CSS|CSP|ICON_SVG|ICON_PNG|ICON_TOUCH)\*\//.test(
+    !/\/\*(APP_CSS|APP_JS|VALI|LEAFLET_JS|COUNTRY_CODER_JS|LEAFLET_CSS|FONT_CSS|CSP|ICON_SVG|ICON_PNG|ICON_TOUCH)\*\//.test(
       html,
     ),
     "every build placeholder filled in",
@@ -107,7 +107,7 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
     name: document.getElementById("mapName").value,
     country: document.getElementById("country").value,
     wanted: wanted(),
-    chosen: chosenCountry,
+    chosen: chosenCountries.join(),
     tagCountry: document.getElementById("tagCountry").checked,
     tagYear: document.getElementById("tagYear").checked,
     yearFrom: document.getElementById("yearFrom").value,

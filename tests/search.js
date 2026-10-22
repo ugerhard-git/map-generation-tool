@@ -352,7 +352,7 @@ const path = require("path");
   await p.reload();
   await p.waitForFunction(() => map !== null);
   ok(
-    (await p.inputValue("#country")) === "Malta" && (await p.inputValue("#target")) === "5",
+    (await p.evaluate(() => chosenCountries.join())) === "MT" && (await p.inputValue("#target")) === "5",
     "country and number remembered",
   );
   ok(

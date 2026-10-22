@@ -304,6 +304,44 @@ a:focus-visible {
 }
 
 /* ---------- step 1: where ---------- */
+/* Chosen countries, a continent or the whole world */
+.radio {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 400;
+  margin: 0 0 8px;
+  cursor: pointer;
+}
+.radio input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--blue);
+  flex: none;
+}
+/* The chosen countries as chips; a click removes one (copied from Lookout) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.chip {
+  font: inherit;
+  font-size: 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 10px 3px;
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+}
+.chip::after {
+  content: "×";
+  margin-left: 6px;
+  opacity: 0.7;
+}
 /* The country field with its list of suggestions (copied from Lookout's kind picker) */
 .combo {
   position: relative;
@@ -334,6 +372,60 @@ a:focus-visible {
 .suggest li.none {
   color: var(--muted);
   cursor: default;
+}
+
+/* ---------- locations per country ---------- */
+.shares {
+  border-top: 2px solid var(--ink);
+  padding: 14px 0 18px;
+}
+.shares summary {
+  font-weight: 800;
+  cursor: pointer;
+}
+.shares table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.92rem;
+}
+.shares th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1.5px solid var(--line);
+  padding: 4px 6px 4px 0;
+}
+.shares td {
+  padding: 4px 6px 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shares th:not(:first-child),
+.shares td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.shares tr.done td:last-child {
+  color: #1b7a3a;
+  font-weight: 600;
+}
+.shares tr.none td {
+  color: var(--muted);
+}
+.shares tbody {
+  display: block;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.shares thead,
+.shares tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+.shares th:first-child,
+.shares td:first-child {
+  width: 55%;
 }
 
 /* ---------- search and stop buttons, messages ---------- */

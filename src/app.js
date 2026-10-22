@@ -3,33 +3,43 @@
  * Map Generation Tool: the app code.
  *
  * The tool builds map-making.app maps of random official Google Street View locations that match what
- * the visitor chooses: no road name shown, the end of the coverage (one arrow), or both. Everything runs
- * in the visitor's browser; there is no server of our own. The build (src/build.js) puts this file, the
- * styles and the markup into one page. The plan for the next steps is in docs/plan.md.
+ * the visitor chooses: no road name shown, the end of the coverage (one arrow), photos from certain years.
+ * Everything runs in the visitor's browser; there is no server of our own. The build (src/build.js) puts
+ * this file, the styles, the markup and the Vali data (VALI, from src/data/vali.json) into one page. The
+ * plan for the next steps is in docs/plan.md.
  *
  * Much of this file is copied from Lookout (github.com/ugerhard-git/osm-tool), whose src/app.js is the
  * place to look for more shared parts. Copy a part over when a feature here needs it, not ahead of time.
  *
  * HOW A SEARCH RUNS (see startSearch)
- *   1. Step 1 sets the country, step 2 what each location must have (`wanted`: no road name, end of
- *      coverage, photo years), step 3 how many and how far to look around each random spot.
- *   2. PARALLEL workers repeat attempt() until enough locations are found or the visitor stops:
- *      randomPointIn() picks a random spot inside the country (from the country borders built into the
- *      page), lookup() asks Google's script for the nearest official panorama within the radius, and
- *      the panorama's arrows (`links`) tell whether a road name is shown and whether the coverage ends;
- *      its date tells the year of the photos.
- *   3. A panorama that matches, lies in the country and is at least MIN_SPACING from every location so
- *      far becomes a Location: drawn on the map (drawLocation, the first MAX_DRAWN only) and exported
- *      (exportJson). paint() keeps the status line, progress and counters up to date.
+ *   1. Step 1 sets where: chosen countries, a continent or the whole world, and with more than one
+ *      country, which of Vali's maps decides their shares (areaWeights). splitTotal() turns the shares
+ *      and the number from step 3 into a number of locations per country (`searchTargets`), shown in the
+ *      table of locations per country (renderShares). Step 2 sets what each location must have (`wanted`:
+ *      no road name, end of coverage, photo years), step 3 how many and how far to look around each spot.
+ *   2. PARALLEL workers repeat attempt() until every country has its number or the visitor stops:
+ *      pickCountry() chooses a country that still needs locations, randomPointIn() a random spot inside
+ *      it (from the country borders built into the page), lookup() asks Google's script for the nearest
+ *      official panorama within the radius. The panorama's arrows (`links`) tell whether a road name is
+ *      shown and whether the coverage ends; its date tells the year of the photos.
+ *   3. A panorama that matches, lies in that country and is at least MIN_SPACING from every location so
+ *      far becomes a Location: counted for its country (`foundBy`), drawn on the map (drawLocation, the
+ *      first MAX_DRAWN only) and exported (exportJson). paint() keeps the status line, progress, counters
+ *      and the table up to date.
  *
  * MAIN SHARED STATE
- *   results      the Locations found so far
- *   stats        counters for the current search (see emptyStats)
- *   running      true while a search runs; stopRequested asks the workers to finish
+ *   chosenCountries  the countries chosen in step 1 (codes), used when the area is "countries"
+ *   results          the Locations found so far
+ *   searchTargets    for the current or last search: locations wanted per country; foundBy: found so
+ *                    far; noSpots: countries where no random spots could be made
+ *   stats            counters for the current search (see emptyStats)
+ *   running          true while a search runs; stopRequested asks the workers to finish
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
- *   country (a country code), noRoadName, deadEnd, yearsOn, yearFrom, yearTo, target, radius, mapName,
- *   tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit dialog seen).
+ *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
+ *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, yearTo, target,
+ *   radius, mapName, tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit
+ *   dialog seen).
  *   A visitor's own Google key is only kept in sessionStorage ("mapgen.key"), never on disk.
  *   Saved values can be edited by anyone, so everything read back is checked first.
  *
@@ -39,8 +49,8 @@
  *   - Text from outside (Google, saved values) is put on the page with textContent, or passed through
  *     esc() before it goes into innerHTML.
  *   - The sections below follow the page from top to bottom: data, helpers, random spots, step 1, step 2,
- *     step 3, map, Google Street View, run, export, dialogs. src/page.html and src/style.css use the same
- *     section names.
+ *     step 3, locations per country, map, Google Street View, run, export, dialogs. src/page.html and
+ *     src/style.css use the same section names.
  */
 
 /**
@@ -284,28 +294,37 @@ function randomPointIn(code) {
 }
 
 /* ---------- step 1: where ----------
-   The country field suggests matching countries while typing (the same pattern as Lookout's kind picker).
-   The field shows the country's name; `chosenCountry` holds its code, or "" while none is chosen. */
+   Three ways to say where: chosen countries, a continent, or the whole world. Countries are added as
+   chips through a field that suggests countries while typing (the same pattern as Lookout's kind
+   picker). With more than one country, one of Vali's maps says how the locations are shared between
+   them; see "locations per country". */
 /** @type {{code: string, name: string, folded: string}[]} the countries offered, sorted by name */
 const COUNTRY_CHOICES = COVERAGE.map(code => {
   const name = countryName(code);
   return { code, name, folded: foldAccents(name) };
 }).sort((a, b) => a.name.localeCompare(b.name));
-let chosenCountry = "",
+const DEFAULT_MAP = "acw"; // A Community World, Vali's default too
+const DEFAULT_CONTINENT = "europe";
+/** @type {string[]} codes of the chosen countries, in the order they were added */
+let chosenCountries = [],
   countryMatches = [],
   countryActive = -1;
 const countryEl = $("country"),
   countryListEl = $("countryList");
-/* The countries matching typed text: the country with that two-letter code ("de": Germany) first, then
-   names starting with it, names with a word starting with it, names containing it. All for empty text. */
+/* Where to search: "countries", "continent" or "world". */
+const scope = () => document.querySelector("input[name=scope]:checked")?.value || "countries";
+/* The countries matching typed text, leaving out those already chosen: the country with that two-letter
+   code ("de": Germany) first, then names starting with it, names with a word starting with it, names
+   containing it. All for empty text. */
 function matchCountries(text) {
   const q = foldAccents(text.trim());
-  if (!q) return COUNTRY_CHOICES;
+  const open = COUNTRY_CHOICES.filter(c => !chosenCountries.includes(c.code));
+  if (!q) return open;
   const byCode = [],
     starts = [],
     wordStarts = [],
     contains = [];
-  for (const c of COUNTRY_CHOICES) {
+  for (const c of open) {
     if (c.code.toLowerCase() === q) byCode.push(c);
     else if (c.folded.startsWith(q)) starts.push(c);
     else if (c.folded.split(/[\s\-–(]+/).some(w => w.startsWith(q))) wordStarts.push(c);
@@ -315,7 +334,7 @@ function matchCountries(text) {
 }
 /* Shows the list of matching countries under the field. */
 function showCountryList() {
-  countryMatches = matchCountries(countryEl.value === countryName(chosenCountry) ? "" : countryEl.value);
+  countryMatches = matchCountries(countryEl.value);
   countryListEl.textContent = "";
   if (!countryMatches.length) {
     const li = document.createElement("li");
@@ -335,14 +354,7 @@ function showCountryList() {
   });
   countryListEl.hidden = false;
   countryEl.setAttribute("aria-expanded", "true");
-  setCountryActive(
-    countryMatches.length
-      ? Math.max(
-          0,
-          countryMatches.findIndex(c => c.code === chosenCountry),
-        )
-      : -1,
-  );
+  setCountryActive(countryMatches.length ? 0 : -1);
 }
 function setCountryActive(i) {
   countryActive = i;
@@ -360,20 +372,43 @@ function closeCountryList() {
   countryEl.removeAttribute("aria-activedescendant");
   countryActive = -1;
 }
-/* Makes a country the chosen one, shows its name in the field and saves it. */
-function chooseCountry(code) {
-  chosenCountry = COVERAGE.includes(code) ? code : "";
-  countryEl.value = chosenCountry ? countryName(chosenCountry) : "";
-  store.set("country", chosenCountry);
+/* Adds a country to the chosen ones and empties the field for the next one. */
+function addCountry(code) {
+  if (COVERAGE.includes(code) && !chosenCountries.includes(code)) chosenCountries.push(code);
+  countryEl.value = "";
   closeCountryList();
-  updateMapName();
+  whereChanged();
+}
+function removeCountry(code) {
+  chosenCountries = chosenCountries.filter(c => c !== code);
+  whereChanged();
+  countryEl.focus();
+}
+/* Draws the chosen countries as chips; a click on one removes it. */
+function renderCountryChips() {
+  const chips = $("countryChips");
+  chips.textContent = "";
+  for (const code of chosenCountries) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = countryName(code);
+    b.setAttribute("aria-label", `Remove ${countryName(code)}`);
+    b.onclick = () => removeCountry(code);
+    chips.append(b);
+  }
+  chips.hidden = !chosenCountries.length;
+  countryEl.placeholder = chosenCountries.length ? "Add another country" : "Start typing, for example Malta";
 }
 countryEl.addEventListener("input", showCountryList);
-countryEl.addEventListener("focus", () => {
-  countryEl.select(); // typing replaces the name shown
-  showCountryList();
-});
+countryEl.addEventListener("focus", showCountryList);
 countryEl.addEventListener("keydown", e => {
+  // Backspace in the empty field removes the last chosen country.
+  if (e.key === "Backspace" && !countryEl.value && chosenCountries.length) {
+    chosenCountries.pop();
+    whereChanged();
+    return;
+  }
   if (countryListEl.hidden) {
     if (e.key === "ArrowDown") showCountryList();
     return;
@@ -387,9 +422,9 @@ countryEl.addEventListener("keydown", e => {
   } else if (e.key === "Enter") {
     // Pick the highlighted country instead of starting the search.
     e.preventDefault();
-    if (countryActive >= 0) chooseCountry(countryMatches[countryActive].code);
+    if (countryActive >= 0) addCountry(countryMatches[countryActive].code);
   } else if (e.key === "Escape") {
-    countryEl.value = chosenCountry ? countryName(chosenCountry) : "";
+    countryEl.value = "";
     closeCountryList();
   }
 });
@@ -397,28 +432,159 @@ countryListEl.addEventListener("mousedown", e => {
   const li = e.target.closest("li[role=option]");
   if (li) {
     e.preventDefault(); // keep the focus in the field
-    chooseCountry(countryMatches[+li.dataset.i].code);
+    addCountry(countryMatches[+li.dataset.i].code);
   }
 });
-// Leaving the field: text that matches exactly one country (or a country's whole name) chooses it;
-// anything else puts back the country chosen before.
+// Leaving the field: text that matches exactly one country (or a country's whole name) adds it;
+// anything else is cleared.
 countryEl.addEventListener("blur", () =>
   setTimeout(() => {
     if (countryListEl.hidden) return;
     const typed = countryEl.value.trim();
     const matches = matchCountries(typed);
     const exact = matches.find(c => c.folded === foldAccents(typed));
-    if (typed && (exact || matches.length === 1)) chooseCountry((exact || matches[0]).code);
+    if (typed && (exact || matches.length === 1)) addCountry((exact || matches[0]).code);
     else {
-      countryEl.value = chosenCountry ? countryName(chosenCountry) : "";
+      countryEl.value = "";
       closeCountryList();
     }
   }, 120),
 );
+
+/* The continents, from Vali, and the maps whose share of countries can be used. */
+for (const [code, c] of Object.entries(VALI.continents)) {
+  const o = document.createElement("option");
+  o.value = code;
+  o.textContent = c.name;
+  $("continent").append(o);
+}
+/* Fills the "Share the locations like" list for the chosen area: for a continent, Vali's own
+   distribution of that continent first; then the maps. Switching to a continent chooses Vali's map of
+   it; switching away from it chooses A Community World; otherwise the choice is kept. */
+let lastScope = "";
+function renderDistributionChoices() {
+  const el = $("distribution"),
+    s = scope();
+  let before = el.value || store.get("distribution", "");
+  if (lastScope && s !== lastScope)
+    before = s === "continent" ? "continent" : before === "continent" ? DEFAULT_MAP : before;
+  lastScope = s;
+  el.textContent = "";
+  if (scope() === "continent") {
+    const o = document.createElement("option");
+    o.value = "continent";
+    o.textContent = `Vali's ${VALI.continents[$("continent").value]?.name || "continent"} map`;
+    el.append(o);
+  }
+  for (const [code, m] of Object.entries(VALI.maps).sort((a, b) => a[1].name.localeCompare(b[1].name))) {
+    const o = document.createElement("option");
+    o.value = code;
+    o.textContent = m.name;
+    el.append(o);
+  }
+  const offered = [...el.options].map(o => o.value);
+  el.value = offered.includes(before) ? before : scope() === "continent" ? "continent" : DEFAULT_MAP;
+}
+/* Shows the parts of step 1 that belong to the chosen area. */
+function renderWhere() {
+  const s = scope();
+  $("countriesBox").hidden = s !== "countries";
+  $("continentBox").hidden = s !== "continent";
+  $("distributionBox").hidden = s === "countries" && chosenCountries.length < 2;
+  renderCountryChips();
+}
+/* After any change in step 1: save it, and update what depends on it. The table of locations per
+   country then shows the new plan instead of the last search. */
+function whereChanged() {
+  if (!running) searchTargets = new Map();
+  store.set("scope", scope());
+  store.set("countries", chosenCountries);
+  store.set("continent", $("continent").value);
+  renderDistributionChoices();
+  store.set("distribution", $("distribution").value);
+  renderWhere();
+  renderShares();
+  updateMapName();
+}
+for (const r of document.querySelectorAll("input[name=scope]")) r.onchange = whereChanged;
+$("continent").onchange = whereChanged;
+$("distribution").onchange = whereChanged;
+
+/* The countries of the chosen area with their shares (relative numbers, not counts). Only countries
+   with official coverage. A chosen country that the chosen map does not include gets 0. */
+function areaWeights() {
+  const s = scope(),
+    dist = $("distribution").value;
+  const mapWeights = VALI.maps[dist]?.weights || {};
+  const official = code => COVERAGE.includes(code);
+  if (s === "countries") {
+    if (chosenCountries.length === 1) return { [chosenCountries[0]]: 1 };
+    return Object.fromEntries(chosenCountries.filter(official).map(c => [c, mapWeights[c] || 0]));
+  }
+  if (s === "continent") {
+    const members = VALI.continents[$("continent").value]?.weights || {};
+    if (dist === "continent") return Object.fromEntries(Object.entries(members).filter(([c]) => official(c)));
+    return Object.fromEntries(
+      Object.keys(members)
+        .filter(official)
+        .map(c => [c, mapWeights[c] || 0]),
+    );
+  }
+  return Object.fromEntries(Object.entries(mapWeights).filter(([c]) => official(c)));
+}
+/* Splits a total between countries in proportion to their shares, in whole numbers that add up to the
+   total (largest remainder method: everyone gets the whole part of their exact share, and what is left
+   goes one by one to the largest fractions). Only countries that get at least one are listed. */
+function splitTotal(weights, total) {
+  const entries = Object.entries(weights).filter(([, w]) => w > 0);
+  const sum = entries.reduce((n, [, w]) => n + w, 0);
+  if (!sum) return {};
+  const parts = entries.map(([code, w]) => {
+    const exact = (total * w) / sum;
+    return { code, w, n: Math.floor(exact), rest: exact - Math.floor(exact) };
+  });
+  const left = total - parts.reduce((n, p) => n + p.n, 0);
+  parts.sort((a, b) => b.rest - a.rest || b.w - a.w || a.code.localeCompare(b.code));
+  for (let i = 0; i < left; i++) parts[i].n++;
+  return Object.fromEntries(parts.filter(p => p.n > 0).map(p => [p.code, p.n]));
+}
+/* The area in words, for the map name: "Malta", "Germany, France", "5 countries", "Europe", "World". */
+function areaLabel() {
+  const s = scope();
+  if (s === "world") return "World";
+  if (s === "continent") return VALI.continents[$("continent").value]?.name || "Continent";
+  if (chosenCountries.length <= 3) return chosenCountries.map(countryName).join(", ");
+  return `${chosenCountries.length} countries`;
+}
+/* The chosen distribution in words, or "" when it does not matter (a single country, a continent's own). */
+function distributionLabel() {
+  if ($("distributionBox").hidden || $("distribution").value === "continent") return "";
+  return VALI.maps[$("distribution").value]?.name || "";
+}
 {
-  const saved = store.get("country", "");
-  chosenCountry = COVERAGE.includes(saved) ? saved : "";
-  countryEl.value = chosenCountry ? countryName(chosenCountry) : "";
+  // Saved settings. Before several countries could be chosen, one country was saved as "country";
+  // it is moved over to "countries" once.
+  const old = store.get("country", null);
+  if (typeof old === "string" && store.get("countries", null) === null) store.set("countries", [old]);
+  try {
+    localStorage.removeItem("mapgen.country");
+  } catch {}
+  const saved = store.get("countries", []);
+  chosenCountries = Array.isArray(saved)
+    ? [...new Set(saved.filter(c => typeof c === "string" && COVERAGE.includes(c)))]
+    : [];
+  const savedScope = store.get("scope", "countries");
+  const radio = document.querySelector(
+    `input[name=scope][value="${["countries", "continent", "world"].includes(savedScope) ? savedScope : "countries"}"]`,
+  );
+  radio.checked = true;
+  const savedContinent = store.get("continent", DEFAULT_CONTINENT);
+  $("continent").value =
+    typeof savedContinent === "string" && Object.hasOwn(VALI.continents, savedContinent)
+      ? savedContinent
+      : DEFAULT_CONTINENT;
+  renderDistributionChoices();
+  renderWhere();
 }
 
 /* ---------- step 2: what to look for ---------- */
@@ -480,14 +646,21 @@ function wantedLabel(w) {
 const target = () => wholeNumber($("target").value, 1, TARGET_MAX, TARGET_DEFAULT);
 const radius = () => wholeNumber($("radius").value, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT);
 $("target").value = wholeNumber(store.get("target", TARGET_DEFAULT), 1, TARGET_MAX, TARGET_DEFAULT);
-$("target").onchange = () => store.set("target", target());
+$("target").onchange = () => {
+  store.set("target", target());
+  if (!running) searchTargets = new Map();
+  renderShares();
+};
 $("radius").value = wholeNumber(store.get("radius", RADIUS_DEFAULT), RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT);
 $("radius").onchange = () => store.set("radius", radius());
 $("mapName").value = cleanText(store.get("mapName", ""), 100);
 $("mapName").oninput = () => store.set("mapName", $("mapName").value.slice(0, 100));
-/* The name suggested when the visitor types none: "Malta: No road name". */
+/* The name suggested when the visitor types none: "Malta: No road name",
+   "World (A Community World): End of coverage". */
 function suggestedName() {
-  return (chosenCountry ? countryName(chosenCountry) + ": " : "") + wantedLabel(wanted());
+  const area = areaLabel(),
+    dist = distributionLabel();
+  return (area ? area + (dist ? ` (${dist})` : "") + ": " : "") + wantedLabel(wanted());
 }
 /* Shows the suggested name in the empty map name field. */
 function updateMapName() {
@@ -519,6 +692,65 @@ $("keyBox").hidden = !!GOOGLE_API_KEY;
 $("apiKey").value = keyStore.get();
 $("apiKey").onchange = () => keyStore.set($("apiKey").value.trim());
 
+/* ---------- locations per country ----------
+   Before a search: how many locations each country of the area will get (splitTotal of areaWeights).
+   During and after a search: also how many were found. Not shown for a single country. */
+/* Draws the table under the steps. */
+function renderShares() {
+  const box = $("sharesBox"),
+    rows = $("shares"),
+    note = $("sharesNote");
+  const searched = running || searchTargets.size > 0;
+  const weights = searched ? null : areaWeights();
+  const wantedBy = searched ? Object.fromEntries(searchTargets) : splitTotal(weights, target());
+  const codes = Object.keys(wantedBy);
+  box.hidden = scope() === "countries" && chosenCountries.length < 2 && !(searched && searchTargets.size > 1);
+  if (box.hidden) return;
+  const order = codes.sort(
+    (a, b) => wantedBy[b] - wantedBy[a] || countryName(a).localeCompare(countryName(b)),
+  );
+  rows.textContent = "";
+  let done = 0;
+  for (const code of order) {
+    const tr = document.createElement("tr"),
+      found = foundBy.get(code) || 0;
+    const full = searched && found >= wantedBy[code];
+    if (full) done++;
+    if (full) tr.className = "done";
+    else if (searched && noSpots.has(code)) tr.className = "none";
+    for (const text of [
+      countryName(code),
+      fmt(wantedBy[code]),
+      searched ? (noSpots.has(code) && !full ? "no spots" : fmt(found)) : "",
+    ]) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.append(td);
+    }
+    rows.append(tr);
+  }
+  $("sharesSummary").textContent = searched
+    ? `Locations per country: ${done} of ${codes.length} countries done`
+    : `Locations per country: ${fmt(codes.length)} ${codes.length === 1 ? "country" : "countries"}`;
+  // Before a search, say which countries get nothing, and why.
+  let why = "";
+  if (!searched) {
+    const left = Object.keys(weights).filter(c => !wantedBy[c] || wantedBy[c] === 0);
+    const notInMap = left.filter(c => !weights[c]),
+      tooFew = left.filter(c => weights[c] > 0);
+    if (!codes.length && notInMap.length)
+      why = `None of these countries is in ${VALI.maps[$("distribution").value]?.name || "this map"}. Choose another map.`;
+    else {
+      if (notInMap.length)
+        why += `Not in ${VALI.maps[$("distribution").value]?.name || "this map"}, so they get none: ${notInMap.map(countryName).join(", ")}. `;
+      if (tooFew.length)
+        why += `${fmt(tooFew.length)} more ${tooFew.length === 1 ? "country gets" : "countries get"} none: their share of ${fmt(target())} locations rounds down to 0.`;
+    }
+  }
+  note.textContent = why.trim();
+  note.hidden = !why;
+}
+
 /* ---------- map ---------- */
 let map = null,
   layer = null;
@@ -533,14 +765,22 @@ function initMap() {
   layer = L.layerGroup().addTo(map);
 }
 window.addEventListener("load", initMap);
-/* Zooms the map to the largest part of a country (France without its overseas parts, say). */
-function showCountry(code) {
-  const part = borderParts(code)[0];
-  if (map && part)
+/* Zooms the map to the countries searched: to the largest part of each (France without its overseas
+   parts, say), or to the whole world when that is wider than a hemisphere. */
+function showArea(codes) {
+  if (!map) return;
+  const parts = codes.map(c => borderParts(c)[0]).filter(Boolean);
+  if (!parts.length) return;
+  const south = Math.min(...parts.map(p => p.south)),
+    north = Math.max(...parts.map(p => p.north)),
+    west = Math.min(...parts.map(p => p.west)),
+    east = Math.max(...parts.map(p => p.east));
+  if (east - west > 180) map.setView([25, 10], 2);
+  else
     map.fitBounds(
       [
-        [part.south, part.west],
-        [part.north, part.east],
+        [south, west],
+        [north, east],
       ],
       { padding: [20, 20] },
     );
@@ -677,6 +917,11 @@ function arrowFacts(links) {
 let results = [],
   running = false,
   stopRequested = false;
+/* For the current or last search: how many locations each country should get, how many it has, and the
+   countries where no random spots could be made (their borders are missing from the page). */
+let searchTargets = new Map(),
+  foundBy = new Map(),
+  noSpots = new Set();
 let stats = emptyStats();
 /* Counters for one search. */
 function emptyStats() {
@@ -745,6 +990,7 @@ function paint(status) {
   if (stats.outside) add(stats.outside, "across the border");
   if (stats.failed) add(stats.failed, "failed lookups");
   if (results.length > MAX_DRAWN) add(MAX_DRAWN, "shown on the map");
+  renderShares();
 }
 /* Locks or unlocks the form while a search runs. */
 function setRunning(on) {
@@ -761,15 +1007,32 @@ function paintSoon() {
   const now = Date.now();
   if (now - lastPaint < 250) return;
   lastPaint = now;
-  paint(`Searching ${countryName(searchCountry)}: ${fmt(results.length)} of ${fmt(currentTarget)} found…`);
+  paint(`Searching ${searchArea}: ${fmt(results.length)} of ${fmt(currentTarget)} found…`);
 }
-let searchCountry = "",
+let searchArea = "",
   fatal = "";
-/* One random spot: look it up and keep the panorama if it matches. */
+/* The country for the next random spot: one that still needs locations, chosen with a chance in
+   proportion to how many it still needs, so all countries fill up at about the same pace. Null when no
+   country needs more. */
+function pickCountry() {
+  const needs = [];
+  let total = 0;
+  for (const [code, wanted] of searchTargets) {
+    const need = wanted - (foundBy.get(code) || 0);
+    if (need > 0 && !noSpots.has(code)) {
+      needs.push([code, need]);
+      total += need;
+    }
+  }
+  let pick = Math.random() * total;
+  for (const [code, need] of needs) if ((pick -= need) < 0) return code;
+  return needs.length ? needs[needs.length - 1][0] : null;
+}
+/* One random spot in a country: look it up and keep the panorama if it matches. */
 async function attempt(code, want, rad, key) {
   const p = randomPointIn(code);
   if (!p) {
-    fatal = `No random spots could be made inside ${countryName(code)}: its borders are missing from the page.`;
+    noSpots.add(code); // the other countries go on
     return;
   }
   stats.tries++;
@@ -812,7 +1075,8 @@ async function attempt(code, want, rad, key) {
     stats.tooClose++;
     return;
   }
-  if (results.length >= currentTarget) return; // another worker filled the last place meanwhile
+  // another worker may have filled this country's last place meanwhile
+  if ((foundBy.get(code) || 0) >= searchTargets.get(code)) return;
   /** @type {Location} */
   const l = {
     lat: r.lat,
@@ -825,6 +1089,7 @@ async function attempt(code, want, rad, key) {
     deadEnd: facts.deadEnd,
   };
   results.push(l);
+  foundBy.set(code, (foundBy.get(code) || 0) + 1);
   remember(l);
   if (results.length <= MAX_DRAWN) drawLocation(l);
 }
@@ -839,10 +1104,16 @@ function cameraHeading(links, facts) {
 async function startSearch() {
   if (running) return;
   showError("");
-  const code = chosenCountry;
-  if (!COVERAGE.includes(code)) {
+  if (scope() === "countries" && !chosenCountries.length) {
     showError("Choose a country in step 1.");
     countryEl.focus();
+    return;
+  }
+  const targets = splitTotal(areaWeights(), target());
+  if (!Object.keys(targets).length) {
+    showError(
+      `None of the chosen countries is in ${distributionLabel() || "this map"}. Choose another map in step 1.`,
+    );
     return;
   }
   const key = GOOGLE_API_KEY || $("apiKey").value.trim();
@@ -854,23 +1125,35 @@ async function startSearch() {
   if (!GOOGLE_API_KEY) keyStore.set(key);
   const want = wanted(),
     rad = radius();
-  currentTarget = target();
-  $("target").value = currentTarget;
+  $("target").value = target();
+  searchTargets = new Map(Object.entries(targets).filter(([, n]) => n > 0));
+  currentTarget = [...searchTargets.values()].reduce((a, b) => a + b, 0);
+  foundBy = new Map();
+  noSpots = new Set();
   results = [];
   cells = new Map();
   seenPanos = new Set();
   stats = emptyStats();
   fatal = "";
   stopRequested = false;
-  searchCountry = code;
+  const codes = [...searchTargets.keys()];
+  searchArea =
+    codes.length === 1
+      ? countryName(codes[0])
+      : scope() === "world"
+        ? "the world"
+        : scope() === "continent"
+          ? areaLabel()
+          : `${codes.length} countries`;
   if (layer) layer.clearLayers();
-  showCountry(code);
+  showArea(codes);
   setRunning(true);
   paint("Loading Google's Street View service…");
   try {
     await loadGoogleScript(key);
   } catch (e) {
     setRunning(false);
+    searchTargets = new Map();
     paint("Ready.");
     return showError(
       e.message === "denied"
@@ -880,7 +1163,9 @@ async function startSearch() {
   }
   paintSoon();
   const worker = async () => {
-    while (!stopRequested && !fatal && results.length < currentTarget) {
+    while (!stopRequested && !fatal) {
+      const code = pickCountry();
+      if (!code) break; // every country has what it needs, or no spots can be made where it lacks some
       await attempt(code, want, rad, key);
       paintSoon();
     }
@@ -888,11 +1173,15 @@ async function startSearch() {
   await Promise.all(Array.from({ length: PARALLEL }, worker));
   setRunning(false);
   if (fatal) showError(fatal);
-  const where = countryName(code);
+  else if (noSpots.size)
+    showError(
+      `No random spots could be made in ${[...noSpots].map(countryName).join(", ")}: the borders are missing from the page.`,
+    );
+  const where = searchArea === "the world" ? "around the world" : "in " + searchArea;
   paint(
     results.length >= currentTarget
-      ? `Done: ${fmt(results.length)} locations found in ${where}.`
-      : `${stopRequested ? "Stopped" : "Search ended"}: ${fmt(results.length)} of ${fmt(currentTarget)} locations found in ${where}.`,
+      ? `Done: ${fmt(results.length)} locations found ${where}.`
+      : `${stopRequested ? "Stopped" : "Search ended"}: ${fmt(results.length)} of ${fmt(currentTarget)} locations found ${where}.`,
   );
 }
 $("form").onsubmit = e => {
@@ -949,6 +1238,8 @@ $("copy").onclick = async () => {
 $("clear").onclick = () => {
   results = [];
   stats = emptyStats();
+  searchTargets = new Map();
+  foundBy = new Map();
   if (layer) layer.clearLayers();
   paint("Ready.");
 };

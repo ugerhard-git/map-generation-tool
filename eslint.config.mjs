@@ -5,9 +5,9 @@ import globals from "globals";
 import * as espree from "espree";
 import { readFileSync } from "node:fs";
 
-// Names the page itself defines: the build adds Leaflet (L) and the framing check (FRAMED) before
+// Names the page itself defines: the build adds Leaflet (L), the Vali data (VALI) and the framing check (FRAMED) before
 // app.js, and Google's script adds `google` when it loads.
-const pageGlobals = { L: "readonly", google: "readonly", FRAMED: "readonly" };
+const pageGlobals = { L: "readonly", google: "readonly", FRAMED: "readonly", VALI: "readonly" };
 
 // The tests run some code inside the page (page.evaluate), where it uses app.js's top-level names.
 // Read those names from app.js, so this list never goes out of date.

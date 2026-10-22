@@ -64,7 +64,11 @@
           import the result into map-making.app.
         </p>
         <ol>
-          <li><b>Choose a country:</b> start typing its name and pick it from the list.</li>
+          <li>
+            <b>Choose where:</b> one or more countries, a continent or the whole world. With several
+            countries, the locations are shared between them like in a well-known GeoGuessr map of your
+            choice.
+          </li>
           <li>
             <b>Choose what to look for:</b> spots where Street View shows no road name, spots where the
             coverage ends (only one arrow), photos from certain years, or a mix.
@@ -95,21 +99,46 @@
           <!-- Step 1: where (app.js: step 1) -->
           <section class="step" id="stepWhere">
             <h2><span class="n">1</span>Where?</h2>
-            <label for="country">Country or territory</label>
-            <div class="combo">
-              <input
-                type="text"
-                id="country"
-                role="combobox"
-                aria-autocomplete="list"
-                aria-expanded="false"
-                aria-controls="countryList"
-                placeholder="Start typing, for example Malta"
-                spellcheck="false"
-              />
-              <ul class="suggest" id="countryList" role="listbox" aria-label="Countries" hidden></ul>
+            <div class="scope" role="radiogroup" aria-label="Where to search">
+              <label class="radio"
+                ><input type="radio" name="scope" value="countries" checked />Chosen countries</label
+              >
+              <label class="radio"><input type="radio" name="scope" value="continent" />A continent</label>
+              <label class="radio"><input type="radio" name="scope" value="world" />The whole world</label>
             </div>
-            <p class="hint">Only places with official Google Street View are offered.</p>
+            <!-- Chosen countries: chips and a field with suggestions -->
+            <div class="field" id="countriesBox">
+              <label for="country">Countries or territories</label>
+              <div class="chips" id="countryChips" hidden></div>
+              <div class="combo">
+                <input
+                  type="text"
+                  id="country"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-controls="countryList"
+                  placeholder="Start typing, for example Malta"
+                  spellcheck="false"
+                />
+                <ul class="suggest" id="countryList" role="listbox" aria-label="Countries" hidden></ul>
+              </div>
+              <p class="hint">Only places with official Google Street View are offered.</p>
+            </div>
+            <!-- A continent -->
+            <div class="field" id="continentBox" hidden>
+              <label for="continent">Continent</label>
+              <select id="continent"></select>
+            </div>
+            <!-- How the locations are shared between the countries -->
+            <div class="field" id="distributionBox" hidden>
+              <label for="distribution">Share the locations like</label>
+              <select id="distribution"></select>
+              <p class="hint">
+                How well-known GeoGuessr maps share their locations between countries, from
+                <a href="https://github.com/slashP/Vali" target="_blank" rel="noopener">Vali</a> by slashP.
+              </p>
+            </div>
           </section>
 
           <!-- Step 2: what to look for (app.js: step 2) -->
@@ -191,6 +220,23 @@
           </section>
         </fieldset>
 
+        <!-- Locations per country: what each country gets, and while searching, how many were found
+             (app.js: locations per country). Outside the fieldset, so it stays readable while searching. -->
+        <details class="shares" id="sharesBox" hidden>
+          <summary id="sharesSummary">Locations per country</summary>
+          <p class="hint" id="sharesNote" hidden></p>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Country</th>
+                <th scope="col">Wanted</th>
+                <th scope="col">Found</th>
+              </tr>
+            </thead>
+            <tbody id="shares"></tbody>
+          </table>
+        </details>
+
         <!-- Search and stop buttons, messages (app.js: run) -->
         <button class="go" id="go" type="submit">Find locations</button>
         <button class="btn stop" id="stop" type="button" hidden>Stop and keep what was found</button>
@@ -218,13 +264,16 @@
     </div>
 
     <!-- Scripts. The build fills these in and fingerprints them for the security policy: the libraries
-         (Leaflet for the map, country-coder for finding a location's country), the framing check, and
-         src/app.js -->
+         (Leaflet for the map, country-coder for finding a location's country), the Vali data with the
+         framing check, and src/app.js -->
     <script>
       /*LEAFLET_JS*/
       /*COUNTRY_CODER_JS*/
     </script>
     <script>
+      /* Country distributions of well-known GeoGuessr maps and the continent lists, from Vali by slashP
+         (https://github.com/slashP/Vali, GPL-3.0), made by tools/vali.js from src/data/vali.json. */
+      const VALI = /*VALI*/;
       /* Inside another site's frame, show only a link to open the app on its own, so nobody can lay a fake
          page over it and trick clicks (the security policy in the page itself cannot forbid framing). */
       let FRAMED = false;

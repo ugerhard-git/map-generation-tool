@@ -19,7 +19,7 @@ For a bigger change or a new feature, open an issue first so we can agree on the
 
 1. Fork the repository and create a branch.
 2. `npm install`, then `npm run build` and `npm test`. See the README.
-3. Make your change in `src/`. Never edit `dist/`; it is generated. [How the code works](docs/how-the-code-works.md) explains where things are.
+3. Make your change in `src/`. Never edit `dist/` or `src/data/vali.json`; they are generated (`tools/vali.js` makes the Vali data). [How the code works](docs/how-the-code-works.md) explains where things are.
 4. Add or update a test in `tests/` for what you changed. The tests simulate Google and the map tiles, so they run offline.
 5. Run the checks:
 
