@@ -2,7 +2,7 @@
 // locations, stopping, errors from Google, and the map-making.app export. Google's script is simulated
 // (tests/helpers.js), so each case decides what Google answers.
 const { chromium } = require("./pw.js");
-const { openPage, search, searchEnded } = require("./helpers.js");
+const { openPage, chooseCountry, search, searchEnded } = require("./helpers.js");
 const path = require("path");
 (async () => {
   const b = await chromium.launch();
@@ -23,7 +23,7 @@ const path = require("path");
   let p = await open("ok");
   await p.click("#go");
   ok(/Choose a country/.test(await p.textContent("#error")), "asks for a country first");
-  await p.selectOption("#country", "MT");
+  await chooseCountry(p, "Malta");
   await p.fill("#apiKey", "");
   await p.click("#go");
   ok(/API key/.test(await p.textContent("#error")), "asks for a key");
@@ -62,15 +62,54 @@ const path = require("path");
   ok(
     r.name === "Malta: Official coverage" &&
       r.customCoordinates.every(
-        c => c.countryCode === "MT" && c.extra.tags.join() === "MT" && [10, 190].includes(c.heading),
+        c => c.countryCode === "MT" && c.extra.tags.join() === "Malta" && [10, 190].includes(c.heading),
       ),
-    "each location has its country, its tags and faces along the road",
+    "each location has its country code, the country name as its tag and faces along the road",
   );
   ok(
     (await p.isEnabled("#download")) && (await p.isVisible("#go")) && (await p.isHidden("#stop")),
     "after the search: download possible, form unlocked",
   );
   await p.screenshot({ path: path.join(__dirname, "../dist/screens/search-done.png") });
+
+  // The popup of a location: what it has, the photo date and a large Street View button
+  await p.evaluate(() => layer.getLayers()[0].openPopup());
+  const button = await p.$(".leaflet-popup a.sv");
+  const box = button && (await button.boundingBox());
+  ok(
+    box && box.height >= 36 && box.width >= 150 && /pano=PANO_/.test(await button.getAttribute("href")),
+    "the popup has a large Open in Street View button: " + JSON.stringify(box),
+  );
+  ok(/Photo from 2023-04/.test(await p.textContent(".leaflet-popup")), "the popup shows the photo date");
+  await p.screenshot({ path: path.join(__dirname, "../dist/screens/popup.png") });
+
+  // Tag options: the country name by default; "No road name"/"Dead end" and the year when ticked.
+  // They can be changed after the search and apply to the next download.
+  ok(
+    (await p.isChecked("#tagCountry")) &&
+      !(await p.isChecked("#tagFeatures")) &&
+      !(await p.isChecked("#tagYear")),
+    "by default only the country is tagged",
+  );
+  await p.check("#tagYear");
+  r = await exported(p);
+  ok(
+    r.customCoordinates.every(c => c.extra.tags.join() === "Malta,2023"),
+    "the year tag is added",
+  );
+  await p.uncheck("#tagCountry");
+  r = await exported(p);
+  ok(
+    r.customCoordinates.every(c => c.extra.tags.join() === "2023"),
+    "the country tag can be left out",
+  );
+  await p.uncheck("#tagYear");
+  r = await exported(p);
+  ok(
+    r.customCoordinates.every(c => !("extra" in c) && c.countryCode === "MT"),
+    "no tags at all: no extra block",
+  );
+  await p.check("#tagCountry");
 
   // 3. No road name: only panoramas whose arrows carry no name
   await p.evaluate(() => {
@@ -94,6 +133,7 @@ const path = require("path");
       };
     };
   });
+  await p.check("#tagFeatures");
   await search(p, { noRoadName: true, target: 6 });
   await searchEnded(p);
   r = await exported(p);
@@ -129,7 +169,7 @@ const path = require("path");
   r = await exported(p);
   ok(
     r.customCoordinates.length === 4 &&
-      r.customCoordinates.every(c => c.heading === 250 && c.extra.tags.join() === "MT,Dead end"),
+      r.customCoordinates.every(c => c.heading === 250 && c.extra.tags.join() === "Malta,Dead end"),
     "end of coverage: one arrow only, camera faces where coverage stops, tagged",
   );
 
@@ -154,7 +194,9 @@ const path = require("path");
   r = await exported(p);
   ok(
     r.customCoordinates.length === 3 &&
-      r.customCoordinates.every(c => c.heading === 120 && c.extra.tags.join() === "MT,No road name,Dead end"),
+      r.customCoordinates.every(
+        c => c.heading === 120 && c.extra.tags.join() === "Malta,No road name,Dead end",
+      ),
     "both criteria: only spots with both",
   );
   ok(
@@ -163,6 +205,49 @@ const path = require("path");
   );
   await p.fill("#mapName", "My Malta");
   ok((await exported(p)).name === "My Malta", "a typed map name is used");
+
+  // 5b. Photo years: only panoramas whose photos are from the chosen years; the years can be given in
+  // either order; unknown dates do not count
+  ok(await p.isDisabled("#yearFrom"), "the years can only be chosen once ticked");
+  await p.fill("#mapName", "");
+  await p.check("#yearsOn");
+  await p.selectOption("#yearFrom", "2014");
+  await p.selectOption("#yearTo", "2010");
+  await p.evaluate(() => {
+    let n = 0;
+    const dates = ["2008-05", "2012-07", "2019-01", "", "2010", "2014-12", "2015-01"];
+    window.__sv = req => {
+      n++;
+      return {
+        id: "Y_" + n,
+        lat: req.location.lat,
+        lng: req.location.lng,
+        links: [],
+        date: dates[n % dates.length],
+      };
+    };
+  });
+  await p.check("#tagYear");
+  await search(p, { target: 6 });
+  await searchEnded(p);
+  r = await exported(p);
+  const yearsFound = r.customCoordinates.map(c => c.extra.tags[c.extra.tags.length - 1]);
+  ok(
+    r.customCoordinates.length === 6 && yearsFound.every(y => ["2010", "2012", "2014"].includes(y)),
+    "only photos from 2010 to 2014, tagged with their year: " + yearsFound.join(" "),
+  );
+  ok(r.name === "Malta: 2010–2014", "the map name names the years: " + r.name);
+  await p.selectOption("#yearFrom", "2012");
+  await p.selectOption("#yearTo", "2012");
+  ok((await p.getAttribute("#mapName", "placeholder")) === "Malta: 2012", "one year: the map name names it");
+  const lastYear = await p.$$eval("#yearTo option", o => o[o.length - 1].value);
+  const firstYear = await p.$eval("#yearFrom option", o => o.value);
+  ok(
+    firstYear === "2009" && lastYear === String(new Date().getFullYear()),
+    `years offered: ${firstYear} to ${lastYear}`,
+  );
+  await p.uncheck("#yearsOn");
+  await p.uncheck("#tagYear");
 
   // 6. Unofficial photos, panoramas across the border, repeats and spots too close are not kept
   await p.evaluate(() => {
@@ -267,8 +352,14 @@ const path = require("path");
   await p.reload();
   await p.waitForFunction(() => map !== null);
   ok(
-    (await p.inputValue("#country")) === "MT" && (await p.inputValue("#target")) === "5",
+    (await p.inputValue("#country")) === "Malta" && (await p.inputValue("#target")) === "5",
     "country and number remembered",
+  );
+  ok(
+    (await p.isChecked("#tagFeatures")) &&
+      (await p.isChecked("#tagCountry")) &&
+      !(await p.isChecked("#tagYear")),
+    "tag options remembered",
   );
 
   // 11. Key refused, script unreachable

@@ -1,6 +1,6 @@
 # Map Generation Tool
 
-Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random official Google Street View locations in a country, optionally only where Street View shows no road name, where the coverage ends (one arrow), or both.
+Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random official Google Street View locations in a country, optionally only where Street View shows no road name, where the coverage ends (one arrow), where the photos are from certain years, or any mix of these.
 
 **Work in progress.** One country at a time for now; whole-world and continent searches with the country distributions of well-known GeoGuessr maps come next. See [the plan](docs/plan.md).
 
@@ -8,8 +8,8 @@ Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random o
 
 1. **Choose a country, what to look for and how many** (up to 130,000).
 2. **Random spots.** The page picks random spots inside the country and asks Google for the nearest official panorama within a chosen radius.
-3. **Check the arrows.** A panorama whose arrows carry no street name has no road name; a panorama with a single arrow is where the coverage ends. Matching locations at least 100 m apart are kept, tagged with their country and what they have. At the end of the coverage, the camera faces where it stops.
-4. **Export** as a map-making.app JSON file, at the end or after stopping the search.
+3. **Check the arrows.** A panorama whose arrows carry no street name has no road name; a panorama with a single arrow is where the coverage ends; its date gives the year of the photos (Google's default photos at that spot, normally the newest). Matching locations at least 100 m apart are kept. At the end of the coverage, the camera faces where it stops.
+4. **Export** as a map-making.app JSON file, at the end or after stopping the search. Each location gets its country code and the tags you tick: the country's name (ticked by default), "No road name" and "Dead end" where they apply, and the year of the photos.
 
 It runs entirely in the browser as a single HTML page. There is no server of its own. It shares much of its code with [Lookout (osm-tool)](https://github.com/ugerhard-git/osm-tool).
 

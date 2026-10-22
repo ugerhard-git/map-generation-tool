@@ -64,10 +64,10 @@
           import the result into map-making.app.
         </p>
         <ol>
-          <li><b>Choose a country.</b></li>
+          <li><b>Choose a country:</b> start typing its name and pick it from the list.</li>
           <li>
             <b>Choose what to look for:</b> spots where Street View shows no road name, spots where the
-            coverage ends (only one arrow), or both.
+            coverage ends (only one arrow), photos from certain years, or a mix.
           </li>
           <li><b>Choose how many,</b> then select "Find locations".</li>
           <li>
@@ -96,10 +96,20 @@
           <section class="step" id="stepWhere">
             <h2><span class="n">1</span>Where?</h2>
             <label for="country">Country or territory</label>
-            <select id="country">
-              <option value="">Choose a country</option>
-            </select>
-            <p class="hint">Only places with official Google Street View are listed.</p>
+            <div class="combo">
+              <input
+                type="text"
+                id="country"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded="false"
+                aria-controls="countryList"
+                placeholder="Start typing, for example Malta"
+                spellcheck="false"
+              />
+              <ul class="suggest" id="countryList" role="listbox" aria-label="Countries" hidden></ul>
+            </div>
+            <p class="hint">Only places with official Google Street View are offered.</p>
           </section>
 
           <!-- Step 2: what to look for (app.js: step 2) -->
@@ -119,8 +129,23 @@
                 ></span
               ></label
             >
+            <label class="check"
+              ><input type="checkbox" id="yearsOn" /><span
+                >Photos taken in certain years<br /><span class="hint"
+                  >Checks the photos Google shows by default at a spot, normally the newest. Older years are
+                  rarer and take longer to find.</span
+                ></span
+              ></label
+            >
+            <div class="years" id="yearsBox">
+              <label for="yearFrom">From</label>
+              <select id="yearFrom"></select>
+              <label for="yearTo">to</label>
+              <select id="yearTo"></select>
+            </div>
             <p class="hint">
-              With both ticked, a location must have both. With none ticked, any official location counts.
+              With several ticked, a location must have all of them. With none ticked, any official location
+              counts.
             </p>
           </section>
 
@@ -142,6 +167,21 @@
             <div class="field">
               <label for="mapName">Map name</label>
               <input type="text" id="mapName" maxlength="100" placeholder="Filled in for you" />
+            </div>
+            <div class="field" role="group" aria-labelledby="tagsTitle">
+              <div class="label" id="tagsTitle">Tags in the map file</div>
+              <label class="check"
+                ><input type="checkbox" id="tagCountry" checked /><span>The country's name</span></label
+              >
+              <label class="check"
+                ><input type="checkbox" id="tagFeatures" /><span
+                  >"No road name" and "Dead end", where they apply</span
+                ></label
+              >
+              <label class="check"
+                ><input type="checkbox" id="tagYear" /><span>The year the photos were taken</span></label
+              >
+              <p class="hint">You can change these after the search, before downloading.</p>
             </div>
             <div class="field" id="keyBox" hidden>
               <label for="apiKey">Google API key</label>

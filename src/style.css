@@ -220,10 +220,16 @@ fieldset:disabled {
   flex: none;
   transform: translateY(-1px);
 }
-label {
+label,
+.label {
   display: block;
   font-weight: 600;
   margin: 0 0 6px;
+}
+/* The ticks under "Tags in the map file" sit closer together than elsewhere. */
+.label + .check,
+.label ~ .check {
+  margin-top: 6px;
 }
 .hint {
   color: var(--muted);
@@ -281,6 +287,54 @@ a:focus-visible {
   accent-color: var(--blue);
   flex: none;
 }
+/* "From [year] to [year]", indented under its tick box */
+.years {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0 28px;
+}
+.years label {
+  margin: 0;
+  font-weight: 400;
+}
+.years select {
+  width: auto;
+  padding: 6px 10px;
+}
+
+/* ---------- step 1: where ---------- */
+/* The country field with its list of suggestions (copied from Lookout's kind picker) */
+.combo {
+  position: relative;
+}
+.suggest {
+  position: absolute;
+  z-index: 1200;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 10px 24px rgba(20, 33, 61, 0.18);
+}
+.suggest li {
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.suggest li[aria-selected="true"] {
+  background: var(--amber-soft);
+}
+.suggest li.none {
+  color: var(--muted);
+  cursor: default;
+}
 
 /* ---------- search and stop buttons, messages ---------- */
 .go {
@@ -328,6 +382,27 @@ a:focus-visible {
 }
 .leaflet-container {
   font-family: inherit;
+}
+/* Popups of found locations, with a large "Open in Street View" button */
+.pop b {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+.leaflet-container .pop a.sv {
+  display: block;
+  margin: 10px 0 2px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+.leaflet-container .pop a.sv:hover {
+  background: var(--blue-dark);
 }
 
 /* ---------- bottom bar: status line, counter, export ---------- */

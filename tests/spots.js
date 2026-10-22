@@ -39,20 +39,6 @@ const { openPage } = require("./helpers.js");
     "Germany: spots spread over the whole country: " + JSON.stringify(de),
   );
   ok((await page.evaluate(() => randomPointIn("ZZ"))) === null, "an unknown country gives no spot");
-  // the country list: official coverage only, sorted by name
-  const list = await page.evaluate(() => {
-    const opts = [...document.querySelectorAll("#country option")].filter(o => o.value);
-    const names = opts.map(o => o.textContent);
-    return {
-      same: opts.length === COVERAGE.length && opts.every(o => COVERAGE.includes(o.value)),
-      sorted: names.every((n, i) => !i || names[i - 1].localeCompare(n) <= 0),
-      first: names[0],
-    };
-  });
-  ok(
-    list.same && list.sorted,
-    "country list: official coverage only, sorted by name: " + JSON.stringify(list),
-  );
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();
   console.log(fail ? `${fail} FAILED` : "ALL PASS");
