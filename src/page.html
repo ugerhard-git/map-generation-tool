@@ -20,7 +20,7 @@
 
   googleApiKey         Your Google API key. Leave it empty in the repository: the build
                        fills it in from the GOOGLE_API_KEY environment variable.
-                       It needs the "Street View Static API" enabled. In the Google
+                       It needs the "Maps JavaScript API" enabled. In the Google
                        Cloud console, restrict it to this site's address and to that
                        API, and set a daily quota. If left empty, visitors are asked
                        for their own key.
@@ -60,13 +60,24 @@
         <button type="button" class="dialog-x" id="welcomeX" aria-label="Close">×</button>
         <h2 id="welcomeTitle">Welcome</h2>
         <p>
-          This tool builds a map of Street View locations from criteria you choose, and you import the result
-          into map-making.app.
+          This tool finds random official Google Street View locations that match what you choose, and you
+          import the result into map-making.app.
         </p>
+        <ol>
+          <li><b>Choose a country.</b></li>
+          <li>
+            <b>Choose what to look for:</b> spots where Street View shows no road name, spots where the
+            coverage ends (only one arrow), or both.
+          </li>
+          <li><b>Choose how many,</b> then select "Find locations".</li>
+          <li>
+            <b>Download the map file</b> when the search is done, or stop it and download what was found.
+          </li>
+        </ol>
         <div class="welcome-warn">
-          <b>Work in progress.</b>
-          The criteria are not built yet. For now you can click the map to add the nearest Street View
-          location by hand, then download the map file.
+          <b>Large searches take a long time.</b>
+          Every location is found by trying random spots until one matches. Dead ends are rare, so thousands
+          of them can take hours. You can stop at any time and keep what was found.
         </div>
         <button type="button" class="btn primary" id="welcomeOk">Start</button>
       </div>
@@ -75,50 +86,86 @@
     <div class="app">
       <form class="panel" id="form" autocomplete="off">
         <h1>Map Generation Tool</h1>
-        <p class="lede">Build a map-making.app map of Street View locations from criteria you choose.</p>
+        <p class="lede">Build a map-making.app map of random official Street View locations.</p>
         <div class="toplinks">
           <button type="button" class="howbtn" id="howBtn">How it works</button>
         </div>
 
-        <!-- Step 1: the criteria (app.js: step 1). For now only picking by hand on the map. -->
-        <section class="step" id="stepCriteria">
-          <h2><span class="n">1</span>Choose locations</h2>
-          <p class="hint">
-            The criteria are not built yet. Click the map to add the nearest Street View location to the spot
-            you clicked.
-          </p>
-          <div class="field">
-            <label for="radius">Search up to</label>
-            <div class="unit">
-              <input type="number" id="radius" min="10" max="1000" step="10" value="50" /><span>m</span>
-            </div>
-            <p class="hint">How far from your click a location may be.</p>
-          </div>
-        </section>
+        <fieldset id="fields">
+          <!-- Step 1: where (app.js: step 1) -->
+          <section class="step" id="stepWhere">
+            <h2><span class="n">1</span>Where?</h2>
+            <label for="country">Country or territory</label>
+            <select id="country">
+              <option value="">Choose a country</option>
+            </select>
+            <p class="hint">Only places with official Google Street View are listed.</p>
+          </section>
 
-        <!-- Step 2: map name and Google key (app.js: step 2) -->
-        <section class="step" id="stepExport">
-          <h2><span class="n">2</span>Name and download</h2>
-          <div class="field">
-            <label for="mapName">Map name</label>
-            <input type="text" id="mapName" maxlength="100" placeholder="My map" />
-          </div>
-          <div class="field" id="keyBox" hidden>
-            <label for="apiKey">Google API key</label>
-            <input type="password" id="apiKey" placeholder="AIza…" spellcheck="false" />
-            <p class="hint">Needs the Street View Static API enabled. Kept only until you close this tab.</p>
-          </div>
-        </section>
+          <!-- Step 2: what to look for (app.js: step 2) -->
+          <section class="step" id="stepWhat">
+            <h2><span class="n">2</span>What should each location have?</h2>
+            <label class="check"
+              ><input type="checkbox" id="noRoadName" /><span
+                >No road name<br /><span class="hint"
+                  >Street View shows no street name on the arrows at that spot.</span
+                ></span
+              ></label
+            >
+            <label class="check"
+              ><input type="checkbox" id="deadEnd" /><span
+                >End of coverage<br /><span class="hint"
+                  >Only one arrow: Google's coverage stops there. The camera faces where it stops.</span
+                ></span
+              ></label
+            >
+            <p class="hint">
+              With both ticked, a location must have both. With none ticked, any official location counts.
+            </p>
+          </section>
+
+          <!-- Step 3: how many, map name and Google key (app.js: step 3) -->
+          <section class="step" id="stepHowMany">
+            <h2><span class="n">3</span>How many?</h2>
+            <label for="target">Number of locations</label>
+            <input type="number" id="target" min="1" max="130000" step="1" value="100" />
+            <p class="hint">Up to 130,000.</p>
+            <div class="field">
+              <label for="radius">Look around each random spot up to</label>
+              <div class="unit">
+                <input type="number" id="radius" min="50" max="10000" step="50" value="1000" /><span>m</span>
+              </div>
+              <p class="hint">
+                Further finds locations faster, but favours the edges of the coverage and quiet areas.
+              </p>
+            </div>
+            <div class="field">
+              <label for="mapName">Map name</label>
+              <input type="text" id="mapName" maxlength="100" placeholder="Filled in for you" />
+            </div>
+            <div class="field" id="keyBox" hidden>
+              <label for="apiKey">Google API key</label>
+              <input type="password" id="apiKey" placeholder="AIza…" spellcheck="false" />
+              <p class="hint">Needs the Maps JavaScript API enabled. Kept only until you close this tab.</p>
+            </div>
+          </section>
+        </fieldset>
+
+        <!-- Search and stop buttons, messages (app.js: run) -->
+        <button class="go" id="go" type="submit">Find locations</button>
+        <button class="btn stop" id="stop" type="button" hidden>Stop and keep what was found</button>
         <div class="msg error" id="error" hidden role="alert"></div>
       </form>
 
       <div class="stage">
         <!-- Map (app.js: map) -->
         <div class="mapwrap"><div id="map"></div></div>
-        <!-- Bottom bar: status line, counter, export buttons (app.js: export) -->
+        <!-- Bottom bar: status line, progress, counters, export buttons (app.js: run, export) -->
         <div class="bar">
           <div class="status" aria-live="polite">
-            <div class="now" id="now">Ready. Click the map to add a location.</div>
+            <div class="now" id="now">Ready.</div>
+            <div class="track" id="track"><i id="fill"></i></div>
+            <div class="tally" id="tally"></div>
           </div>
           <div class="out">
             <div class="count"><span id="count">0</span><small>locations</small></div>

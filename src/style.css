@@ -72,6 +72,17 @@ h1 {
   color: var(--muted);
   max-width: 34ch;
 }
+/* The settings are greyed out and locked while a search runs. */
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  transition: opacity 0.2s;
+}
+fieldset:disabled {
+  opacity: 0.5;
+}
 
 /* ---------- shown inside another site's frame ---------- */
 .framed {
@@ -141,6 +152,13 @@ h1 {
 }
 .dialog-box p {
   margin: 0 0 12px;
+}
+.dialog-box ol {
+  margin: 0 0 16px;
+  padding-left: 1.3em;
+}
+.dialog-box li {
+  margin-bottom: 6px;
 }
 .welcome-warn {
   background: var(--amber-soft);
@@ -212,6 +230,7 @@ label {
   font-size: 0.9rem;
   margin: 6px 0 0;
 }
+select,
 input[type="text"],
 input[type="number"],
 input[type="password"] {
@@ -223,6 +242,7 @@ input[type="password"] {
   border-radius: 8px;
   background: #fff;
 }
+select:focus-visible,
 input:focus-visible,
 button:focus-visible,
 a:focus-visible {
@@ -246,6 +266,43 @@ a:focus-visible {
   color: var(--muted);
   pointer-events: none;
 }
+.check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 400;
+  margin-top: 14px;
+  cursor: pointer;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--blue);
+  flex: none;
+}
+
+/* ---------- search and stop buttons, messages ---------- */
+.go {
+  width: 100%;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.1rem;
+  border: 0;
+  border-radius: 10px;
+  padding: 15px;
+  background: var(--blue);
+  color: #fff;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.go:hover {
+  background: var(--blue-dark);
+}
+.btn.stop {
+  width: 100%;
+  margin-top: 10px;
+}
 .msg {
   margin-top: 14px;
   padding: 12px 14px;
@@ -268,7 +325,6 @@ a:focus-visible {
   position: absolute;
   inset: 0;
   background: #dfe5ee;
-  cursor: crosshair;
 }
 .leaflet-container {
   font-family: inherit;
@@ -290,6 +346,31 @@ a:focus-visible {
 }
 .status .now {
   font-weight: 600;
+}
+.track {
+  height: 8px;
+  background: var(--paper);
+  border-radius: 4px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+.track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--amber);
+  transition: width 0.2s;
+  border-radius: 4px;
+}
+.tally {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.tally b {
+  color: var(--ink);
 }
 .out {
   display: flex;
@@ -351,5 +432,13 @@ a:focus-visible {
   }
   h1 {
     font-size: 2rem;
+  }
+}
+
+/* ---------- less motion for people who ask their system for it ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .track i,
+  fieldset {
+    transition: none;
   }
 }
