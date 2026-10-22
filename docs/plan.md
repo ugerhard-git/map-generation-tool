@@ -34,6 +34,7 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 5. **Following roads to the end of coverage** (removed): from a found panorama that was not an end, the search followed the road up to 150 steps to find one. It made finding ends slower rather than faster, so it was taken out again.
 6. **Resuming a long search** after closing the tab (done): saved in IndexedDB while it runs; on the next visit, continue, download what was found, or discard. One unfinished search is kept; never the key.
 7. **No bad camera** (done): leaves out panoramas 6656 pixels high from 2020 on, as Vali does, except in India, Nepal, Nigeria, Lebanon, and São Tomé and Príncipe; off by default. With it, "Use an older photo instead" (on by default) uses the newest photo at the spot that is not bad camera, from the list of photos Google's answers carry (`time`, undocumented: without it, nothing changes). Lebanon was added to the countries offered.
+8. **Time left** (done): a forecast in the status line, learnt while the search runs: each country's spots per location so far, the spots per second, and for countries without a location yet, the spots left before they give up. Shown after 20 seconds and 50 spots, rough and smoothed.
 
 ## Known limits
 
