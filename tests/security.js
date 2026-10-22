@@ -98,6 +98,7 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
     localStorage.setItem("mapgen.tagYear", JSON.stringify(1));
     localStorage.setItem("mapgen.yearFrom", JSON.stringify("<b>"));
     localStorage.setItem("mapgen.yearTo", JSON.stringify(3000));
+    localStorage.setItem("mapgen.giveUpAfter", JSON.stringify(-1));
   });
   await p.reload();
   await p.waitForTimeout(300);
@@ -112,6 +113,7 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
     tagYear: document.getElementById("tagYear").checked,
     yearFrom: document.getElementById("yearFrom").value,
     yearTo: document.getElementById("yearTo").value,
+    giveUpAfter: giveUpAfter(),
   }));
   ok(
     t.radius === 1000 &&
@@ -122,6 +124,7 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
       t.tagCountry &&
       !t.tagYear &&
       t.yearFrom === "2009" &&
+      t.giveUpAfter === 2000 &&
       t.yearTo === String(new Date().getFullYear()) &&
       !t.wanted.noRoadName &&
       !t.wanted.deadEnd,

@@ -88,7 +88,9 @@
     </div>
     <!-- The app: settings panel on the left, map on the right (stacked on phones) -->
     <div class="app">
-      <form class="panel" id="form" autocomplete="off">
+      <!-- novalidate: the app checks and corrects every number itself (app.js: wholeNumber), so the browser
+         must not refuse to start a search over a number between its steps (a radius of 1234 m, say) -->
+      <form class="panel" id="form" autocomplete="off" novalidate>
         <h1>Map Generation Tool</h1>
         <p class="lede">Build a map-making.app map of random official Street View locations.</p>
         <div class="toplinks">
@@ -194,6 +196,18 @@
               </p>
             </div>
             <div class="field">
+              <label for="giveUpAfter">Give up on a country after</label>
+              <div class="unit">
+                <input type="number" id="giveUpAfter" min="50" max="100000" step="50" value="2000" /><span
+                  >spots</span
+                >
+              </div>
+              <p class="hint">
+                Random spots in a row that bring no new location for that country. Where matching locations
+                are rare, the search then moves on; you can fill the gap from the other countries at the end.
+              </p>
+            </div>
+            <div class="field">
               <label for="mapName">Map name</label>
               <input type="text" id="mapName" maxlength="100" placeholder="Filled in for you" />
             </div>
@@ -241,6 +255,18 @@
         <button class="go" id="go" type="submit">Find locations</button>
         <button class="btn stop" id="stop" type="button" hidden>Stop and keep what was found</button>
         <div class="msg error" id="error" hidden role="alert"></div>
+        <!-- At the end of a search where countries fell short: fill the gap or keep what was found
+             (app.js: shortfalls) -->
+        <div class="msg note" id="shortfall" hidden role="status">
+          <b id="shortfallTitle"></b>
+          <p id="shortfallText"></p>
+          <div class="acts">
+            <button type="button" class="btn primary" id="fillGap">
+              Fill the gap from the other countries
+            </button>
+            <button type="button" class="btn" id="keepFound">Keep what was found</button>
+          </div>
+        </div>
       </form>
 
       <div class="stage">

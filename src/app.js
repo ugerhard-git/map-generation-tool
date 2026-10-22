@@ -17,7 +17,8 @@
  *      and the number from step 3 into a number of locations per country (`searchTargets`), shown in the
  *      table of locations per country (renderShares). Step 2 sets what each location must have (`wanted`:
  *      no road name, end of coverage, photo years), step 3 how many and how far to look around each spot.
- *   2. PARALLEL workers repeat attempt() until every country has its number or the visitor stops:
+ *   2. PARALLEL workers (runSearch) repeat attempt() until every country has its number or has given
+ *      up, or the visitor stops:
  *      pickCountry() chooses a country that still needs locations, randomPointIn() a random spot inside
  *      it (from the country borders built into the page), lookup() asks Google's script for the nearest
  *      official panorama within the radius. The panorama's arrows (`links`) tell whether a road name is
@@ -26,19 +27,24 @@
  *      far becomes a Location: counted for its country (`foundBy`), drawn on the map (drawLocation, the
  *      first MAX_DRAWN only) and exported (exportJson). paint() keeps the status line, progress, counters
  *      and the table up to date.
+ *   4. A country gives up after giveUpAfter() random spots in a row without a new location (miss). If
+ *      countries fell short, showShortfall() offers to fill the gap from the finished countries (fillGap,
+ *      which searches on with the same results) or to keep what was found.
  *
  * MAIN SHARED STATE
  *   chosenCountries  the countries chosen in step 1 (codes), used when the area is "countries"
  *   results          the Locations found so far
  *   searchTargets    for the current or last search: locations wanted per country; foundBy: found so
- *                    far; noSpots: countries where no random spots could be made
+ *                    far; noSpots: countries where no random spots could be made; gaveUp: countries
+ *                    that used up their tries; missesInRow: each country's spots in a row without a find
+ *   searchSettings   what the current search looks for, kept for going on after "Fill the gap"
  *   stats            counters for the current search (see emptyStats)
  *   running          true while a search runs; stopRequested asks the workers to finish
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, yearTo, target,
- *   radius, mapName, tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit
+ *   radius, giveUpAfter, mapName, tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit
  *   dialog seen).
  *   A visitor's own Google key is only kept in sessionStorage ("mapgen.key"), never on disk.
  *   Saved values can be edited by anyone, so everything read back is checked first.
@@ -49,7 +55,7 @@
  *   - Text from outside (Google, saved values) is put on the page with textContent, or passed through
  *     esc() before it goes into innerHTML.
  *   - The sections below follow the page from top to bottom: data, helpers, random spots, step 1, step 2,
- *     step 3, locations per country, map, Google Street View, run, export, dialogs. src/page.html and
+ *     step 3, locations per country, map, Google Street View, run, shortfalls, export, dialogs. src/page.html and
  *     src/style.css use the same section names.
  */
 
@@ -116,6 +122,9 @@ const PARALLEL = 6; // lookups running at the same time
 const ERROR_LIMIT = 20; // failed lookups in a row (not "nothing found") before the search gives up
 const ERROR_WAIT = 3000; // ms to wait after a failed lookup, before trying again
 const MAX_DRAWN = 5000; // locations drawn on the map; more would make the map slow
+const GIVE_UP_MIN = 50,
+  GIVE_UP_MAX = 100000,
+  GIVE_UP_DEFAULT = 2000; // random spots in a row without a new location before a country gives up
 
 /* ---------- helpers ---------- */
 /* The page element with this id. */
@@ -496,7 +505,10 @@ function renderWhere() {
 /* After any change in step 1: save it, and update what depends on it. The table of locations per
    country then shows the new plan instead of the last search. */
 function whereChanged() {
-  if (!running) searchTargets = new Map();
+  if (!running) {
+    searchTargets = new Map();
+    hideShortfall();
+  }
   store.set("scope", scope());
   store.set("countries", chosenCountries);
   store.set("continent", $("continent").value);
@@ -653,6 +665,15 @@ $("target").onchange = () => {
 };
 $("radius").value = wholeNumber(store.get("radius", RADIUS_DEFAULT), RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT);
 $("radius").onchange = () => store.set("radius", radius());
+/* How many random spots in a row may bring no new location before a country gives up. */
+const giveUpAfter = () => wholeNumber($("giveUpAfter").value, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT);
+$("giveUpAfter").value = wholeNumber(
+  store.get("giveUpAfter", GIVE_UP_DEFAULT),
+  GIVE_UP_MIN,
+  GIVE_UP_MAX,
+  GIVE_UP_DEFAULT,
+);
+$("giveUpAfter").onchange = () => store.set("giveUpAfter", giveUpAfter());
 $("mapName").value = cleanText(store.get("mapName", ""), 100);
 $("mapName").oninput = () => store.set("mapName", $("mapName").value.slice(0, 100));
 /* The name suggested when the visitor types none: "Malta: No road name",
@@ -710,19 +731,24 @@ function renderShares() {
     (a, b) => wantedBy[b] - wantedBy[a] || countryName(a).localeCompare(countryName(b)),
   );
   rows.textContent = "";
-  let done = 0;
+  let done = 0,
+    short = 0;
   for (const code of order) {
     const tr = document.createElement("tr"),
       found = foundBy.get(code) || 0;
-    const full = searched && found >= wantedBy[code];
+    const full = searched && found >= wantedBy[code] && !gaveUp.has(code);
     if (full) done++;
+    let foundText = searched ? fmt(found) : "";
     if (full) tr.className = "done";
-    else if (searched && noSpots.has(code)) tr.className = "none";
-    for (const text of [
-      countryName(code),
-      fmt(wantedBy[code]),
-      searched ? (noSpots.has(code) && !full ? "no spots" : fmt(found)) : "",
-    ]) {
+    else if (searched && noSpots.has(code)) {
+      tr.className = "none";
+      foundText = "no spots";
+    } else if (searched && gaveUp.has(code)) {
+      tr.className = "short";
+      foundText = `${fmt(found)}, gave up`;
+      short++;
+    }
+    for (const text of [countryName(code), fmt(wantedBy[code]), foundText]) {
       const td = document.createElement("td");
       td.textContent = text;
       tr.append(td);
@@ -730,7 +756,7 @@ function renderShares() {
     rows.append(tr);
   }
   $("sharesSummary").textContent = searched
-    ? `Locations per country: ${done} of ${codes.length} countries done`
+    ? `Locations per country: ${done} of ${codes.length} countries done${short ? `, ${short} gave up` : ""}`
     : `Locations per country: ${fmt(codes.length)} ${codes.length === 1 ? "country" : "countries"}`;
   // Before a search, say which countries get nothing, and why.
   let why = "";
@@ -922,6 +948,10 @@ let results = [],
 let searchTargets = new Map(),
   foundBy = new Map(),
   noSpots = new Set();
+/* Countries that used up their tries (see giveUpAfter), and each country's random spots in a row that
+   brought no new location. */
+let gaveUp = new Set(),
+  missesInRow = new Map();
 let stats = emptyStats();
 /* Counters for one search. */
 function emptyStats() {
@@ -1019,7 +1049,7 @@ function pickCountry() {
   let total = 0;
   for (const [code, wanted] of searchTargets) {
     const need = wanted - (foundBy.get(code) || 0);
-    if (need > 0 && !noSpots.has(code)) {
+    if (need > 0 && !noSpots.has(code) && !gaveUp.has(code)) {
       needs.push([code, need]);
       total += need;
     }
@@ -1027,6 +1057,14 @@ function pickCountry() {
   let pick = Math.random() * total;
   for (const [code, need] of needs) if ((pick -= need) < 0) return code;
   return needs.length ? needs[needs.length - 1][0] : null;
+}
+/* Counts a random spot that brought no new location for a country; after giveUpAfter() of them in a
+   row, the country gives up. Failed lookups do not count: they say nothing about the country. */
+function miss(code) {
+  const n = (missesInRow.get(code) || 0) + 1;
+  missesInRow.set(code, n);
+  // (a country that is already full, through another worker's lookup, does not give up)
+  if (n >= searchSettings.giveUpAfter && (foundBy.get(code) || 0) < searchTargets.get(code)) gaveUp.add(code);
 }
 /* One random spot in a country: look it up and keep the panorama if it matches. */
 async function attempt(code, want, rad, key) {
@@ -1044,6 +1082,7 @@ async function attempt(code, want, rad, key) {
   if (r.status === "ZERO_RESULTS") {
     stats.empty++;
     stats.failedInRow = 0;
+    miss(code);
     return;
   }
   if (r.status !== "OK") {
@@ -1065,14 +1104,17 @@ async function attempt(code, want, rad, key) {
     (want.years && !inYears(r.date, want.years))
   ) {
     stats.notMatching++;
+    miss(code);
     return;
   }
   if (countryAt(r.lat, r.lng) !== code) {
     stats.outside++;
+    miss(code);
     return;
   }
   if (seenPanos.has(r.panoId) || tooClose(r.lat, r.lng)) {
     stats.tooClose++;
+    miss(code);
     return;
   }
   // another worker may have filled this country's last place meanwhile
@@ -1090,6 +1132,7 @@ async function attempt(code, want, rad, key) {
   };
   results.push(l);
   foundBy.set(code, (foundBy.get(code) || 0) + 1);
+  missesInRow.set(code, 0);
   remember(l);
   if (results.length <= MAX_DRAWN) drawLocation(l);
 }
@@ -1123,13 +1166,16 @@ async function startSearch() {
     return;
   }
   if (!GOOGLE_API_KEY) keyStore.set(key);
-  const want = wanted(),
-    rad = radius();
+  searchSettings = { want: wanted(), rad: radius(), key, giveUpAfter: giveUpAfter() };
   $("target").value = target();
+  $("giveUpAfter").value = searchSettings.giveUpAfter;
+  hideShortfall();
   searchTargets = new Map(Object.entries(targets).filter(([, n]) => n > 0));
   currentTarget = [...searchTargets.values()].reduce((a, b) => a + b, 0);
   foundBy = new Map();
   noSpots = new Set();
+  gaveUp = new Set();
+  missesInRow = new Map();
   results = [];
   cells = new Map();
   seenPanos = new Set();
@@ -1161,11 +1207,21 @@ async function startSearch() {
         : "Google's Street View service could not be loaded. Check your connection, or switch off a blocker for this page.",
     );
   }
+  await runSearch();
+}
+/* Runs the workers until every country has its number, has given up, or the visitor stops; then says
+   how it went, and offers to fill the gap when countries fell short. Used for a new search and to go on
+   after "Fill the gap". */
+async function runSearch() {
+  const { want, rad, key } = searchSettings;
+  setRunning(true);
+  stopRequested = false;
+  lastPaint = 0;
   paintSoon();
   const worker = async () => {
     while (!stopRequested && !fatal) {
       const code = pickCountry();
-      if (!code) break; // every country has what it needs, or no spots can be made where it lacks some
+      if (!code) break; // every country has what it needs, has given up, or no spots can be made there
       await attempt(code, want, rad, key);
       paintSoon();
     }
@@ -1183,7 +1239,11 @@ async function startSearch() {
       ? `Done: ${fmt(results.length)} locations found ${where}.`
       : `${stopRequested ? "Stopped" : "Search ended"}: ${fmt(results.length)} of ${fmt(currentTarget)} locations found ${where}.`,
   );
+  if (!stopRequested && !fatal) showShortfall();
 }
+/** The settings of the current search, kept for going on after "Fill the gap".
+ *  @type {{want: object, rad: number, key: string, giveUpAfter: number}} */
+let searchSettings = { want: {}, rad: RADIUS_DEFAULT, key: "", giveUpAfter: GIVE_UP_DEFAULT };
 $("form").onsubmit = e => {
   e.preventDefault();
   startSearch();
@@ -1192,6 +1252,66 @@ $("stop").onclick = () => {
   stopRequested = true;
   $("stop").disabled = true;
   paint("Stopping after the lookups that are under way…");
+};
+
+/* ---------- shortfalls ----------
+   When countries gave up (or no spots could be made in them), the search ends short. The offer under the
+   buttons then lets the visitor share the missing locations between the countries that finished, in
+   their proportions, and search on; or keep what was found. */
+/* The countries that fell short, with how many each is missing. */
+function shortfalls() {
+  return [...searchTargets]
+    .map(([c, wanted]) => ({ code: c, missing: wanted - (foundBy.get(c) || 0) }))
+    .filter(s => s.missing > 0 && (gaveUp.has(s.code) || noSpots.has(s.code)));
+}
+/* The countries that have all they wanted and did not give up: they can take more. */
+const finishedCountries = () =>
+  [...searchTargets]
+    .filter(([c, wanted]) => (foundBy.get(c) || 0) >= wanted && !gaveUp.has(c))
+    .map(([c]) => c);
+/* Shows the offer when countries fell short; does nothing otherwise. */
+function showShortfall() {
+  const short = shortfalls();
+  if (!short.length) return hideShortfall();
+  const gap = short.reduce((n, s) => n + s.missing, 0),
+    donors = finishedCountries();
+  const names = short
+    .sort((a, b) => b.missing - a.missing)
+    .map(
+      s => `${countryName(s.code)} (${fmt(foundBy.get(s.code) || 0)} of ${fmt(searchTargets.get(s.code))})`,
+    );
+  const list =
+    names.length > 8 ? names.slice(0, 8).join(", ") + ` and ${names.length - 8} more` : names.join(", ");
+  $("shortfallTitle").textContent =
+    `${short.length === 1 ? "1 country" : fmt(short.length) + " countries"} fell short: ${fmt(gap)} ${gap === 1 ? "location" : "locations"} missing.`;
+  $("shortfallText").textContent =
+    `Matching locations were too rare in ${list}. ` +
+    (donors.length
+      ? `"Fill the gap" shares the missing locations between the other ${donors.length === 1 ? "country" : fmt(donors.length) + " countries"}, in their proportions, and searches on.`
+      : "No other country in this search can take them.");
+  $("fillGap").hidden = !donors.length;
+  $("shortfall").hidden = false;
+}
+function hideShortfall() {
+  $("shortfall").hidden = true;
+}
+/* Shares the missing locations between the finished countries and searches on. */
+async function fillGap() {
+  const gap = shortfalls().reduce((n, s) => n + s.missing, 0),
+    donors = finishedCountries();
+  if (!gap || !donors.length || running) return;
+  const extra = splitTotal(Object.fromEntries(donors.map(c => [c, searchTargets.get(c)])), gap);
+  for (const [c, n] of Object.entries(extra)) searchTargets.set(c, searchTargets.get(c) + n);
+  // The countries that gave up keep only what they found, so the total stays the number asked for.
+  for (const { code: c } of shortfalls()) searchTargets.set(c, foundBy.get(c) || 0);
+  hideShortfall();
+  showError("");
+  await runSearch();
+}
+$("fillGap").onclick = fillGap;
+$("keepFound").onclick = () => {
+  hideShortfall();
+  paint(`Kept ${fmt(results.length)} locations. Download the map file when you are ready.`);
 };
 
 /* ---------- export ---------- */
@@ -1236,6 +1356,7 @@ $("copy").onclick = async () => {
   setTimeout(() => ($("copy").textContent = "Copy"), 1500);
 };
 $("clear").onclick = () => {
+  hideShortfall();
   results = [];
   stats = emptyStats();
   searchTargets = new Map();

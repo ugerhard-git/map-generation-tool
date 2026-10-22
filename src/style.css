@@ -413,6 +413,10 @@ a:focus-visible {
 .shares tr.none td {
   color: var(--muted);
 }
+/* A country that gave up */
+.shares tr.short td {
+  color: #8a5a00;
+}
 .shares tbody {
   display: block;
   max-height: 320px;
@@ -460,6 +464,26 @@ a:focus-visible {
   background: var(--red-soft);
   color: var(--red);
   border: 1.5px solid #f3c4bf;
+}
+/* The offer at the end of a search where countries fell short */
+.msg.note {
+  background: var(--amber-soft);
+  border: 1.5px solid #f0d58a;
+}
+.msg b {
+  display: block;
+}
+.msg p {
+  margin: 4px 0 0;
+}
+.msg .acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.msg .acts .btn {
+  padding: 7px 12px;
 }
 
 /* ---------- map ---------- */
