@@ -303,7 +303,7 @@ const COUNTRY_CHOICES = COVERAGE.map(code => {
   const name = countryName(code);
   return { code, name, folded: foldAccents(name) };
 }).sort((a, b) => a.name.localeCompare(b.name));
-const DEFAULT_MAP = "acw"; // A Community World, Vali's default too
+const DEFAULT_MAP = "aaw"; // An Arbitrary World, chosen by the owner
 const DEFAULT_CONTINENT = "europe";
 /** @type {string[]} codes of the chosen countries, in the order they were added */
 let chosenCountries = [],
@@ -460,7 +460,7 @@ for (const [code, c] of Object.entries(VALI.continents)) {
 }
 /* Fills the "Share the locations like" list for the chosen area: for a continent, Vali's own
    distribution of that continent first; then the maps. Switching to a continent chooses Vali's map of
-   it; switching away from it chooses A Community World; otherwise the choice is kept. */
+   it; switching away from it chooses An Arbitrary World; otherwise the choice is kept. */
 let lastScope = "";
 function renderDistributionChoices() {
   const el = $("distribution"),
@@ -656,7 +656,7 @@ $("radius").onchange = () => store.set("radius", radius());
 $("mapName").value = cleanText(store.get("mapName", ""), 100);
 $("mapName").oninput = () => store.set("mapName", $("mapName").value.slice(0, 100));
 /* The name suggested when the visitor types none: "Malta: No road name",
-   "World (A Community World): End of coverage". */
+   "World (An Arbitrary World): End of coverage". */
 function suggestedName() {
   const area = areaLabel(),
     dist = distributionLabel();

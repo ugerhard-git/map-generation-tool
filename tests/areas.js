@@ -66,7 +66,7 @@ const path = require("path");
     `130,000 with A Community World: adds up, Germany ${split.big.de} (exact ${split.big.deExact.toFixed(2)})`,
   );
 
-  // The whole world: Vali's maps to choose from, A Community World first chosen; only official coverage
+  // The whole world: Vali's maps to choose from, An Arbitrary World first chosen; only official coverage
   await p.check("input[name=scope][value=world]");
   ok(
     (await p.isHidden("#countriesBox")) && (await p.isVisible("#distributionBox")),
@@ -74,11 +74,12 @@ const path = require("path");
   );
   const maps = await p.$$eval("#distribution option", o => o.map(x => x.textContent));
   ok(
-    (await p.inputValue("#distribution")) === "acw" &&
+    (await p.inputValue("#distribution")) === "aaw" &&
       maps.includes("A Balanced World") &&
       maps.every((n, i) => !i || maps[i - 1].localeCompare(n) <= 0),
-    "maps listed by name, A Community World chosen: " + maps.join(", "),
+    "maps listed by name, An Arbitrary World chosen: " + maps.join(", "),
   );
+  ok(maps.includes("Yellow Belly"), "Yellow Belly is spelt as two words");
   let w = await p.evaluate(() => areaWeights());
   ok(
     w.DE > 0 && !("BY" in w) && !("PK" in w),
@@ -100,8 +101,8 @@ const path = require("path");
     "the table says how many countries, and that some get none: " + (await p.textContent("#sharesNote")),
   );
   ok(
-    (await p.getAttribute("#mapName", "placeholder")) === "World (A Community World): Official coverage",
-    "map name: World (A Community World)",
+    (await p.getAttribute("#mapName", "placeholder")) === "World (An Arbitrary World): Official coverage",
+    "map name: World (An Arbitrary World)",
   );
   await p.screenshot({ path: path.join(__dirname, "../dist/screens/world.png") });
   await p.selectOption("#distribution", "abw");
@@ -251,7 +252,7 @@ const path = require("path");
     "tampered area, continent and countries fall back or are cleaned",
   );
   await p.check("input[name=scope][value=world]");
-  ok((await p.inputValue("#distribution")) === "acw", "a tampered map falls back to A Community World");
+  ok((await p.inputValue("#distribution")) === "aaw", "a tampered map falls back to An Arbitrary World");
 
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();
