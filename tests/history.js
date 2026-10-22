@@ -246,6 +246,33 @@ const path = require("path");
   await p.click("#historyList li >> text=Use these settings");
   ok((await p.evaluate(() => chosenCountries.join())) === "DE", "and can be used safely");
 
+  // The removed road option ("Follow the road to find the end"): its saved values are cleared on load,
+  // and history entries that still carry it open without errors
+  await p.evaluate(() => {
+    localStorage.setItem("mapgen.walkOn", "true");
+    localStorage.setItem("mapgen.walkSteps", "300");
+  });
+  await p.reload();
+  await p.waitForFunction(() => map !== null);
+  ok(
+    (
+      await p.evaluate(() => [
+        localStorage.getItem("mapgen.walkOn"),
+        localStorage.getItem("mapgen.walkSteps"),
+      ])
+    ).every(v => v === null) && (await p.$("#walkOn")) === null,
+    "the removed road option is gone, and its saved values are cleared",
+  );
+  const oldEntry = await p.evaluate(() =>
+    cleanSettings({ countries: ["MT"], deadEnd: true, walkOn: true, walkSteps: 300 }),
+  );
+  ok(
+    !("walkOn" in oldEntry) && !("walkSteps" in oldEntry) && oldEntry.deadEnd === true,
+    "an older history entry with the road option keeps everything else",
+  );
+  await p.evaluate(s => applySettings(s), oldEntry);
+  ok(await p.isChecked("#deadEnd"), "and its settings can be used");
+
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();
   console.log(fail ? `${fail} FAILED` : "ALL PASS");
