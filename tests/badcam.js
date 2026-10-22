@@ -1,7 +1,7 @@
 // "No bad camera": panoramas 6656 pixels high with photos from 2020 on are left out, except in India,
 // Nepal, Nigeria, Lebanon, and São Tomé and Príncipe; older 6656-high photos, current 8192-high ones and
-// panoramas without a known size are kept. Also: off by default, the counter, the map name, the history,
-// ends found by following a road, and Lebanon in the country list.
+// panoramas without a known size are kept. Also: off by default, the counter, the map name, the history
+// and Lebanon in the country list.
 const { chromium } = require("./pw.js");
 const { openPage, search, searchEnded } = require("./helpers.js");
 (async () => {
@@ -89,37 +89,6 @@ const { openPage, search, searchEnded } = require("./helpers.js");
     "Lebanon can be chosen and searched",
   );
 
-  // A dead end reached by following a road is checked too
-  await p.evaluate(() => {
-    window.__sv = req => {
-      const k = req.pano ? Number(req.pano.split("_")[1]) : 0;
-      const links = [{ heading: 0, pano: `ROAD_${k + 1}`, description: "" }];
-      if (k > 0) links.push({ heading: 180, pano: `ROAD_${k - 1}`, description: "" });
-      // ROAD_5 is the end, photographed with the bad camera; going south from ROAD_0 there is no road
-      if (k === 5) links.splice(0, 1);
-      return {
-        id: `ROAD_${k}`,
-        lat: 35.88 + k * 0.001,
-        lng: 14.42,
-        links: k === 0 ? [links[0], { heading: 180, pano: "", description: "" }] : links,
-        height: k === 5 ? 6656 : 8192,
-        date: "2023-05",
-      };
-    };
-  });
-  await p.fill("#giveUpAfter", "50");
-  await search(p, { country: "Malta", deadEnd: true, target: 1 });
-  await searchEnded(p);
-  const walked = await p.evaluate(() => ({
-    found: results.length,
-    ends: stats.walkEnds,
-    bad: stats.badCamera,
-  }));
-  ok(
-    walked.found === 0 && walked.ends > 0 && walked.bad >= walked.ends,
-    "an end reached by walking that is bad camera is left out: " + JSON.stringify(walked),
-  );
-
   // Older photos instead of bad camera. Every spot is bad camera (2023) and has older photos: bad camera
   // again (2022), the current camera (2021) and an older camera (2015). The newest that is not bad camera
   // is the 2021 one. Lookups by panorama id answer with those photos.
@@ -162,7 +131,6 @@ const { openPage, search, searchEnded } = require("./helpers.js");
       };
     }, opts);
   ok(await p.isChecked("#useOlder"), "using an older photo is on by default");
-  await p.uncheck("#deadEnd");
   await p.fill("#giveUpAfter", "50");
   await olderSpots();
   await p.check("#tagYear");

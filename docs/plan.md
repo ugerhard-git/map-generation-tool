@@ -31,7 +31,7 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 2. **Areas and distributions** (done): whole world, continents, chosen countries, the Vali import and the monthly workflow, the per-country table.
 3. **Shortfalls** (done): attempt budgets (a setting, 2,000 spots by default) and the end-of-search offer.
 4. **History** of search settings (done): the last 20 searches in this browser, with "Run again", "Use these settings", remove, clear, and a switch to turn it off.
-5. **Following roads to the end of coverage** (done): from a found panorama that is not an end, up to 150 steps (a setting) in one random direction, straight on at junctions; on by default for "End of coverage". Whole roads are never walked: Chile's Ruta 5 alone would be about 300,000 lookups.
+5. **Following roads to the end of coverage** (removed): from a found panorama that was not an end, the search followed the road up to 150 steps to find one. It made finding ends slower rather than faster, so it was taken out again.
 6. **Resuming a long search** after closing the tab (done): saved in IndexedDB while it runs; on the next visit, continue, download what was found, or discard. One unfinished search is kept; never the key.
 7. **No bad camera** (done): leaves out panoramas 6656 pixels high from 2020 on, as Vali does, except in India, Nepal, Nigeria, Lebanon, and São Tomé and Príncipe; off by default. With it, "Use an older photo instead" (on by default) uses the newest photo at the spot that is not bad camera, from the list of photos Google's answers carry (`time`, undocumented: without it, nothing changes). Lebanon was added to the countries offered.
 
