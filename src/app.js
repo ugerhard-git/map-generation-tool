@@ -44,7 +44,8 @@
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, yearTo, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, mapName, tagCountry, tagFeatures, tagYear (which tags the export gets), welcomed (first-visit
+ *   radius, giveUpAfter, mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear (which tags the export
+ *   gets; the older single tagFeatures is moved over to both on load), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
  *   An unfinished search (settings, locations, progress) is kept in IndexedDB, see "unfinished search".
@@ -735,7 +736,13 @@ updateMapName();
 /* The map name for the export: what the visitor typed, or the suggestion. */
 const mapName = () => $("mapName").value.trim().slice(0, 100) || suggestedName();
 /* Which tags the export gets. The country is ticked unless the visitor unticked it; the others are not. */
-const TAG_OPTIONS = { tagCountry: true, tagFeatures: false, tagYear: false };
+const TAG_OPTIONS = { tagCountry: true, tagNoRoadName: false, tagDeadEnd: false, tagYear: false };
+// "No road name" and "Dead end" used to be one option, tagFeatures: its saved choice becomes both.
+const oldFeatures = store.get("tagFeatures", null);
+if (typeof oldFeatures === "boolean")
+  for (const id of ["tagNoRoadName", "tagDeadEnd"])
+    if (store.get(id, null) === null) store.set(id, oldFeatures);
+store.remove("tagFeatures");
 for (const [id, d] of Object.entries(TAG_OPTIONS)) {
   const saved = store.get(id, d);
   $(id).checked = typeof saved === "boolean" ? saved : d;
@@ -745,10 +752,8 @@ for (const [id, d] of Object.entries(TAG_OPTIONS)) {
 function tagsFor(l) {
   const tags = [];
   if ($("tagCountry").checked) tags.push(countryName(l.cc));
-  if ($("tagFeatures").checked) {
-    if (l.noRoadName) tags.push("No road name");
-    if (l.deadEnd) tags.push("Dead end");
-  }
+  if ($("tagNoRoadName").checked && l.noRoadName) tags.push("No road name");
+  if ($("tagDeadEnd").checked && l.deadEnd) tags.push("Dead end");
   if ($("tagYear").checked && l.date) tags.push(l.date.slice(0, 4));
   return tags;
 }
