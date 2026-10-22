@@ -90,17 +90,32 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
   await p.evaluate(() => {
     localStorage.setItem("mapgen.radius", JSON.stringify("__proto__"));
     localStorage.setItem("mapgen.mapName", JSON.stringify({ toString: "<img src=x>" }));
+    localStorage.setItem("mapgen.country", JSON.stringify("<b>"));
+    localStorage.setItem("mapgen.target", JSON.stringify(1e9));
+    localStorage.setItem("mapgen.noRoadName", JSON.stringify("yes"));
+    localStorage.setItem("mapgen.deadEnd", "{");
   });
   await p.reload();
   await p.waitForTimeout(300);
-  const t = await p.evaluate(() => ({ radius: radius(), name: document.getElementById("mapName").value }));
+  const t = await p.evaluate(() => ({
+    radius: radius(),
+    target: target(),
+    name: document.getElementById("mapName").value,
+    country: document.getElementById("country").value,
+    wanted: wanted(),
+  }));
   ok(
-    t.radius === 50 && t.name === "",
-    "tampered radius and map name fall back to defaults: " + JSON.stringify(t),
+    t.radius === 1000 &&
+      t.target === 100 &&
+      t.name === "" &&
+      t.country === "" &&
+      !t.wanted.noRoadName &&
+      !t.wanted.deadEnd,
+    "tampered settings fall back to defaults: " + JSON.stringify(t),
   );
   await p.evaluate(() => localStorage.setItem("mapgen.radius", "99999"));
   await p.reload();
-  ok((await p.evaluate(() => radius())) === 50, "a radius out of range falls back to the default");
+  ok((await p.evaluate(() => radius())) === 1000, "a radius out of range falls back to the default");
   ok(errs.length === 0, "no page errors or blocked scripts " + errs.join(" | "));
   fs.unlinkSync(outer);
   await b.close();
