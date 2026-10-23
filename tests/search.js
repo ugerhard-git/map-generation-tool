@@ -311,13 +311,18 @@ const path = require("path");
   );
 
   // 7. Arrows missing from the answer: asked for again by panorama id
+  // Each panorama's position comes from its own number, so lookups running at the same time never get
+  // the same spot; the numbers wrap around to stay inside Malta, 1 km apart.
   await p.evaluate(() => {
     let n = 0;
+    const lat = k => 35.85 + (k % 20) * 0.01;
     window.__sv = req => {
-      if (req.pano)
-        return { id: req.pano, lat: 35.85 + n * 0.01, lng: 14.45, links: [{ heading: 90, description: "" }] };
+      if (req.pano) {
+        const k = Number(req.pano.slice(3));
+        return { id: req.pano, lat: lat(k), lng: 14.45, links: [{ heading: 90, description: "" }] };
+      }
       n++;
-      return { id: "ID_" + n, lat: 35.85 + n * 0.01, lng: 14.45 };
+      return { id: "ID_" + n, lat: lat(n), lng: 14.45 };
     };
   });
   await search(p, { deadEnd: true, target: 2 });
