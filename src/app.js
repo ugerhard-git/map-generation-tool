@@ -1451,9 +1451,12 @@ $("stop").onclick = () => {
    A forecast of how long the running search still takes, learnt while it runs: for each country, how
    many random spots one new location has cost so far, and overall, how many spots per second the
    search gets through. Time left = the spots still needed in all countries / spots per second.
-   A country that has found nothing yet is counted with the spots it has left before it gives up (see
-   giveUpAfter), the most it can still cost. The countries that are hard to fill decide most of the
-   result, as they also keep a search running at the end. Shown only after PACE_WAIT and PACE_SPOTS, as
+   Where locations are rare, a country is likely to give up (see giveUpAfter) long before it is full, so
+   each country counts with the spots it can be expected to take until it is full or gives up
+   (spotsStillNeeded); one that has found nothing yet counts with the spots it has left before giving
+   up. The forecast is for the search to end: with countries that give up, it may end short. The
+   countries that are hard to fill decide most of the result, as they also keep a search running at
+   the end. Shown only after PACE_WAIT and PACE_SPOTS, as
    the first numbers jump around, and smoothed, so it does not jump with every location found.
    Learning starts again with every run (a new search, "Fill the gap", or continuing a saved one). */
 const PACE_WAIT = 20000, // ms of searching before a forecast is shown
@@ -1482,10 +1485,37 @@ function secondsLeft(now = Date.now()) {
     if (need <= 0 || gaveUp.has(code) || noSpots.has(code)) continue;
     const tries = pace.tries.get(code) || 0,
       found = pace.found.get(code) || 0;
-    const beforeGivingUp = Math.max(0, searchSettings.giveUpAfter - (missesInRow.get(code) || 0));
-    spots += found ? need * (tries / found) : beforeGivingUp;
+    spots += spotsStillNeeded(
+      need,
+      tries ? found / tries : 0,
+      searchSettings.giveUpAfter,
+      missesInRow.get(code) || 0,
+    );
   }
   return spots / perSecond;
+}
+/* How many more random spots a country can be expected to take, until it has `need` more locations or
+   gives up: each spot finds a location with chance `chance`, and the country gives up after `giveUp`
+   spots in a row without one (it has `misses` of them already).
+   The spots until the next location or giving up, whichever comes first, are on average
+   (1 - (1 - chance)^giveUp) / chance; the country gets to the next location with chance
+   1 - (1 - chance)^giveUp. Where locations are common, this is simply need / chance. Where they are rare,
+   giving up soon is likely, and that is what the country costs: New Zealand at 1 location in 1,346 spots
+   would need 2.6 million spots for 1,916 locations, but gives up after about 4,600 on average. */
+function spotsStillNeeded(need, chance, giveUp, misses) {
+  const first = Math.max(0, giveUp - misses); // spots left in the current run of misses
+  if (chance <= 0) return first;
+  if (chance >= 1) return need;
+  const logMiss = Math.log1p(-chance);
+  const missRun = Math.exp(giveUp * logMiss); // chance of giveUp misses in a row
+  const missFirst = Math.exp(first * logMiss);
+  const spotsFirst = (1 - missFirst) / chance; // to the next location, or giving up
+  const spotsEach = (1 - missRun) / chance; // the same for each location after that
+  // Locations after the next one, counted with the chance of getting that far: 1 + s + s² + … (s = the
+  // chance of finding each), at most need - 1.
+  const rest = need - 1;
+  const later = rest <= 0 ? 0 : missRun < 1e-12 ? rest : -Math.expm1(rest * Math.log1p(-missRun)) / missRun;
+  return spotsFirst + (1 - missFirst) * spotsEach * later;
 }
 /* The forecast for the status line: "about 4 minutes left", or "estimating time left…" at first. The
    finish time shown moves only part of the way towards each new forecast. */

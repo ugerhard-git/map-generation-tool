@@ -70,6 +70,28 @@ const { openPage, search, searchEnded } = require("./helpers.js");
     "a country that gave up is left out: " + forecast.afterGivingUp,
   );
   ok(forecast.tooEarly === null, "nothing is forecast in the first seconds");
+
+  // Countries likely to give up: figures from a real world search of 100,000 locations (October 2026).
+  // New Zealand had found 2 locations in 2,692 spots and needed 1,916 more: 2.6 million spots if it went
+  // on to the end, but with 2,000 misses in a row likely, it gives up after about 4,600 on average. The
+  // United States (39 in 5,858, 4,278 more) will very likely fill up, so it counts in full.
+  const odds = await p.evaluate(() => ({
+    nz: spotsStillNeeded(1916, 2 / 2692, 2000, 0),
+    us: spotsStillNeeded(4278, 39 / 5858, 2000, 0),
+    easy: spotsStillNeeded(50, 0.5, 2000, 0),
+    none: spotsStillNeeded(50, 0, 2000, 300),
+    used: spotsStillNeeded(50, 0.01, 2000, 2000),
+  }));
+  ok(
+    odds.nz > 4000 && odds.nz < 5200,
+    `a country that will likely give up counts with the spots until it does: ${Math.round(odds.nz)}`,
+  );
+  ok(
+    odds.us > 0.99 * 4278 * (5858 / 39) && odds.us <= 4278 * (5858 / 39),
+    `a country that will likely fill up counts in full: ${Math.round(odds.us)}`,
+  );
+  ok(Math.round(odds.easy) === 100, "where every other spot finds one, 50 locations take 100 spots");
+  ok(odds.none === 1700 && odds.used === 0, "nothing found yet: the spots left before giving up");
   ok(
     (await p.evaluate(() => {
       pace.since = Date.now() - 5000;
