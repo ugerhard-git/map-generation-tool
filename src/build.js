@@ -1,6 +1,6 @@
 // Builds the published page, dist/index.html, from the files in src/. It fills the placeholders in
 // page.html (such as /*APP_JS*/) with the styles, the app code, the Vali data, Leaflet, country-coder,
-// the font and the icon, then fingerprints the scripts for the Content Security Policy. The Google key comes from the
+// the land map, the font and the icon, then fingerprints the scripts for the Content Security Policy. The Google key comes from the
 // GOOGLE_API_KEY environment variable; dist/index.nokey.html is the same page without it, for the
 // tests. Run with `npm run build`.
 const fs = require("fs"),
@@ -24,7 +24,7 @@ const appCss = src("style.css"),
   appJs = src("app.js");
 if (/<\/style/i.test(appCss)) throw new Error("style.css contains a closing style tag");
 if (/<\/script/i.test(appJs)) throw new Error("app.js contains a closing script tag");
-if (/\/\*(VALI|LEAFLET_JS|COUNTRY_CODER_JS|LEAFLET_CSS|FONT_CSS|CSP)\*\//.test(appCss + appJs))
+if (/\/\*(VALI|LAND|LEAFLET_JS|COUNTRY_CODER_JS|LEAFLET_CSS|FONT_CSS|CSP)\*\//.test(appCss + appJs))
   throw new Error("a build placeholder appears in style.css or app.js");
 put("/*APP_CSS*/", appCss);
 put("/*APP_JS*/", appJs);
@@ -46,6 +46,12 @@ put(
     .replace(/</g, "\\u003c")
     .replace(/[\u2028\u2029]/g, ""),
 );
+
+// The land map, so random spots are only made on land: from Natural Earth's land outlines in the
+// world-atlas package (see src/land.js). Base64 text only, so it cannot close the script it sits in.
+const land = require("./land.js").landMap(path.join(pkg("world-atlas"), "land-10m.json"));
+if (!/^[A-Za-z0-9+/]*={0,2}$/.test(land.runs)) throw new Error("the land map is not plain base64");
+put("/*LAND*/", JSON.stringify(land));
 
 // Leaflet 1.9.4, from the npm package (no CDN at runtime)
 const leafletJs = fs

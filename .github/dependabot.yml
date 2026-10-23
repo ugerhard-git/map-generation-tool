@@ -13,7 +13,7 @@ updates:
     groups:
       # Tools that only run while building and testing: one pull request for all their minor and patch
       # updates. A major update still gets its own pull request, as it may need changes here.
-      # Leaflet, country-coder and the font end up in the published page, so they are left out
+      # Leaflet, country-coder, the font and world-atlas (the land map) end up in the published page, so they are left out
       # and each gets a pull request of its own.
       dev-tools:
         patterns:
