@@ -35,6 +35,7 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 6. **Resuming a long search** after closing the tab (done): saved in IndexedDB while it runs; on the next visit, continue, download what was found, or discard. One unfinished search is kept; never the key.
 7. **No bad camera** (done): leaves out panoramas 6656 pixels high from 2020 on, as Vali does, except in India, Nepal, Nigeria, Lebanon, and São Tomé and Príncipe; off by default. With it, "Use an older photo instead" (on by default) uses the newest photo at the spot that is not bad camera, from the list of photos Google's answers carry (`time`, undocumented: without it, nothing changes). Lebanon was added to the countries offered.
 8. **Time left** (done): a forecast in the status line, learnt while the search runs: each country's spots per location so far and the spots per second. A country where locations are rare is counted with the spots it can be expected to take before it gives up, not with the many it would need to fill up (fixed after a real search of 100,000 forecast 3 days instead of about a day). Shown after 20 seconds and 50 spots, rough and smoothed.
+9. **Random spots only on land** (done): country-coder's borders reach far out to sea, so most random spots in island and coastal countries landed in the water (Malta's shape is about 95% sea, Japan's 92%, Chile's 90%, New Zealand's 87%). A land map built from Natural Earth (world-atlas, land-10m) keeps spots on land; it adds about 140 KB to the page.
 
 ## Known limits
 

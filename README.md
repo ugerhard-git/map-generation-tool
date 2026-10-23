@@ -8,7 +8,7 @@ Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random o
 
 1. **Choose where, what to look for and how many** (up to 130,000). Where is one or more countries, a continent or the whole world.
 2. **Share between countries.** With more than one country, the locations are shared between them like in a well-known GeoGuessr map you choose (An Arbitrary World by default, A Community World, A Balanced World and others), using the country distributions from [Vali](https://github.com/slashP/Vali) by slashP. A table shows how many each country gets.
-3. **Random spots.** The page picks random spots inside each country and asks Google for the nearest official panorama within a chosen radius.
+3. **Random spots.** The page picks random spots on land inside each country (the country borders reach far out to sea, so a built-in land map keeps spots out of the water) and asks Google for the nearest official panorama within a chosen radius.
 4. **Check the arrows.** A panorama whose arrows carry no street name has no road name; a panorama with a single arrow is where the coverage ends; its date gives the year of the photos (Google's default photos at that spot, normally the newest). Matching locations at least 100 m apart are kept. At the end of the coverage, the camera faces where it stops. A country where matching locations are too rare gives up after a set number of tries; you can then fill the gap from the other countries.
 5. **Export** as a map-making.app JSON file, at the end or after stopping the search. Each location gets its country code and the tags you tick: the country's name (ticked by default), "No road name" and "Dead end" (each a separate option) where they apply, and the year of the photos.
 
@@ -38,7 +38,7 @@ npm run build                          # dist/index.html without a key
 GOOGLE_API_KEY=your-key npm run build  # dist/index.html with your key built in
 ```
 
-The build writes one self-contained file, `dist/index.html`. It embeds the Leaflet map library, the country-coder country lookup and the Overpass font, and it adds a Content Security Policy that only allows the page's own scripts to run.
+The build writes one self-contained file, `dist/index.html`. It embeds the Leaflet map library, the country-coder country lookup, a land map made from Natural Earth and the Overpass font, and it adds a Content Security Policy that only allows the page's own scripts to run.
 
 Never commit a key. The key is inserted by the build from the `GOOGLE_API_KEY` environment variable; the published site gets it from a GitHub secret.
 
@@ -62,6 +62,7 @@ The tests drive the page in a headless browser. Google's script and the map tile
 | `src/icon.svg`       | The page icon; `npm run icons` makes the PNG versions next to it |
 | `src/app.js`         | The app code                                                     |
 | `src/build.js`       | Builds `dist/index.html`                                         |
+| `src/land.js`        | Makes the land map for the page, during the build                |
 | `src/data/vali.json` | Country distributions and continents from Vali (generated)       |
 | `tools/vali.js`      | Updates `src/data/vali.json` from Vali; runs monthly on GitHub   |
 | `tests/`             | Browser tests, one file per feature area                         |
@@ -71,7 +72,7 @@ The tests drive the page in a headless browser. Google's script and the map tile
 
 ## Credits
 
-The country distributions of well-known GeoGuessr maps and the continent lists come from [Vali](https://github.com/slashP/Vali) by slashP (GPL-3.0). Country borders come from [country-coder](https://github.com/rapideditor/country-coder), the map from [Leaflet](https://leafletjs.com) and [OpenStreetMap](https://www.openstreetmap.org/copyright).
+The country distributions of well-known GeoGuessr maps and the continent lists come from [Vali](https://github.com/slashP/Vali) by slashP (GPL-3.0). Country borders come from [country-coder](https://github.com/rapideditor/country-coder), the land map from [Natural Earth](https://www.naturalearthdata.com) (public domain) through [world-atlas](https://github.com/topojson/world-atlas) (ISC), the map from [Leaflet](https://leafletjs.com) and [OpenStreetMap](https://www.openstreetmap.org/copyright).
 
 ## Licence
 

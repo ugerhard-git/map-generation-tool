@@ -247,6 +247,8 @@ const makeElement = (tag, props = {}, ...kids) => {
 // (islands, overseas territories): a part is chosen with a chance that matches its area, then a spot in
 // that part, then countryAt() confirms it, since an overseas part of France may count as another
 // territory (Réunion is RE). Spots are spread evenly over the earth's surface, not over the flat map.
+// The borders reach far out to sea, so only spots on land are kept (isLand, from the land map built into
+// the page, see src/land.js): without that, most spots in New Zealand, Japan or Malta landed in the water.
 
 /**
  * One piece of land of a country, ready for picking spots in it.
@@ -294,6 +296,54 @@ function borderParts(code) {
   borderCache.set(code, parts);
   return parts;
 }
+/* The land map (LAND, see src/land.js) as one byte per cell, 1 for land; decoded when first needed.
+   Null if it is missing or broken: then spots are not checked for land. */
+let landCells;
+function landGrid() {
+  if (landCells !== undefined) return landCells;
+  landCells = null;
+  try {
+    const per = LAND.per,
+      width = 360 * per,
+      height = 180 * per;
+    if (!Number.isInteger(per) || per < 1 || per > 100) return null;
+    const bytes = Uint8Array.from(atob(LAND.runs), c => c.charCodeAt(0));
+    const cells = new Uint8Array(width * height);
+    let at = 0;
+    const next = () => {
+      let n = 0,
+        shift = 0,
+        b;
+      do {
+        if (at >= bytes.length) throw new Error("the land map ends early");
+        b = bytes[at++];
+        n += (b & 127) * 2 ** shift;
+        shift += 7;
+      } while (b & 128);
+      return n;
+    };
+    for (let row = 0; row < height; row++)
+      for (let col = 0, land = 0; col < width; land ^= 1) {
+        const run = next();
+        if (col + run > width) throw new Error("a row of the land map is too long");
+        if (land) cells.fill(1, row * width + col, row * width + col + run);
+        col += run;
+      }
+    landCells = { per, width, height, cells };
+  } catch {
+    landCells = null;
+  }
+  return landCells;
+}
+/* True if there is land at the point, or within the same cell of about 5 km (also true without a land
+   map). */
+function isLand(lat, lng) {
+  const g = landGrid();
+  if (!g) return true;
+  const row = Math.min(g.height - 1, Math.max(0, Math.floor((90 - lat) * g.per)));
+  const col = Math.min(g.width - 1, Math.max(0, Math.floor((lng + 180) * g.per)));
+  return g.cells[row * g.width + col] === 1;
+}
 /* True if the point lies inside a ring of [lng, lat] points (ray casting). */
 function insideRing(lng, lat, ring) {
   let inside = false;
@@ -304,12 +354,26 @@ function insideRing(lng, lat, ring) {
   }
   return inside;
 }
-/* A random spot inside the country, or null if none was found in 1000 tries (borders missing, say). */
+/* A random spot on land inside the country, or null if none was found (borders missing, say).
+   Checking for land comes first, as it is the quickest check: some territories are over 99% sea
+   (American Samoa, the Northern Mariana Islands), so it can take hundreds of tries to find land. A country
+   whose land the land map does not show (none as of October 2026) is searched without the land check. */
+const SPOT_TRIES = 20000;
+const seaOnly = new Set(); // countries where no land was found, searched without the land check
 function randomPointIn(code) {
   const parts = borderParts(code);
   if (!parts.length) return null;
+  if (!seaOnly.has(code)) {
+    const p = pickSpot(code, parts, true);
+    if (p) return p;
+    seaOnly.add(code);
+  }
+  return pickSpot(code, parts, false);
+}
+/* One try after another at a random spot in the parts of a country; null after SPOT_TRIES. */
+function pickSpot(code, parts, landOnly) {
   const total = parts.reduce((n, p) => n + p.area, 0);
-  for (let tries = 0; tries < 1000; tries++) {
+  for (let tries = 0; tries < SPOT_TRIES; tries++) {
     let pick = Math.random() * total,
       part = parts[0];
     for (const p of parts) {
@@ -321,6 +385,7 @@ function randomPointIn(code) {
       n = Math.sin(toRadians(part.north));
     const lat = toDegrees(Math.asin(s + Math.random() * (n - s)));
     const lng = part.west + Math.random() * (part.east - part.west);
+    if (landOnly && !isLand(lat, lng)) continue;
     if (!insideRing(lng, lat, part.rings[0])) continue;
     if (part.rings.slice(1).some(hole => insideRing(lng, lat, hole))) continue;
     if (countryAt(lat, lng) === code) return { lat, lng };

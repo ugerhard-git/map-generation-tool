@@ -356,8 +356,8 @@
     </div>
 
     <!-- Scripts. The build fills these in and fingerprints them for the security policy: the libraries
-         (Leaflet for the map, country-coder for finding a location's country), the Vali data with the
-         framing check, and src/app.js -->
+         (Leaflet for the map, country-coder for finding a location's country), the Vali data and the land
+         map with the framing check, and src/app.js -->
     <script>
       /*LEAFLET_JS*/
       /*COUNTRY_CODER_JS*/
@@ -366,6 +366,9 @@
       /* Country distributions of well-known GeoGuessr maps and the continent lists, from Vali by slashP
          (https://github.com/slashP/Vali, GPL-3.0), made by tools/vali.js from src/data/vali.json. */
       const VALI = /*VALI*/;
+      /* Where there is land, as a grid of run lengths, from Natural Earth (public domain) via the
+         world-atlas package; made by src/land.js. Random spots are only made on land. */
+      const LAND = /*LAND*/;
       /* Inside another site's frame, show only a link to open the app on its own, so nobody can lay a fake
          page over it and trick clicks (the security policy in the page itself cannot forbid framing). */
       let FRAMED = false;
