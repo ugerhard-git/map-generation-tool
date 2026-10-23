@@ -1137,6 +1137,7 @@ function emptyStats() {
     badCamera: 0, // left out as bad camera
     olderLookups: 0, // older photos looked up instead of bad camera
     olderUsed: 0, // locations that are an older photo used instead of bad camera
+    searchedMs: 0, // time spent searching in the runs that have ended (see searchedFor)
     failedInRow: 0,
   };
 }
@@ -1189,10 +1190,11 @@ function paint(status) {
   const add = (n, label) => {
     const s = document.createElement("span"),
       b = document.createElement("b");
-    b.textContent = fmt(n);
+    b.textContent = typeof n === "number" ? fmt(n) : n;
     s.append(b, " " + label);
     t.append(s);
   };
+  add(clockTime(searchedFor()), "spent searching");
   add(stats.tries, "random spots tried");
   add(stats.empty, "without official Street View nearby");
   if (stats.notMatching) add(stats.notMatching, "not matching");
@@ -1203,6 +1205,19 @@ function paint(status) {
   if (stats.olderUsed) add(stats.olderUsed, "older photos used instead");
   if (results.length > MAX_DRAWN) add(MAX_DRAWN, "shown on the map");
   renderShares();
+}
+/* How long the search has been running, in ms: the runs that have ended (a search goes on after "Fill
+   the gap" or when a saved one is continued), plus the one running now. Waiting for the visitor, between
+   runs or with the tab closed, does not count. */
+let runStartedAt = 0;
+const searchedFor = () => stats.searchedMs + (running && runStartedAt ? Date.now() - runStartedAt : 0);
+/* A time as a clock: "0:42", "12:05", "1:12:05" (hours go on past 24). */
+function clockTime(ms) {
+  const all = Math.floor(Math.max(0, ms) / 1000),
+    h = Math.floor(all / 3600),
+    m = Math.floor(all / 60) % 60,
+    sec = String(all % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
 }
 /* Locks or unlocks the form while a search runs. */
 function setRunning(on) {
@@ -1458,6 +1473,8 @@ async function runSearch() {
   setRunning(true);
   stopRequested = false;
   startPace();
+  runStartedAt = Date.now();
+  const tick = setInterval(() => paint(), 1000); // the time spent searching goes on between finds too
   lastPaint = 0;
   paintSoon();
   keepSaving();
@@ -1470,6 +1487,9 @@ async function runSearch() {
     }
   };
   await Promise.all(Array.from({ length: PARALLEL }, worker));
+  clearInterval(tick);
+  stats.searchedMs += Date.now() - runStartedAt;
+  runStartedAt = 0;
   setRunning(false);
   if (fatal) showError(fatal);
   else if (noSpots.size)
@@ -2038,7 +2058,7 @@ async function saveSearch() {
         gaveUp: [...gaveUp],
         noSpots: [...noSpots],
         misses: [...missesInRow],
-        stats: { ...stats },
+        stats: { ...stats, searchedMs: searchedFor() }, // with the time of the run going on now
         results: results.map(l => ({ ...l })),
       },
       DB_KEY,
@@ -2098,7 +2118,8 @@ function cleanSaved(raw) {
     : [];
   const stats = emptyStats();
   for (const k of Object.keys(stats))
-    if (Number.isInteger(raw.stats?.[k]) && raw.stats[k] >= 0) stats[k] = raw.stats[k];
+    if (Number.isInteger(raw.stats?.[k]) && raw.stats[k] >= 0 && raw.stats[k] <= 1e12)
+      stats[k] = raw.stats[k];
   return {
     savedAt: raw.savedAt,
     title: cleanText(raw.title, 200) || "Search",
@@ -2124,7 +2145,9 @@ async function offerSavedSearch() {
   $("resumeTitle").textContent = `An unfinished search: ${s.title}`;
   $("resumeText").textContent =
     `${historyWhen(s.savedAt)} · ${historyDetails(s.settings)}. ` +
-    `${fmt(s.results.length)} of ${fmt(s.total)} locations found so far.`;
+    `${fmt(s.results.length)} of ${fmt(s.total)} locations found so far` +
+    // (searches saved before the time was kept have none)
+    (s.stats.searchedMs ? `, in ${clockTime(s.stats.searchedMs)} of searching.` : ".");
   $("resume").hidden = false;
 }
 function hideResume() {
