@@ -129,7 +129,10 @@ const MIN_SPACING = 100; // metres between any two locations, so there are no ne
 const PARALLEL = 6; // lookups running at the same time
 const ERROR_LIMIT = 20; // failed lookups in a row (not "nothing found") before the search gives up
 const ERROR_WAIT = 3000; // ms to wait after a failed lookup, before trying again
-const MAX_DRAWN = 5000; // locations drawn on the map; more would make the map slow
+// Locations drawn on the map. Every dot is redrawn when the map moves: measured in October 2026, 20,000
+// dots keep zooming and panning smooth even on a slow computer; 50,000 make each zoom wait about half a
+// second to a second. The map file always has every location. The welcome dialog states the number.
+const MAX_DRAWN = 20000;
 /* The bad camera ("badcam"): low-quality photos, 6656 pixels high. Older cameras made images of that
    height too, so as in Vali (github.com/slashP/Vali), only photos from BAD_CAMERA_FROM on count as bad
    camera, and only outside BAD_CAMERA_KEPT, where it is much of the coverage (Vali's India, Nepal and
@@ -2264,6 +2267,7 @@ document.addEventListener("keydown", e => {
     f[(i + (e.shiftKey ? f.length - 1 : 1) + f.length) % f.length].focus();
   }
 });
+$("maxDrawn").textContent = fmt(MAX_DRAWN); // the number in the welcome dialog
 function openWelcome() {
   openDialog("welcome");
   store.set("welcomed", true);

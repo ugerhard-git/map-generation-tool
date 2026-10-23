@@ -30,6 +30,13 @@ const { PAGE, isSite, serveSite } = require("./site.js");
 
   await p.click("#howBtn");
   ok(await p.isVisible("#welcome"), '"How it works" opens it again');
+  ok(
+    (await p.evaluate(() => MAX_DRAWN)) === 20000 &&
+      /shows the first 20,000 locations, to stay quick; the map file has all of them/.test(
+        (await p.textContent("#welcomeBox")).replace(/\s+/g, " "),
+      ),
+    "it says the map shows the first 20,000 locations and the file has all",
+  );
   for (let i = 0; i < 4; i++) await p.keyboard.press("Tab");
   ok(
     await p.evaluate(() => document.getElementById("welcomeBox").contains(document.activeElement)),
