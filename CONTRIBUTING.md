@@ -49,6 +49,18 @@ The code is read by the owner and by developers who don't know the project. Writ
 - **No new tools without a reason.** Every dependency or build step is one more thing to learn; propose it in an issue first.
 - **Keep the documentation true.** When the code changes, update its comments, the overview in `app.js`, [How the code works](docs/how-the-code-works.md) and `README.md` in the same pull request.
 
+## A simple interface
+
+The tool should feel easy on first sight, also as settings are added. Every change that adds or moves a setting follows these rules (agreed with the owner, October 2026):
+
+- **Every setting has a good default.** A visitor who changes nothing gets a sensible search.
+- **The first screen shows only what most visitors need:** where, the main criteria, how many, and "Find locations". Any other setting goes into a closed "More options" section for its topic.
+- **Nothing changed stays hidden.** A closed section shows a one-line summary of what is set, marks what differs from the default, and offers "Reset to defaults".
+- **Little text on the page.** At most a short hint under a setting. A longer explanation goes into a help dialog, opened by a small "?" button next to the setting.
+- **Related choices that exclude each other are one choice**, not tick boxes that can contradict each other (such as "Arrows: any, end of coverage, intersection"). A setting that does not apply is greyed out, not hidden.
+- **Every setting is part of the shared description of the settings,** so the history, the unfinished search and the settings file all keep it.
+- **Keyboard and screen readers** must work for every control, including drawings such as the camera direction.
+
 ## Things that must not break
 
 - **Saved settings.** The names saved in the browser (`mapgen.…`, listed at the top of `src/app.js`) stay as they are, so visitors keep their choices. When an option is removed, clear its saved value when the page loads. When a saved setting changes shape, move the old one over on load.
