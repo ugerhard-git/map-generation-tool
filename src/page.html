@@ -120,6 +120,30 @@
         >
       </div>
     </div>
+    <!-- Settings file dialog, opened by "Settings file" next to "History" (app.js: settings file) -->
+    <div class="dialog" id="settingsFile" hidden>
+      <div
+        class="dialog-box"
+        id="settingsBox"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settingsTitle"
+        tabindex="-1"
+      >
+        <button type="button" class="dialog-x" id="settingsX" aria-label="Close">×</button>
+        <h2 id="settingsTitle">Settings file</h2>
+        <p>
+          Save all your settings to a file, to use them again later or to give them to someone else. Loading
+          the file sets everything as it was. Your Google key is never in it.
+        </p>
+        <div class="acts">
+          <button type="button" class="btn primary" id="settingsSave">Save settings to a file</button>
+          <button type="button" class="btn" id="settingsLoad">Load settings from a file</button>
+        </div>
+        <input type="file" id="settingsPick" accept=".json,application/json" hidden />
+        <p class="msg" id="settingsMsg" role="status" hidden></p>
+      </div>
+    </div>
     <!-- Help dialog, opened by the "?" buttons next to settings; its text comes from the help texts below
          (app.js: help) -->
     <div class="dialog" id="help" hidden>
@@ -236,6 +260,7 @@
         <div class="toplinks">
           <button type="button" class="howbtn" id="howBtn">How it works</button>
           <button type="button" class="howbtn" id="historyBtn">History</button>
+          <button type="button" class="howbtn" id="settingsBtn">Settings file</button>
         </div>
 
         <!-- An unfinished search from an earlier visit, kept in this browser (app.js: unfinished search) -->

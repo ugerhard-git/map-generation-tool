@@ -58,8 +58,8 @@
  *   - Text from outside (Google, saved values) is put on the page with textContent, or passed through
  *     esc() before it goes into innerHTML.
  *   - The sections below follow the page from top to bottom: data, helpers, random spots, step 1, step 2,
- *     step 3, locations per country, map, Google Street View, run, time left, shortfalls, export, history of searches,
- *     unfinished search, dialogs. src/page.html and
+ *     step 3, more options and help, locations per country, map, Google Street View, run, time left, shortfalls, export, history of searches,
+ *     settings file, unfinished search, dialogs. src/page.html and
  *     src/style.css use the same section names.
  */
 
@@ -236,6 +236,12 @@ function wholeNumber(value, lo, hi, d) {
   const n = Math.round(Number(value));
   return inRange(n, lo, hi) ? n : d;
 }
+/* A name made safe for a file name: "Malta: Dead ends" -> "malta-dead-ends" ("map" if nothing is left). */
+const fileBase = name =>
+  foldAccents(name)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80) || "map";
 /* Lower case without accents, for file names: "Château" -> "chateau". */
 const foldAccents = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 /* A new element with properties and children: makeElement("b", {}, "text"). Copied from Lookout. */
@@ -1885,10 +1891,7 @@ function exportJson() {
 $("download").onclick = () => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([exportJson()], { type: "application/json" }));
-  a.download =
-    (foldAccents(mapName())
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "map") + ".json";
+  a.download = fileBase(mapName()) + ".json";
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
@@ -1937,6 +1940,10 @@ const HISTORY_MAX = 20;
  * @property {number} radius
  * @property {number} giveUpAfter
  * @property {string} mapName       the name typed in step 3, or "" for the suggested one
+ * @property {boolean} tagCountry    the tags the map file gets (see TAG_OPTIONS)
+ * @property {boolean} tagNoRoadName
+ * @property {boolean} tagDeadEnd
+ * @property {boolean} tagYear
  */
 /**
  * @typedef {object} HistoryEntry
@@ -1966,10 +1973,13 @@ function currentSettings() {
     radius: radius(),
     giveUpAfter: giveUpAfter(),
     mapName: $("mapName").value.trim().slice(0, 100),
+    ...Object.fromEntries(Object.keys(TAG_OPTIONS).map(id => [id, $(id).checked])),
   };
 }
-/* Settings read back from the history, checked like everything saved: anything not well-formed becomes
-   the default. @returns {SearchSettings} */
+/* Settings read back from the history, an unfinished search or a settings file, checked like
+   everything from outside: anything not well-formed becomes the default. This and currentSettings are
+   the one description of the settings: a new setting is added to both (and to applySettings), and the
+   history, the unfinished search and the settings file then all keep it. @returns {SearchSettings} */
 function cleanSettings(raw) {
   const r = raw && typeof raw === "object" ? raw : {};
   const known = (obj, k) => typeof k === "string" && Object.hasOwn(obj, k);
@@ -1992,6 +2002,10 @@ function cleanSettings(raw) {
     radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
     giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
     mapName: cleanText(r.mapName, 100).trim(),
+    // (entries from before the tags were kept get the defaults)
+    ...Object.fromEntries(
+      Object.entries(TAG_OPTIONS).map(([id, d]) => [id, typeof r[id] === "boolean" ? r[id] : d]),
+    ),
   };
 }
 /* The saved history. Saved values can be edited by anyone, so entries that are not well-formed are
@@ -2123,7 +2137,14 @@ function applySettings(s) {
   if ([...$("distribution").options].some(o => o.value === s.distribution))
     $("distribution").value = s.distribution;
   whereChanged();
-  for (const id of ["noRoadName", "deadEnd", "yearsOn", "noBadCamera", "useOlder"]) {
+  for (const id of [
+    "noRoadName",
+    "deadEnd",
+    "yearsOn",
+    "noBadCamera",
+    "useOlder",
+    ...Object.keys(TAG_OPTIONS),
+  ]) {
     $(id).checked = s[id];
     store.set(id, s[id]);
   }
@@ -2163,6 +2184,112 @@ $("historyOn").onchange = () => {
   store.set("historyOn", $("historyOn").checked);
   if (!$("historyOn").checked) saveHistory([]); // switching it off also clears it
   renderHistory();
+};
+
+/* ---------- settings file ----------
+   Every search setting saved as a file and loaded again, for later or for someone else: JSON, readable
+   in any text editor, like
+     { "format": "map-generation-tool settings", "version": 1, "saved": "2026-10-25T19:30:00.000Z",
+       "settings": { …SearchSettings… } }
+   The settings are the shared description (currentSettings, cleanSettings, applySettings), so a new
+   setting is in the file without changes here. Never the Google key. A loaded file is untrusted: it is
+   read with size and format checks, and every setting goes through cleanSettings. SETTINGS_VERSION goes
+   up only when a setting changes its meaning; cleanSettings then moves the old shape over. */
+const SETTINGS_FORMAT = "map-generation-tool settings",
+  SETTINGS_VERSION = 1,
+  SETTINGS_MAX_BYTES = 100000; // a settings file is about 1 KB
+/* The settings in the form as the text of a settings file. */
+function settingsFileText() {
+  const file = {
+    format: SETTINGS_FORMAT,
+    version: SETTINGS_VERSION,
+    saved: new Date().toISOString(),
+    settings: currentSettings(),
+  };
+  return JSON.stringify(file, null, 2) + "\n";
+}
+/* Reads the text of a settings file: { settings, notes } with the checked settings and what to tell
+   the visitor about it, or { error } when it is not a usable settings file. */
+function readSettingsFile(text) {
+  if (typeof text !== "string" || text.length > SETTINGS_MAX_BYTES)
+    return { error: "This file is too large to be a settings file." };
+  let file;
+  try {
+    file = JSON.parse(text);
+  } catch {
+    return { error: "This is not a settings file: its contents could not be read." };
+  }
+  if (!file || typeof file !== "object" || Array.isArray(file))
+    return { error: "This is not a settings file of the Map Generation Tool." };
+  if (Array.isArray(file.customCoordinates))
+    return { error: "This is a map file, not a settings file. Settings files end in .settings.json." };
+  if (file.format !== SETTINGS_FORMAT || !Number.isInteger(file.version) || file.version < 1)
+    return { error: "This is not a settings file of the Map Generation Tool." };
+  const raw = file.settings;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw))
+    return { error: "This settings file has no settings in it." };
+  const settings = cleanSettings(raw);
+  const notes = [];
+  if (file.version > SETTINGS_VERSION)
+    notes.push("It was saved by a newer version of this tool, so some settings may not have come across.");
+  const unknown = Object.keys(raw).filter(k => !Object.hasOwn(settings, k));
+  if (unknown.length)
+    notes.push(
+      `Not used, as this tool does not know ${unknown.length === 1 ? "it" : "them"}: ` +
+        unknown
+          .slice(0, 8)
+          .map(k => cleanText(k, 40))
+          .join(", ") +
+        (unknown.length > 8 ? ` and ${unknown.length - 8} more` : "") +
+        ".",
+    );
+  const dropped = Array.isArray(raw.countries) ? raw.countries.length - settings.countries.length : 0;
+  if (dropped > 0)
+    notes.push(
+      `${dropped === 1 ? "1 country was" : fmt(dropped) + " countries were"} left out: not known, or without official Street View.`,
+    );
+  return { settings, notes };
+}
+/* Says something in the settings file dialog: an error, or (error = false) that it worked; "" clears it. */
+function settingsMessage(text, error = true) {
+  $("settingsMsg").textContent = text;
+  $("settingsMsg").className = "msg " + (error ? "error" : "note");
+  $("settingsMsg").hidden = !text;
+}
+$("settingsBtn").onclick = () => {
+  settingsMessage("");
+  openDialog("settingsFile");
+};
+$("settingsX").onclick = closeDialog;
+$("settingsSave").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([settingsFileText()], { type: "application/json" }));
+  a.download = fileBase(mapName()) + ".settings.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  settingsMessage(`Saved as ${a.download}.`, false);
+};
+$("settingsLoad").onclick = () => {
+  if (running) return settingsMessage("Stop the search first, then load the settings.");
+  $("settingsPick").click();
+};
+$("settingsPick").onchange = async () => {
+  const f = $("settingsPick").files[0];
+  $("settingsPick").value = ""; // so the same file can be chosen again
+  if (!f) return;
+  if (f.size > SETTINGS_MAX_BYTES) return settingsMessage("This file is too large to be a settings file.");
+  let text;
+  try {
+    text = await f.text();
+  } catch {
+    return settingsMessage("The file could not be read.");
+  }
+  const r = readSettingsFile(text);
+  if (r.error) return settingsMessage(r.error);
+  if (running) return settingsMessage("Stop the search first, then load the settings.");
+  applySettings(r.settings);
+  closeDialog();
+  showNote([`Settings loaded from ${cleanText(f.name, 100)}.`, ...r.notes].join(" "));
 };
 
 /* ---------- unfinished search ----------

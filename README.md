@@ -18,6 +18,8 @@ A long search is saved in your browser as it runs: if you close the tab, you can
 
 Your last 20 searches are kept in your browser (only their settings, never the key), so you can run one again or reuse its settings under "History".
 
+Under "Settings file" you can save all your settings to a file (`….settings.json`, readable in any text editor) and load them again later, or give them to someone else. The file never holds your Google key.
+
 It runs entirely in the browser as a single HTML page. There is no server of its own. It shares much of its code with [Lookout (osm-tool)](https://github.com/ugerhard-git/osm-tool).
 
 **Use it here: [ugerhard-git.github.io/map-generation-tool](https://ugerhard-git.github.io/map-generation-tool/)**
