@@ -6,7 +6,7 @@ Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random o
 
 ## How it works
 
-1. **Choose where, what to look for and how many** (up to 130,000). Where is one or more countries, a continent or the whole world.
+1. **Choose where, what to look for and how many** (up to 130,000). Where is one or more countries, a continent or the whole world. Settings most people never need to change (the distribution, the photo years and bad camera, the search radius, the map name and tags) are in closed "More options" sections, each showing what is set; a "?" next to a setting explains it.
 2. **Share between countries.** With more than one country, the locations are shared between them like in a well-known GeoGuessr map you choose (An Arbitrary World by default, A Community World, A Balanced World and others), using the country distributions from [Vali](https://github.com/slashP/Vali) by slashP. A table shows how many each country gets.
 3. **Random spots.** The page picks random spots on land inside each country (the country borders reach far out to sea, so a built-in land map keeps spots out of the water) and asks Google for the nearest official panorama within a chosen radius.
 4. **Check the arrows.** A panorama whose arrows carry no street name has no road name; a panorama with a single arrow is where the coverage ends; its date gives the year of the photos (Google's default photos at that spot, normally the newest). Matching locations at least 100 m apart are kept. At the end of the coverage, the camera faces where it stops. A country where matching locations are too rare gives up after a set number of tries; you can then fill the gap from the other countries.

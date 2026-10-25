@@ -120,6 +120,112 @@
         >
       </div>
     </div>
+    <!-- Help dialog, opened by the "?" buttons next to settings; its text comes from the help texts below
+         (app.js: help) -->
+    <div class="dialog" id="help" hidden>
+      <div
+        class="dialog-box"
+        id="helpBox"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="helpTitle"
+        tabindex="-1"
+      >
+        <button type="button" class="dialog-x" id="helpX" aria-label="Close">×</button>
+        <h2 id="helpTitle"></h2>
+        <div id="helpBody"></div>
+        <button type="button" class="btn primary" id="helpOk">OK</button>
+      </div>
+    </div>
+    <!-- Help texts, one per "?" button (data-help="…"): the title, then the text -->
+    <template id="help-countries">
+      <h2>Countries or territories</h2>
+      <p>
+        Only places with official Google Street View are offered. Add as many as you like; with several, the
+        locations are shared between them (see "Distribution" under "More options").
+      </p>
+    </template>
+    <template id="help-distribution">
+      <h2>Distribution</h2>
+      <p>
+        With several countries, a continent or the whole world, the locations are shared between the countries
+        like in a well-known GeoGuessr map: a country with a larger share in that map gets more locations. The
+        table "Locations per country" shows the numbers before you start.
+      </p>
+      <p>
+        The shares come from
+        <a href="https://github.com/slashP/Vali" target="_blank" rel="noopener">Vali</a> by slashP. A single
+        country gets all the locations.
+      </p>
+    </template>
+    <template id="help-criteria">
+      <h2>What each location has</h2>
+      <p>
+        Tick what every location must have. With several ticked, a location must have all of them. With none
+        ticked, any official location counts.
+      </p>
+      <p>More criteria, such as the years of the photos, are under "Photos" in "More options".</p>
+    </template>
+    <template id="help-noRoadName">
+      <h2>No road name</h2>
+      <p>Street View shows no street name on the arrows at that spot.</p>
+    </template>
+    <template id="help-deadEnd">
+      <h2>End of coverage</h2>
+      <p>
+        Only one arrow: Google's coverage stops there. The camera faces where it stops. These spots are rare,
+        so many of them can take a long time to find.
+      </p>
+    </template>
+    <template id="help-years">
+      <h2>Photos taken in certain years</h2>
+      <p>
+        Checks the photos Google shows by default at a spot, normally the newest. Older years are rarer and
+        take longer to find.
+      </p>
+    </template>
+    <template id="help-noBadCamera">
+      <h2>No bad camera</h2>
+      <p>
+        Leaves out photos from the low-quality camera used since 2020 (often called "bad camera" or "badcam").
+        Not in India, Nepal, Nigeria, Lebanon, and São Tomé and Príncipe, where it is much of the coverage.
+      </p>
+    </template>
+    <template id="help-useOlder">
+      <h2>Use an older photo instead</h2>
+      <p>
+        When the newest photo at a spot is bad camera, the newest older photo at the same spot that is not bad
+        camera is used instead. It must still have everything ticked, such as the years.
+      </p>
+    </template>
+    <template id="help-apiKey">
+      <h2>Google API key</h2>
+      <p>
+        The search asks Google's Street View service, which needs a key with the Maps JavaScript API enabled.
+        Your key is kept only until you close this tab, and only sent to Google.
+      </p>
+    </template>
+    <template id="help-radius">
+      <h2>How far to look around each spot</h2>
+      <p>
+        For each random spot, Google is asked for the nearest official panorama within this distance. Further
+        finds locations faster, but favours the edges of the coverage and quiet areas.
+      </p>
+    </template>
+    <template id="help-giveUpAfter">
+      <h2>Giving up on a country</h2>
+      <p>
+        The number of random spots in a row that bring no new location for a country. Where matching locations
+        are rare, the search then moves on; at the end you can fill the gap from the other countries.
+      </p>
+    </template>
+    <template id="help-tags">
+      <h2>Tags in the map file</h2>
+      <p>
+        Each location in the map file gets the tags ticked here, to filter by in map-making.app. You can
+        change them after the search, before downloading.
+      </p>
+    </template>
     <!-- The app: settings panel on the left, map on the right (stacked on phones) -->
     <div class="app">
       <!-- novalidate: the app checks and corrects every number itself (app.js: wholeNumber), so the browser
@@ -156,7 +262,12 @@
             </div>
             <!-- Chosen countries: chips and a field with suggestions -->
             <div class="field" id="countriesBox">
-              <label for="country">Countries or territories</label>
+              <div class="labelrow">
+                <label for="country">Countries or territories</label>
+                <button type="button" class="help" data-help="countries" aria-label="Help: countries">
+                  ?
+                </button>
+              </div>
               <div class="chips" id="countryChips" hidden></div>
               <div class="combo">
                 <input
@@ -171,139 +282,183 @@
                 />
                 <ul class="suggest" id="countryList" role="listbox" aria-label="Countries" hidden></ul>
               </div>
-              <p class="hint">Only places with official Google Street View are offered.</p>
             </div>
             <!-- A continent -->
             <div class="field" id="continentBox" hidden>
               <label for="continent">Continent</label>
               <select id="continent"></select>
             </div>
-            <!-- How the locations are shared between the countries -->
-            <div class="field" id="distributionBox" hidden>
-              <label for="distribution">Share the locations like</label>
-              <select id="distribution"></select>
-              <p class="hint">
-                How well-known GeoGuessr maps share their locations between countries, from
-                <a href="https://github.com/slashP/Vali" target="_blank" rel="noopener">Vali</a> by slashP.
-              </p>
-            </div>
+            <!-- More options: how the locations are shared between the countries (app.js: more options) -->
+            <details class="more" id="moreDistribution">
+              <summary>
+                <span class="more-title">Distribution</span>
+                <span class="more-sum" id="sumDistribution"></span>
+              </summary>
+              <div class="field" id="distributionBox">
+                <div class="labelrow">
+                  <label for="distribution">Share the locations like</label>
+                  <button type="button" class="help" data-help="distribution" aria-label="Help: distribution">
+                    ?
+                  </button>
+                </div>
+                <select id="distribution"></select>
+                <p class="hint" id="distributionNote" hidden>Only used with several countries.</p>
+              </div>
+              <button type="button" class="linkbtn reset" data-reset="moreDistribution">
+                Reset to defaults
+              </button>
+            </details>
           </section>
 
           <!-- Step 2: what to look for (app.js: step 2) -->
           <section class="step" id="stepWhat">
-            <h2><span class="n">2</span>What should each location have?</h2>
-            <label class="check"
-              ><input type="checkbox" id="noRoadName" /><span
-                >No road name<br /><span class="hint"
-                  >Street View shows no street name on the arrows at that spot.</span
-                ></span
-              ></label
-            >
-            <label class="check"
-              ><input type="checkbox" id="deadEnd" /><span
-                >End of coverage<br /><span class="hint"
-                  >Only one arrow: Google's coverage stops there. The camera faces where it stops.</span
-                ></span
-              ></label
-            >
-            <label class="check"
-              ><input type="checkbox" id="yearsOn" /><span
-                >Photos taken in certain years<br /><span class="hint"
-                  >Checks the photos Google shows by default at a spot, normally the newest. Older years are
-                  rarer and take longer to find.</span
-                ></span
-              ></label
-            >
-            <div class="years" id="yearsBox">
-              <label for="yearFrom">From</label>
-              <select id="yearFrom"></select>
-              <label for="yearTo">to</label>
-              <select id="yearTo"></select>
-            </div>
-            <label class="check"
-              ><input type="checkbox" id="noBadCamera" /><span
-                >No bad camera<br /><span class="hint"
-                  >Leaves out photos from the low-quality camera used since 2020. Not in India, Nepal,
-                  Nigeria, Lebanon, and São Tomé and Príncipe, where it is much of the coverage.</span
-                ></span
-              ></label
-            >
-            <div class="indent">
-              <label class="check"
-                ><input type="checkbox" id="useOlder" checked /><span
-                  >Use an older photo instead, if there is one<br /><span class="hint"
-                    >The newest photo at the same spot that is not bad camera. It must still have everything
-                    ticked here, such as the years.</span
-                  ></span
-                ></label
+            <div class="labelrow">
+              <h2><span class="n">2</span>What should each location have?</h2>
+              <button
+                type="button"
+                class="help"
+                data-help="criteria"
+                aria-label="Help: what each location has"
               >
+                ?
+              </button>
             </div>
-            <p class="hint">
-              With several ticked, a location must have all of them. With none ticked, any official location
-              counts.
-            </p>
+            <div class="checkrow">
+              <label class="check"><input type="checkbox" id="noRoadName" /><span>No road name</span></label>
+              <button type="button" class="help" data-help="noRoadName" aria-label="Help: no road name">
+                ?
+              </button>
+            </div>
+            <div class="checkrow">
+              <label class="check"><input type="checkbox" id="deadEnd" /><span>End of coverage</span></label>
+              <button type="button" class="help" data-help="deadEnd" aria-label="Help: end of coverage">
+                ?
+              </button>
+            </div>
+            <!-- More options: photos (app.js: more options) -->
+            <details class="more" id="morePhotos">
+              <summary>
+                <span class="more-title">Photos</span>
+                <span class="more-sum" id="sumPhotos"></span>
+              </summary>
+              <div class="checkrow">
+                <label class="check"
+                  ><input type="checkbox" id="yearsOn" /><span>Photos taken in certain years</span></label
+                >
+                <button type="button" class="help" data-help="years" aria-label="Help: photo years">?</button>
+              </div>
+              <div class="years" id="yearsBox">
+                <label for="yearFrom">From</label>
+                <select id="yearFrom"></select>
+                <label for="yearTo">to</label>
+                <select id="yearTo"></select>
+              </div>
+              <div class="checkrow">
+                <label class="check"
+                  ><input type="checkbox" id="noBadCamera" /><span>No bad camera</span></label
+                >
+                <button type="button" class="help" data-help="noBadCamera" aria-label="Help: bad camera">
+                  ?
+                </button>
+              </div>
+              <div class="indent checkrow">
+                <label class="check"
+                  ><input type="checkbox" id="useOlder" checked /><span
+                    >Use an older photo instead, if there is one</span
+                  ></label
+                >
+                <button type="button" class="help" data-help="useOlder" aria-label="Help: older photos">
+                  ?
+                </button>
+              </div>
+              <button type="button" class="linkbtn reset" data-reset="morePhotos">Reset to defaults</button>
+            </details>
           </section>
 
-          <!-- Step 3: how many, map name and Google key (app.js: step 3) -->
+          <!-- Step 3: how many, and the Google key (app.js: step 3) -->
           <section class="step" id="stepHowMany">
             <h2><span class="n">3</span>How many?</h2>
             <label for="target">Number of locations</label>
             <input type="text" inputmode="numeric" autocomplete="off" id="target" value="100" />
             <p class="hint">Up to 130,000.</p>
-            <div class="field">
-              <label for="radius">Look around each random spot up to</label>
-              <div class="unit">
-                <input type="text" inputmode="numeric" autocomplete="off" id="radius" value="1,000" /><span
-                  >m</span
+            <div class="field" id="keyBox" hidden>
+              <div class="labelrow">
+                <label for="apiKey">Google API key</label>
+                <button type="button" class="help" data-help="apiKey" aria-label="Help: Google API key">
+                  ?
+                </button>
+              </div>
+              <input type="password" id="apiKey" placeholder="AIza…" spellcheck="false" />
+              <p class="hint">Kept only until you close this tab.</p>
+            </div>
+            <!-- More options: the search (app.js: more options) -->
+            <details class="more" id="moreSearch">
+              <summary>
+                <span class="more-title">Search</span>
+                <span class="more-sum" id="sumSearch"></span>
+              </summary>
+              <div class="field">
+                <div class="labelrow">
+                  <label for="radius">Look around each random spot up to</label>
+                  <button type="button" class="help" data-help="radius" aria-label="Help: radius">?</button>
+                </div>
+                <div class="unit">
+                  <input type="text" inputmode="numeric" autocomplete="off" id="radius" value="1,000" /><span
+                    >m</span
+                  >
+                </div>
+              </div>
+              <div class="field">
+                <div class="labelrow">
+                  <label for="giveUpAfter">Give up on a country after</label>
+                  <button type="button" class="help" data-help="giveUpAfter" aria-label="Help: giving up">
+                    ?
+                  </button>
+                </div>
+                <div class="unit">
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    id="giveUpAfter"
+                    value="2,000"
+                  /><span>spots</span>
+                </div>
+              </div>
+              <button type="button" class="linkbtn reset" data-reset="moreSearch">Reset to defaults</button>
+            </details>
+            <!-- More options: the map file (app.js: more options) -->
+            <details class="more" id="moreMapFile">
+              <summary>
+                <span class="more-title">Map file</span>
+                <span class="more-sum" id="sumMapFile"></span>
+              </summary>
+              <div class="field">
+                <label for="mapName">Map name</label>
+                <input type="text" id="mapName" maxlength="100" placeholder="Filled in for you" />
+              </div>
+              <div class="field" role="group" aria-labelledby="tagsTitle">
+                <div class="labelrow">
+                  <div class="label" id="tagsTitle">Tags in the map file</div>
+                  <button type="button" class="help" data-help="tags" aria-label="Help: tags">?</button>
+                </div>
+                <label class="check"
+                  ><input type="checkbox" id="tagCountry" checked /><span>The country's name</span></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagNoRoadName" /><span
+                    >"No road name", where it applies</span
+                  ></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagDeadEnd" /><span>"Dead end", where it applies</span></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagYear" /><span>The year the photos were taken</span></label
                 >
               </div>
-              <p class="hint">
-                Further finds locations faster, but favours the edges of the coverage and quiet areas.
-              </p>
-            </div>
-            <div class="field">
-              <label for="giveUpAfter">Give up on a country after</label>
-              <div class="unit">
-                <input
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="off"
-                  id="giveUpAfter"
-                  value="2,000"
-                /><span>spots</span>
-              </div>
-              <p class="hint">
-                Random spots in a row that bring no new location for that country. Where matching locations
-                are rare, the search then moves on; you can fill the gap from the other countries at the end.
-              </p>
-            </div>
-            <div class="field">
-              <label for="mapName">Map name</label>
-              <input type="text" id="mapName" maxlength="100" placeholder="Filled in for you" />
-            </div>
-            <div class="field" role="group" aria-labelledby="tagsTitle">
-              <div class="label" id="tagsTitle">Tags in the map file</div>
-              <label class="check"
-                ><input type="checkbox" id="tagCountry" checked /><span>The country's name</span></label
-              >
-              <label class="check"
-                ><input type="checkbox" id="tagNoRoadName" /><span
-                  >"No road name", where it applies</span
-                ></label
-              >
-              <label class="check"
-                ><input type="checkbox" id="tagDeadEnd" /><span>"Dead end", where it applies</span></label
-              >
-              <label class="check"
-                ><input type="checkbox" id="tagYear" /><span>The year the photos were taken</span></label
-              >
-              <p class="hint">You can change these after the search, before downloading.</p>
-            </div>
-            <div class="field" id="keyBox" hidden>
-              <label for="apiKey">Google API key</label>
-              <input type="password" id="apiKey" placeholder="AIza…" spellcheck="false" />
-              <p class="hint">Needs the Maps JavaScript API enabled. Kept only until you close this tab.</p>
-            </div>
+              <button type="button" class="linkbtn reset" data-reset="moreMapFile">Reset to defaults</button>
+            </details>
           </section>
         </fieldset>
 
