@@ -767,26 +767,65 @@ function wantedLabel(w) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/* ---------- step 3: how many, map name and key ---------- */
-const target = () => wholeNumber($("target").value, 1, TARGET_MAX, TARGET_DEFAULT);
-const radius = () => wholeNumber($("radius").value, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT);
-$("target").value = wholeNumber(store.get("target", TARGET_DEFAULT), 1, TARGET_MAX, TARGET_DEFAULT);
-$("target").onchange = () => {
-  store.set("target", target());
-  if (!running) searchTargets = new Map();
-  renderShares();
+/* ---------- step 3: how many, map name and key ----------
+   The number fields are plain text fields (with the number keypad on phones), not number fields:
+   a number field reads "25.000", as written in Germany, as 25, and silently turns anything out of
+   range into nothing. Here the visitor can write 25000, 25,000, 25.000, 25 000 or 25'000; a number
+   out of range becomes the nearest one allowed, and the field then shows the number that will be used.
+   The arrow keys still step the number. */
+/* A whole number as typed, with any thousands separators; NaN if it is not one. */
+function typedNumber(text) {
+  const digits = String(text)
+    .trim()
+    .replace(/[\s.,'’_]/g, "");
+  return /^\d{1,9}$/.test(digits) ? Number(digits) : NaN;
+}
+const NUMBER_FIELDS = {
+  target: { lo: 1, hi: TARGET_MAX, d: TARGET_DEFAULT, step: 1 },
+  radius: { lo: RADIUS_MIN, hi: RADIUS_MAX, d: RADIUS_DEFAULT, step: 50 },
+  // how many random spots in a row may bring no new location before a country gives up
+  giveUpAfter: { lo: GIVE_UP_MIN, hi: GIVE_UP_MAX, d: GIVE_UP_DEFAULT, step: 50 },
 };
-$("radius").value = wholeNumber(store.get("radius", RADIUS_DEFAULT), RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT);
-$("radius").onchange = () => store.set("radius", radius());
-/* How many random spots in a row may bring no new location before a country gives up. */
-const giveUpAfter = () => wholeNumber($("giveUpAfter").value, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT);
-$("giveUpAfter").value = wholeNumber(
-  store.get("giveUpAfter", GIVE_UP_DEFAULT),
-  GIVE_UP_MIN,
-  GIVE_UP_MAX,
-  GIVE_UP_DEFAULT,
-);
-$("giveUpAfter").onchange = () => store.set("giveUpAfter", giveUpAfter());
+/* The number in a field, kept within its range; the saved one (or the default) if none is typed. */
+function fieldNumber(id) {
+  const f = NUMBER_FIELDS[id],
+    n = typedNumber($(id).value);
+  if (Number.isNaN(n)) return wholeNumber(store.get(id, f.d), f.lo, f.hi, f.d);
+  return Math.min(f.hi, Math.max(f.lo, n));
+}
+/* Shows a number in its field as the page writes numbers: "25,000". */
+const showNumber = (id, n) => ($(id).value = fmt(n));
+const target = () => fieldNumber("target");
+const radius = () => fieldNumber("radius");
+const giveUpAfter = () => fieldNumber("giveUpAfter");
+for (const [id, f] of Object.entries(NUMBER_FIELDS)) {
+  showNumber(id, wholeNumber(store.get(id, f.d), f.lo, f.hi, f.d));
+  // On leaving the field: keep the number and show it as it will be used
+  $(id).onchange = () => {
+    const n = fieldNumber(id);
+    store.set(id, n);
+    showNumber(id, n);
+    if (id === "target") {
+      if (!running) searchTargets = new Map();
+      renderShares();
+    }
+  };
+  // While typing: the table of locations per country follows the number
+  if (id === "target")
+    $(id).oninput = () => {
+      if (running || Number.isNaN(typedNumber($(id).value))) return;
+      searchTargets = new Map();
+      renderShares();
+    };
+  // The arrow keys step the number, as in a number field
+  $(id).onkeydown = e => {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    const n = fieldNumber(id) + (e.key === "ArrowUp" ? f.step : -f.step);
+    showNumber(id, Math.min(f.hi, Math.max(f.lo, n)));
+    $(id).onchange();
+  };
+}
 $("mapName").value = cleanText(store.get("mapName", ""), 100);
 $("mapName").oninput = () => store.set("mapName", $("mapName").value.slice(0, 100));
 /* The name suggested when the visitor types none: "Malta: No road name",
@@ -1411,8 +1450,8 @@ async function startSearch() {
   };
   showNote("");
   historyId = recordSearch();
-  $("target").value = target();
-  $("giveUpAfter").value = searchSettings.giveUpAfter;
+  showNumber("target", target());
+  showNumber("giveUpAfter", searchSettings.giveUpAfter);
   hideShortfall();
   searchTargets = new Map(Object.entries(targets).filter(([, n]) => n > 0));
   currentTarget = [...searchTargets.values()].reduce((a, b) => a + b, 0);
@@ -1956,7 +1995,8 @@ function applySettings(s) {
     store.set(id, s[id]);
   }
   for (const id of ["yearFrom", "yearTo", "target", "radius", "giveUpAfter", "mapName"]) {
-    $(id).value = String(s[id]);
+    if (NUMBER_FIELDS[id]) showNumber(id, s[id]);
+    else $(id).value = String(s[id]);
     store.set(id, s[id]);
   }
   updateYears();

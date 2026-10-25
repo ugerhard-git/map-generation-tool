@@ -284,7 +284,6 @@ label,
 }
 select,
 input[type="text"],
-input[type="number"],
 input[type="password"] {
   width: 100%;
   font: inherit;
@@ -346,10 +345,6 @@ a:focus-visible {
 .years label,
 .years span {
   white-space: nowrap;
-}
-.years input[type="number"] {
-  width: 90px;
-  padding: 6px 10px;
 }
 /* "From [year] to [year]", indented under its tick box */
 .years {
