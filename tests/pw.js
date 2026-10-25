@@ -1,8 +1,16 @@
-// Playwright with the first-visit welcome already dismissed, so the other suites test the page itself.
+// Playwright with the first-visit welcome already dismissed and the "More options" sections open, so the
+// other suites test the page itself.
 const pw = require("playwright");
+// The "More options" sections are opened too, so the suites can reach every setting; tests/more.js
+// checks the page as a first visitor sees it.
 const seen = () => {
   try {
     localStorage.setItem("mapgen.welcomed", "true");
+    if (localStorage.getItem("mapgen.openSections") === null)
+      localStorage.setItem(
+        "mapgen.openSections",
+        JSON.stringify(["moreDistribution", "morePhotos", "moreSearch", "moreMapFile"]),
+      );
   } catch {}
 };
 const launch = pw.chromium.launch.bind(pw.chromium);

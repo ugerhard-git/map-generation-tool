@@ -274,7 +274,9 @@ label,
 }
 /* The ticks under "Tags in the map file" sit closer together than elsewhere. */
 .label + .check,
-.label ~ .check {
+.label ~ .check,
+.labelrow + .check,
+.labelrow ~ .check {
   margin-top: 6px;
 }
 .hint {
@@ -332,7 +334,7 @@ a:focus-visible {
   accent-color: var(--blue);
   flex: none;
 }
-/* Options that belong to the tick box above them ("Follow the road to find the end") */
+/* Options that belong to the tick box above them ("Use an older photo instead") */
 .indent {
   margin-left: 28px;
 }
@@ -695,4 +697,115 @@ a:focus-visible {
   fieldset {
     transition: none;
   }
+}
+
+/* ---------- more options and help ----------
+   "More options": closed sections (<details class="more">) with a one-line summary of what is set,
+   a "changed" mark when it differs from the defaults, and "Reset to defaults" inside. */
+.more {
+  margin-top: 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--panel);
+}
+.more[open] {
+  padding-bottom: 12px;
+}
+.more summary {
+  cursor: pointer;
+  padding: 10px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  list-style: none;
+}
+.more summary::-webkit-details-marker {
+  display: none;
+}
+/* An arrow that turns when the section opens */
+.more summary::before {
+  content: "▸";
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.more[open] summary::before {
+  transform: rotate(90deg);
+}
+.more-title {
+  font-weight: 700;
+}
+.more-sum {
+  color: var(--muted);
+  font-size: 0.9rem;
+  flex: 1 1 12em;
+  min-width: 0;
+}
+.more-changed {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #8a5a00;
+  background: var(--amber-soft);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.more .field:first-of-type,
+.more summary + .checkrow {
+  margin-top: 4px;
+}
+.more .reset {
+  display: block;
+  margin-top: 14px;
+  font-size: 0.9rem;
+}
+.more:not(.changed) .reset {
+  display: none;
+}
+/* A label or tick box with its "?" button */
+.labelrow,
+.checkrow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.labelrow label,
+.labelrow .label,
+.labelrow h2 {
+  margin-bottom: 6px;
+}
+.checkrow {
+  align-items: center;
+  margin-top: 14px;
+}
+.indent.checkrow {
+  margin-top: 8px;
+}
+.checkrow .check {
+  flex: 0 1 auto;
+  margin-top: 0;
+}
+.help {
+  flex: none;
+  width: 1.4em;
+  height: 1.4em;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.help:hover {
+  border-color: var(--blue-dark);
+  color: var(--blue-dark);
+}
+#helpBody p {
+  margin: 0 0 12px;
 }

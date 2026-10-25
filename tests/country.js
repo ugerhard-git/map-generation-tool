@@ -66,7 +66,10 @@ const path = require("path");
     (await p.getAttribute("#mapName", "placeholder")) === "United Kingdom: Official coverage",
     "the suggested map name follows the country",
   );
-  ok(await p.isHidden("#distributionBox"), "one country: no choice of distribution");
+  ok(
+    (await p.isDisabled("#distribution")) && (await p.isVisible("#distributionNote")),
+    "one country: the distribution is greyed out, with a note why",
+  );
   ok(await p.isHidden("#sharesBox"), "one country: no table of locations per country");
 
   // Mouse: a click on a suggestion adds it; chosen countries are not suggested again
@@ -81,7 +84,10 @@ const path = require("path");
     (await p.inputValue("#country")) === "" && (await p.isHidden("#countryList")),
     "Escape empties the field",
   );
-  ok(await p.isVisible("#distributionBox"), "two countries: the distribution can be chosen");
+  ok(
+    (await p.isEnabled("#distribution")) && (await p.isHidden("#distributionNote")),
+    "two countries: the distribution can be chosen",
+  );
   ok(
     (await p.getAttribute("#mapName", "placeholder")) ===
       "United Kingdom, Malta (An Arbitrary World): Official coverage",

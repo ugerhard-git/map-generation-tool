@@ -45,7 +45,7 @@
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, yearTo, noBadCamera, useOlder, target,
  *   radius, giveUpAfter, mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear (which tags the export
- *   gets; the older single tagFeatures is moved over to both on load), welcomed (first-visit
+ *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
  *   An unfinished search (settings, locations, progress) is kept in IndexedDB, see "unfinished search".
@@ -593,9 +593,16 @@ function renderWhere() {
   const s = scope();
   $("countriesBox").hidden = s !== "countries";
   $("continentBox").hidden = s !== "continent";
-  $("distributionBox").hidden = s === "countries" && chosenCountries.length < 2;
+  // A single country gets every location, so the distribution does not apply: greyed out, not hidden
+  $("distribution").disabled = !distributionUsed();
+  $("distributionNote").hidden = distributionUsed();
   renderCountryChips();
 }
+/* True when the locations are shared between countries, so the distribution matters. */
+const distributionUsed = () => scope() !== "countries" || chosenCountries.length > 1;
+/* The distribution chosen when nothing is changed: a continent's own map for a continent, else
+   DEFAULT_MAP. */
+const defaultDistribution = () => (scope() === "continent" ? "continent" : DEFAULT_MAP);
 /* After any change in step 1: save it, and update what depends on it. The table of locations per
    country then shows the new plan instead of the last search. */
 function whereChanged() {
@@ -611,6 +618,7 @@ function whereChanged() {
   renderWhere();
   renderShares();
   updateMapName();
+  updateMore(); // the distribution's summary depends on the area
 }
 for (const r of document.querySelectorAll("input[name=scope]")) r.onchange = whereChanged;
 $("continent").onchange = whereChanged;
@@ -664,7 +672,7 @@ function areaLabel() {
 }
 /* The chosen distribution in words, or "" when it does not matter (a single country, a continent's own). */
 function distributionLabel() {
-  if ($("distributionBox").hidden || $("distribution").value === "continent") return "";
+  if (!distributionUsed() || $("distribution").value === "continent") return "";
   return VALI.maps[$("distribution").value]?.name || "";
 }
 {
@@ -868,6 +876,131 @@ function tagsFor(l) {
 $("keyBox").hidden = !!GOOGLE_API_KEY;
 $("apiKey").value = keyStore.get();
 $("apiKey").onchange = () => keyStore.set($("apiKey").value.trim());
+
+/* ---------- more options and help ----------
+   The first screen shows only what most visitors need (CONTRIBUTING.md: "A simple interface"); every
+   other setting is in a closed "More options" section for its topic (<details class="more">). A closed
+   section shows a one-line summary of what is set and marks it "changed" when it differs from the
+   defaults; "Reset to defaults" puts them back. Which sections are open is saved ("openSections").
+   Longer explanations are in help dialogs: a "?" button (data-help="x") opens the text in
+   <template id="help-x"> of page.html. */
+/** @type {Record<string, {summary: () => string, changed: () => boolean, reset: () => void}>} */
+const MORE = {
+  moreDistribution: {
+    summary: () =>
+      distributionUsed()
+        ? $("distribution").selectedOptions[0]?.textContent || ""
+        : "Only used with several countries",
+    changed: () => $("distribution").value !== defaultDistribution(),
+    reset: () => setControl("distribution", defaultDistribution()),
+  },
+  morePhotos: {
+    summary: () => {
+      const bits = [years() ? `${years().from} to ${years().to}` : "Any year"];
+      if ($("noBadCamera").checked)
+        bits.push($("useOlder").checked ? "no bad camera, older photos instead" : "no bad camera");
+      return bits.join(", ");
+    },
+    changed: () =>
+      $("yearsOn").checked ||
+      +$("yearFrom").value !== YEAR_FIRST ||
+      +$("yearTo").value !== YEAR_LAST ||
+      $("noBadCamera").checked ||
+      !$("useOlder").checked,
+    reset: () => {
+      setControl("yearFrom", String(YEAR_FIRST));
+      setControl("yearTo", String(YEAR_LAST));
+      setControl("yearsOn", false);
+      setControl("noBadCamera", false);
+      setControl("useOlder", true);
+    },
+  },
+  moreSearch: {
+    summary: () => `${fmt(radius())} m around each spot, give up after ${fmt(giveUpAfter())} spots`,
+    changed: () => radius() !== RADIUS_DEFAULT || giveUpAfter() !== GIVE_UP_DEFAULT,
+    reset: () => {
+      setControl("radius", fmt(RADIUS_DEFAULT));
+      setControl("giveUpAfter", fmt(GIVE_UP_DEFAULT));
+    },
+  },
+  moreMapFile: {
+    summary: () => {
+      const name = $("mapName").value.trim() ? `"${$("mapName").value.trim()}"` : "Suggested name";
+      const tags = [
+        ["tagCountry", "country"],
+        ["tagNoRoadName", "no road name"],
+        ["tagDeadEnd", "dead end"],
+        ["tagYear", "year"],
+      ]
+        .filter(([id]) => $(id).checked)
+        .map(([, word]) => word);
+      return `${name}, ${tags.length ? "tags: " + tags.join(", ") : "no tags"}`;
+    },
+    changed: () =>
+      $("mapName").value.trim() !== "" || Object.entries(TAG_OPTIONS).some(([id, d]) => $(id).checked !== d),
+    reset: () => {
+      setControl("mapName", "");
+      for (const [id, d] of Object.entries(TAG_OPTIONS)) setControl(id, d);
+    },
+  },
+};
+/* Sets a control as if the visitor had changed it, so its own handlers save it and update the page. */
+function setControl(id, value) {
+  const el = $(id);
+  if (el.type === "checkbox") el.checked = value;
+  else el.value = value;
+  el.dispatchEvent(new Event(el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input"));
+  if (el.type === "text") el.dispatchEvent(new Event("change"));
+}
+/* Updates the summary line and the "changed" mark of every section. */
+function updateMore() {
+  for (const [id, m] of Object.entries(MORE)) {
+    const sum = $("sum" + id.slice(4));
+    sum.textContent = m.summary();
+    const changed = m.changed();
+    $(id).classList.toggle("changed", changed);
+    let mark = $(id).querySelector(".more-changed");
+    if (!mark) {
+      mark = makeElement("span", { className: "more-changed" }, "changed");
+      sum.before(mark);
+    }
+    mark.hidden = !changed;
+  }
+}
+// Any change in the settings updates the summaries
+$("fields").addEventListener("input", updateMore);
+$("fields").addEventListener("change", updateMore);
+for (const btn of document.querySelectorAll("[data-reset]"))
+  btn.onclick = () => {
+    MORE[btn.dataset.reset].reset();
+    updateMore();
+  };
+// The sections the visitor opened stay open on the next visit
+{
+  const saved = store.get("openSections", []);
+  for (const id of Array.isArray(saved) ? saved : []) if (Object.hasOwn(MORE, id)) $(id).open = true;
+  for (const id of Object.keys(MORE))
+    $(id).addEventListener("toggle", () =>
+      store.set(
+        "openSections",
+        Object.keys(MORE).filter(k => $(k).open),
+      ),
+    );
+}
+updateMore();
+// Help: a "?" button opens its text in the help dialog
+for (const btn of document.querySelectorAll("button.help")) btn.onclick = () => openHelp(btn.dataset.help);
+/* Opens the help dialog with the text of <template id="help-…">: its first heading is the title. */
+function openHelp(topic) {
+  const t = document.getElementById("help-" + topic);
+  if (!(t instanceof HTMLTemplateElement)) return;
+  const body = t.content.cloneNode(true);
+  const title = body.querySelector("h2");
+  $("helpTitle").textContent = title ? title.textContent : "Help";
+  if (title) title.remove();
+  $("helpBody").replaceChildren(body);
+  openDialog("help");
+}
 
 /* ---------- locations per country ----------
    Before a search: how many locations each country of the area will get (splitTotal of areaWeights).
@@ -2002,6 +2135,7 @@ function applySettings(s) {
   updateYears();
   updateOlder();
   updateMapName();
+  updateMore();
   renderShares();
 }
 /* "Run again" (run = true) or "Use these settings" (run = false) on a history entry. */
@@ -2313,6 +2447,8 @@ function openWelcome() {
   store.set("welcomed", true);
 }
 $("welcomeX").onclick = closeDialog;
+$("helpX").onclick = closeDialog;
+$("helpOk").onclick = closeDialog;
 $("welcomeOk").onclick = closeDialog;
 $("howBtn").onclick = openWelcome;
 if (!store.get("welcomed", false) && !FRAMED) openWelcome();
