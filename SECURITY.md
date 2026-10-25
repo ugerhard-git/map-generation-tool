@@ -14,4 +14,5 @@ Please do not report security problems in public issues. Use GitHub's private re
 - API keys are never committed. The site's Google key is added at publish time from a GitHub secret. It is visible in the published page, as for any browser app, so it must be restricted in the Google Cloud console to the site's address and to the Maps JavaScript API, with a daily quota.
 - A visitor's own Google key is kept only for the browser tab, and never shown in error messages.
 - An unfinished search (its settings, the locations found and each country's progress) is kept in the visitor's browser only, in IndexedDB, never with the key, and is checked when read back.
+- A loaded settings file is treated as untrusted: it is size-limited and must have the expected format, every setting is checked (anything not well-formed gets its default) and shown as text only. Saved settings files never hold the Google key.
 - The history of searches is kept in the visitor's browser only. It holds the search settings, never the key or the results, and is checked when read back.
