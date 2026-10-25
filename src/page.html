@@ -248,12 +248,14 @@
           <section class="step" id="stepHowMany">
             <h2><span class="n">3</span>How many?</h2>
             <label for="target">Number of locations</label>
-            <input type="number" id="target" min="1" max="130000" step="1" value="100" />
+            <input type="text" inputmode="numeric" autocomplete="off" id="target" value="100" />
             <p class="hint">Up to 130,000.</p>
             <div class="field">
               <label for="radius">Look around each random spot up to</label>
               <div class="unit">
-                <input type="number" id="radius" min="50" max="10000" step="50" value="1000" /><span>m</span>
+                <input type="text" inputmode="numeric" autocomplete="off" id="radius" value="1,000" /><span
+                  >m</span
+                >
               </div>
               <p class="hint">
                 Further finds locations faster, but favours the edges of the coverage and quiet areas.
@@ -262,9 +264,13 @@
             <div class="field">
               <label for="giveUpAfter">Give up on a country after</label>
               <div class="unit">
-                <input type="number" id="giveUpAfter" min="50" max="100000" step="50" value="2000" /><span
-                  >spots</span
-                >
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  id="giveUpAfter"
+                  value="2,000"
+                /><span>spots</span>
               </div>
               <p class="hint">
                 Random spots in a row that bring no new location for that country. Where matching locations

@@ -105,8 +105,8 @@ const path = require("path");
       form.noRoadName &&
       !form.yearsOn &&
       form.target === "4" &&
-      form.radius === "1000" &&
-      form.giveUpAfter === "2000" &&
+      form.radius === "1,000" &&
+      form.giveUpAfter === "2,000" &&
       form.mapName === "" &&
       !form.running,
     "every setting is back, nothing started: " + JSON.stringify(form),

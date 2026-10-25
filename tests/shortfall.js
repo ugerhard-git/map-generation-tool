@@ -21,10 +21,13 @@ const path = require("path");
     }));
 
   // The setting: 2,000 by default, kept within 50 to 100,000, remembered
-  ok((await p.inputValue("#giveUpAfter")) === "2000", "gives up after 2,000 spots by default");
+  ok((await p.inputValue("#giveUpAfter")) === "2,000", "gives up after 2,000 spots by default");
   await p.fill("#giveUpAfter", "5");
   await p.press("#giveUpAfter", "Tab");
-  ok((await p.evaluate(() => giveUpAfter())) === 2000, "a number below 50 is not used");
+  ok(
+    (await p.evaluate(() => giveUpAfter())) === 50 && (await p.inputValue("#giveUpAfter")) === "50",
+    "a number below 50 becomes 50, and the field says so",
+  );
   await p.fill("#giveUpAfter", "60");
   await p.press("#giveUpAfter", "Tab");
 
