@@ -48,7 +48,7 @@ const { PAGE, isSite, serveSite } = require("./site.js");
   for (const id of sections) sums[id] = await summary(id);
   ok(
     sums.moreDistribution === "Only used with several countries" &&
-      sums.morePhotos === "Any year" &&
+      sums.morePhotos === "Any time" &&
       sums.moreSearch === "1,000 m around each spot, give up after 2,000 spots" &&
       sums.moreMapFile === "Suggested name, tags: country",
     "each section sums up its settings: " + JSON.stringify(sums),
@@ -61,14 +61,13 @@ const { PAGE, isSite, serveSite } = require("./site.js");
   await p.selectOption("#yearFrom", "2015");
   await p.check("#noBadCamera");
   ok(
-    (await summary("morePhotos")) ===
-      `2015 to ${new Date().getFullYear()}, no bad camera, older photos instead` &&
+    (await summary("morePhotos")) === "Jan 2015 to now, no bad camera, older photos instead" &&
       (await changed("morePhotos")),
     "a changed section says what is set and is marked: " + (await summary("morePhotos")),
   );
   await p.click("#morePhotos .reset");
   ok(
-    (await summary("morePhotos")) === "Any year" &&
+    (await summary("morePhotos")) === "Any time" &&
       !(await changed("morePhotos")) &&
       !(await p.isChecked("#yearsOn")) &&
       (await p.evaluate(() => localStorage.getItem("mapgen.noBadCamera"))) === "false",

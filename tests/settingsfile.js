@@ -185,7 +185,7 @@ const { openPage, chooseCountry } = require("./helpers.js");
       evil.s.distribution === "aaw" &&
       evil.s.target === 100 &&
       evil.s.radius === 1000 &&
-      evil.s.yearFrom === 2009 &&
+      evil.s.yearFrom === 2007 &&
       evil.s.mapName.length <= 100 &&
       evil.s.tagYear === false &&
       !evil.x &&
@@ -202,6 +202,39 @@ const { openPage, chooseCountry } = require("./helpers.js");
     (await p.evaluate(() => cleanSettings({ tagYear: true, tagCountry: false }))).tagYear === true &&
       (await p.evaluate(() => cleanSettings({}))).tagCountry === true,
     "older history entries get the default tags",
+  );
+
+  // Settings from before months could be chosen (history, files, what the browser saved): only years,
+  // which read as January to December; "now" and nonsense in the "to" year
+  const old = await p.evaluate(() => {
+    const a = cleanSettings({ yearsOn: true, yearFrom: 2015, yearTo: 2020 });
+    return {
+      a: [a.yearFrom, a.monthFrom, a.yearTo, a.monthTo].join(),
+      label: periodLabel(periodOf(a)),
+      now: cleanSettings({ yearTo: "now" }).yearTo,
+      junk: cleanSettings({ yearTo: "later" }).yearTo,
+      future: cleanSettings({ yearTo: 3000 }).yearTo,
+    };
+  });
+  ok(
+    old.a === "2015,1,2020,12" &&
+      old.label === "Jan 2015 to Dec 2020" &&
+      old.now === "now" &&
+      old.junk === "now" &&
+      old.future === "now",
+    "older settings with only years read as January to December: " + JSON.stringify(old),
+  );
+  await p.evaluate(() => {
+    for (const k of ["monthFrom", "monthTo"]) localStorage.removeItem("mapgen." + k);
+    localStorage.setItem("mapgen.yearsOn", "true");
+    localStorage.setItem("mapgen.yearFrom", "2012");
+    localStorage.setItem("mapgen.yearTo", "2016");
+  });
+  await p.reload();
+  await p.waitForFunction(() => map !== null);
+  ok(
+    (await p.evaluate(() => periodLabel(years()))) === "Jan 2012 to Dec 2016",
+    "years saved in the browser before months read as Jan 2012 to Dec 2016",
   );
 
   ok(errors.length === 0, "no page errors " + errors.join(" | "));

@@ -221,16 +221,20 @@ const path = require("path");
   await p.fill("#mapName", "My Malta");
   ok((await exported(p)).name === "My Malta", "a typed map name is used");
 
-  // 5b. Photo years: only panoramas whose photos are from the chosen years; the years can be given in
-  // either order; unknown dates do not count
-  ok(await p.isDisabled("#yearFrom"), "the years can only be chosen once ticked");
+  // 5b. Photo period: only panoramas whose photos are from the chosen months; the ends can be given in
+  // either order; a date with only a year counts if the year overlaps; unknown dates do not count
+  ok(await p.isDisabled("#yearFrom"), "the period can only be chosen once ticked");
   await p.fill("#mapName", "");
   await p.check("#yearsOn");
+  ok(await p.isDisabled("#monthTo"), 'the "to" month is greyed out while the period ends now');
+  // Dec 2014 to Jan 2010, the wrong way round: Jan 2010 to Dec 2014
+  await p.selectOption("#monthFrom", "12");
   await p.selectOption("#yearFrom", "2014");
   await p.selectOption("#yearTo", "2010");
+  await p.selectOption("#monthTo", "1");
   await p.evaluate(() => {
     let n = 0;
-    const dates = ["2008-05", "2012-07", "2019-01", "", "2010", "2014-12", "2015-01"];
+    const dates = ["2008-05", "2012-07", "2019-01", "", "2010", "2014-12", "2015-01", "2009-12"];
     window.__sv = req => {
       n++;
       return {
@@ -249,20 +253,46 @@ const path = require("path");
   const yearsFound = r.customCoordinates.map(c => c.extra.tags[c.extra.tags.length - 1]);
   ok(
     r.customCoordinates.length === 6 && yearsFound.every(y => ["2010", "2012", "2014"].includes(y)),
-    "only photos from 2010 to 2014, tagged with their year: " + yearsFound.join(" "),
+    "only photos from Jan 2010 to Dec 2014, tagged with their year: " + yearsFound.join(" "),
   );
-  ok(r.name === "Malta: 2010–2014", "the map name names the years: " + r.name);
+  ok(r.name === "Malta: Jan 2010 – Dec 2014", "the map name names the period: " + r.name);
+  // One month: only photos from July 2012, tagged as month and year
+  await p.selectOption("#monthFrom", "7");
   await p.selectOption("#yearFrom", "2012");
   await p.selectOption("#yearTo", "2012");
-  ok((await p.getAttribute("#mapName", "placeholder")) === "Malta: 2012", "one year: the map name names it");
+  await p.selectOption("#monthTo", "7");
+  ok(
+    (await p.getAttribute("#mapName", "placeholder")) === "Malta: Jul 2012",
+    "one month: the map name names it",
+  );
+  await p.selectOption("#tagDate", "month");
+  await search(p, { target: 3 });
+  await searchEnded(p);
+  r = await exported(p);
+  ok(
+    r.customCoordinates.length === 3 && r.customCoordinates.every(c => c.extra.tags.includes("07-2012")),
+    "only photos from July 2012, tagged 07-2012: " +
+      r.customCoordinates.map(c => c.extra.tags.join()).join(" | "),
+  );
+  await p.selectOption("#yearTo", "now");
+  ok(
+    (await p.getAttribute("#mapName", "placeholder")) === "Malta: Jul 2012 – now" &&
+      (await p.isDisabled("#monthTo")),
+    'to "now": the map name says so',
+  );
   const lastYear = await p.$$eval("#yearTo option", o => o[o.length - 1].value);
   const firstYear = await p.$eval("#yearFrom option", o => o.value);
+  ok(firstYear === "2007" && lastYear === "now", `years offered: ${firstYear} to ${lastYear}`);
   ok(
-    firstYear === "2009" && lastYear === String(new Date().getFullYear()),
-    `years offered: ${firstYear} to ${lastYear}`,
+    await p.evaluate(
+      () => periodOf({ yearFrom: 2007, monthFrom: 1, yearTo: 2008, monthTo: 3 }).from === "2007-05",
+    ),
+    "the period starts no earlier than May 2007, when Street View began",
   );
+  await p.selectOption("#tagDate", "year");
   await p.uncheck("#yearsOn");
   await p.uncheck("#tagYear");
+  ok(await p.isDisabled("#tagDate"), "the date format can only be chosen with the date tag ticked");
 
   // 6. Unofficial photos, panoramas across the border, repeats and spots too close are not kept
   await p.evaluate(() => {
