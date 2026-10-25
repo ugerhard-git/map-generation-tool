@@ -43,8 +43,8 @@
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
- *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, yearTo, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear (which tags the export
+ *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, noBadCamera, useOlder, target,
+ *   radius, giveUpAfter, mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -708,21 +708,59 @@ function distributionLabel() {
 }
 
 /* ---------- step 2: what to look for ---------- */
-// Years offered for the photos: from 2009 (as agreed with the owner) to this year.
-const YEAR_FIRST = 2009,
+// The period of the photos: a month and year from, a month and year to, or "now" for the current month
+// (the default, so it follows the calendar). Google gives each photo's date as "YYYY-MM". Street View
+// started in May 2007 (agreed with the owner, October 2026): the period starts no earlier, so the
+// default "Jan 2007" means May 2007. The "from" month is January by default, so choosing a year starts
+// the period at the beginning of that year. Saved settings from before months could be chosen have
+// only years: they read as January (from) and December (to).
+const YEAR_FIRST = 2007,
+  MONTH_FIRST = 5, // May 2007
   YEAR_LAST = Math.max(YEAR_FIRST, new Date().getFullYear());
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+for (const id of ["monthFrom", "monthTo"])
+  MONTHS.forEach((name, i) =>
+    $(id).append(makeElement("option", { value: String(i + 1), textContent: name })),
+  );
 for (const id of ["yearFrom", "yearTo"])
-  for (let y = YEAR_FIRST; y <= YEAR_LAST; y++) {
-    const o = document.createElement("option");
-    o.value = o.textContent = String(y);
-    $(id).append(o);
-  }
-/* The chosen years, earliest first, or null when the years are not ticked. */
+  for (let y = YEAR_FIRST; y <= YEAR_LAST; y++)
+    $(id).append(makeElement("option", { value: String(y), textContent: String(y) }));
+$("yearTo").append(makeElement("option", { value: "now", textContent: "Now" }));
+/* "YYYY-MM" of a year and month. */
+const yearMonth = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
+/* This month as "YYYY-MM". */
+const thisMonth = () => yearMonth(new Date().getFullYear(), new Date().getMonth() + 1);
+/* A saved or loaded "to" year: a year, or "now". */
+const cleanYearTo = v => (v === "now" ? "now" : wholeNumber(v, YEAR_FIRST, YEAR_LAST, "now"));
+/* The chosen period as { from, to } in "YYYY-MM", earliest first, with toNow when it ends now; null
+   when the period is not ticked. */
 function years() {
   if (!$("yearsOn").checked) return null;
-  const a = wholeNumber($("yearFrom").value, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
-    b = wholeNumber($("yearTo").value, YEAR_FIRST, YEAR_LAST, YEAR_LAST);
-  return { from: Math.min(a, b), to: Math.max(a, b) };
+  return periodOf({
+    yearFrom: $("yearFrom").value,
+    monthFrom: $("monthFrom").value,
+    yearTo: $("yearTo").value,
+    monthTo: $("monthTo").value,
+  });
+}
+/* The period of settings ({ yearFrom, monthFrom, yearTo, monthTo }), as years() returns it. */
+function periodOf(s) {
+  let from = yearMonth(
+    wholeNumber(s.yearFrom, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
+    wholeNumber(s.monthFrom, 1, 12, 1),
+  );
+  if (from < yearMonth(YEAR_FIRST, MONTH_FIRST)) from = yearMonth(YEAR_FIRST, MONTH_FIRST);
+  const toNow = cleanYearTo(s.yearTo) === "now";
+  let to = toNow ? thisMonth() : yearMonth(cleanYearTo(s.yearTo), wholeNumber(s.monthTo, 1, 12, 12));
+  if (from > to) [from, to] = [to, from];
+  return { from, to, toNow: toNow && to === thisMonth() };
+}
+/* "May 2015" from "2015-05". */
+const monthLabel = ym => `${MONTHS[+ym.slice(5, 7) - 1]} ${ym.slice(0, 4)}`;
+/* A period in words: "May 2015 to now", "Jan 2010 to Dec 2014", "May 2015". */
+function periodLabel(p, joiner = " to ") {
+  if (!p.toNow && p.from === p.to) return monthLabel(p.from);
+  return monthLabel(p.from) + joiner + (p.toNow ? "now" : monthLabel(p.to));
 }
 /* What each location must have: { noRoadName, deadEnd, years: {from, to} | null }. */
 const wanted = () => ({
@@ -740,16 +778,24 @@ for (const id of ["noRoadName", "deadEnd", "yearsOn", "noBadCamera"]) {
     updateMapName();
   };
 }
-$("yearFrom").value = wholeNumber(store.get("yearFrom", YEAR_FIRST), YEAR_FIRST, YEAR_LAST, YEAR_FIRST);
-$("yearTo").value = wholeNumber(store.get("yearTo", YEAR_LAST), YEAR_FIRST, YEAR_LAST, YEAR_LAST);
-for (const id of ["yearFrom", "yearTo"])
+$("yearFrom").value = String(
+  wholeNumber(store.get("yearFrom", YEAR_FIRST), YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
+);
+$("monthFrom").value = String(wholeNumber(store.get("monthFrom", 1), 1, 12, 1));
+$("yearTo").value = String(cleanYearTo(store.get("yearTo", "now")));
+$("monthTo").value = String(wholeNumber(store.get("monthTo", 12), 1, 12, 12));
+for (const id of ["yearFrom", "monthFrom", "yearTo", "monthTo"])
   $(id).onchange = () => {
-    store.set(id, +$(id).value);
+    store.set(id, id === "yearTo" ? cleanYearTo($(id).value) : +$(id).value);
+    updateYears();
     updateMapName();
   };
-/* The year choices can only be changed while "Photos taken in certain years" is ticked. */
+/* The period can only be changed while "Photos taken in a certain period" is ticked; the "to" month
+   not when the period ends now. */
 function updateYears() {
-  $("yearFrom").disabled = $("yearTo").disabled = !$("yearsOn").checked;
+  const off = !$("yearsOn").checked;
+  for (const id of ["yearFrom", "monthFrom", "yearTo"]) $(id).disabled = off;
+  $("monthTo").disabled = off || $("yearTo").value === "now";
 }
 updateYears();
 // Removed options: following the road to the end of coverage (walkOn, walkSteps) made finding ends
@@ -764,18 +810,19 @@ function updateOlder() {
   $("useOlder").disabled = !$("noBadCamera").checked;
 }
 updateOlder();
-/* True if a photo date ("2023-04" or "2023") lies within the chosen years. Unknown dates do not. */
-function inYears(date, y) {
-  const year = parseInt(date, 10);
-  return Number.isFinite(year) && year >= y.from && year <= y.to;
+/* True if a photo date ("2023-04", or only "2023") lies within the period ({ from, to } in "YYYY-MM").
+   A date without a month counts if its year overlaps the period. Unknown dates do not. */
+function inYears(date, p) {
+  if (/^\d{4}-\d{2}$/.test(date)) return date >= p.from && date <= p.to;
+  if (/^\d{4}$/.test(date)) return date >= p.from.slice(0, 4) && date <= p.to.slice(0, 4);
+  return false;
 }
-/* Short description of what is searched for, for the map name: "No road name, end of coverage, 2010–2014". */
+/* Short description of what is searched for, for the map name: "No road name, end of coverage, May 2015 – now". */
 function wantedLabel(w) {
   const parts = [];
   if (w.noRoadName) parts.push("no road name");
   if (w.deadEnd) parts.push("end of coverage");
-  if (w.years)
-    parts.push(w.years.from === w.years.to ? String(w.years.from) : `${w.years.from}–${w.years.to}`);
+  if (w.years) parts.push(periodLabel(w.years, " – "));
   if (w.noBadCamera) parts.push("no bad camera");
   const text = parts.join(", ") || "official coverage";
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -858,6 +905,14 @@ updateMapName();
 const mapName = () => $("mapName").value.trim().slice(0, 100) || suggestedName();
 /* Which tags the export gets. The country is ticked unless the visitor unticked it; the others are not. */
 const TAG_OPTIONS = { tagCountry: true, tagNoRoadName: false, tagDeadEnd: false, tagYear: false };
+// The date in the tag: the year ("2023") or month and year ("04-2023", as agreed with the owner).
+const TAG_DATES = ["year", "month"];
+$("tagDate").value = TAG_DATES.includes(store.get("tagDate", "year")) ? store.get("tagDate", "year") : "year";
+$("tagDate").onchange = () => store.set("tagDate", $("tagDate").value);
+/* The date format can only be chosen while the date tag is ticked. */
+function updateTagDate() {
+  $("tagDate").disabled = !$("tagYear").checked;
+}
 // "No road name" and "Dead end" used to be one option, tagFeatures: its saved choice becomes both.
 const oldFeatures = store.get("tagFeatures", null);
 if (typeof oldFeatures === "boolean")
@@ -869,15 +924,23 @@ for (const [id, d] of Object.entries(TAG_OPTIONS)) {
   $(id).checked = typeof saved === "boolean" ? saved : d;
   $(id).onchange = () => store.set(id, $(id).checked);
 }
-/* The tags of a location for the export, from the ticked options: "Malta", "No road name", "2023". */
+/* The tags of a location for the export, from the ticked options: "Malta", "No road name", "2023" or
+   "04-2023". */
 function tagsFor(l) {
   const tags = [];
   if ($("tagCountry").checked) tags.push(countryName(l.cc));
   if ($("tagNoRoadName").checked && l.noRoadName) tags.push("No road name");
   if ($("tagDeadEnd").checked && l.deadEnd) tags.push("Dead end");
-  if ($("tagYear").checked && l.date) tags.push(l.date.slice(0, 4));
+  if ($("tagYear").checked && l.date)
+    tags.push(
+      $("tagDate").value === "month" && l.date.length === 7
+        ? `${l.date.slice(5, 7)}-${l.date.slice(0, 4)}`
+        : l.date.slice(0, 4),
+    );
   return tags;
 }
+$("tagYear").addEventListener("change", updateTagDate);
+updateTagDate();
 // The key field is only shown when the site has no key of its own.
 $("keyBox").hidden = !!GOOGLE_API_KEY;
 $("apiKey").value = keyStore.get();
@@ -902,7 +965,7 @@ const MORE = {
   },
   morePhotos: {
     summary: () => {
-      const bits = [years() ? `${years().from} to ${years().to}` : "Any year"];
+      const bits = [years() ? periodLabel(years()) : "Any time"];
       if ($("noBadCamera").checked)
         bits.push($("useOlder").checked ? "no bad camera, older photos instead" : "no bad camera");
       return bits.join(", ");
@@ -910,12 +973,16 @@ const MORE = {
     changed: () =>
       $("yearsOn").checked ||
       +$("yearFrom").value !== YEAR_FIRST ||
-      +$("yearTo").value !== YEAR_LAST ||
+      +$("monthFrom").value !== 1 ||
+      $("yearTo").value !== "now" ||
+      +$("monthTo").value !== 12 ||
       $("noBadCamera").checked ||
       !$("useOlder").checked,
     reset: () => {
       setControl("yearFrom", String(YEAR_FIRST));
-      setControl("yearTo", String(YEAR_LAST));
+      setControl("monthFrom", "1");
+      setControl("yearTo", "now");
+      setControl("monthTo", "12");
       setControl("yearsOn", false);
       setControl("noBadCamera", false);
       setControl("useOlder", true);
@@ -936,17 +1003,20 @@ const MORE = {
         ["tagCountry", "country"],
         ["tagNoRoadName", "no road name"],
         ["tagDeadEnd", "dead end"],
-        ["tagYear", "year"],
+        ["tagYear", $("tagDate").value === "month" ? "month and year" : "year"],
       ]
         .filter(([id]) => $(id).checked)
         .map(([, word]) => word);
       return `${name}, ${tags.length ? "tags: " + tags.join(", ") : "no tags"}`;
     },
     changed: () =>
-      $("mapName").value.trim() !== "" || Object.entries(TAG_OPTIONS).some(([id, d]) => $(id).checked !== d),
+      $("mapName").value.trim() !== "" ||
+      Object.entries(TAG_OPTIONS).some(([id, d]) => $(id).checked !== d) ||
+      $("tagDate").value !== "year",
     reset: () => {
       setControl("mapName", "");
       for (const [id, d] of Object.entries(TAG_OPTIONS)) setControl(id, d);
+      setControl("tagDate", "year");
     },
   },
 };
@@ -1935,7 +2005,9 @@ const HISTORY_MAX = 20;
  * @property {boolean} noBadCamera  leave out bad camera coverage
  * @property {boolean} useOlder     use an older photo at the spot instead of bad camera, if there is one
  * @property {number} yearFrom
- * @property {number} yearTo
+ * @property {number} monthFrom      1–12 (settings from before months were kept have none: January)
+ * @property {number|"now"} yearTo  a year, or "now" for the current month
+ * @property {number} monthTo        1–12 (none before months were kept: December)
  * @property {number} target
  * @property {number} radius
  * @property {number} giveUpAfter
@@ -1944,6 +2016,7 @@ const HISTORY_MAX = 20;
  * @property {boolean} tagNoRoadName
  * @property {boolean} tagDeadEnd
  * @property {boolean} tagYear
+ * @property {"year"|"month"} tagDate  the date in the tag: "2023" or "04-2023"
  */
 /**
  * @typedef {object} HistoryEntry
@@ -1968,12 +2041,15 @@ function currentSettings() {
     noBadCamera: $("noBadCamera").checked,
     useOlder: $("useOlder").checked,
     yearFrom: wholeNumber($("yearFrom").value, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
-    yearTo: wholeNumber($("yearTo").value, YEAR_FIRST, YEAR_LAST, YEAR_LAST),
+    monthFrom: wholeNumber($("monthFrom").value, 1, 12, 1),
+    yearTo: cleanYearTo($("yearTo").value),
+    monthTo: wholeNumber($("monthTo").value, 1, 12, 12),
     target: target(),
     radius: radius(),
     giveUpAfter: giveUpAfter(),
     mapName: $("mapName").value.trim().slice(0, 100),
     ...Object.fromEntries(Object.keys(TAG_OPTIONS).map(id => [id, $(id).checked])),
+    tagDate: TAG_DATES.includes($("tagDate").value) ? $("tagDate").value : "year",
   };
 }
 /* Settings read back from the history, an unfinished search or a settings file, checked like
@@ -1997,7 +2073,10 @@ function cleanSettings(raw) {
     noBadCamera: r.noBadCamera === true,
     useOlder: r.useOlder !== false,
     yearFrom: wholeNumber(r.yearFrom, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
-    yearTo: wholeNumber(r.yearTo, YEAR_FIRST, YEAR_LAST, YEAR_LAST),
+    // (settings from before months were kept have only years: January to December)
+    monthFrom: wholeNumber(r.monthFrom, 1, 12, 1),
+    yearTo: cleanYearTo(r.yearTo),
+    monthTo: wholeNumber(r.monthTo, 1, 12, 12),
     target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
     radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
     giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
@@ -2006,6 +2085,7 @@ function cleanSettings(raw) {
     ...Object.fromEntries(
       Object.entries(TAG_OPTIONS).map(([id, d]) => [id, typeof r[id] === "boolean" ? r[id] : d]),
     ),
+    tagDate: TAG_DATES.includes(r.tagDate) ? r.tagDate : "year",
   };
 }
 /* The saved history. Saved values can be edited by anyone, so entries that are not well-formed are
@@ -2077,7 +2157,7 @@ function historyDetails(s) {
     wantedLabel({
       noRoadName: s.noRoadName,
       deadEnd: s.deadEnd,
-      years: s.yearsOn ? { from: Math.min(s.yearFrom, s.yearTo), to: Math.max(s.yearFrom, s.yearTo) } : null,
+      years: s.yearsOn ? periodOf(s) : null,
       noBadCamera: s.noBadCamera,
     }),
   );
@@ -2148,13 +2228,24 @@ function applySettings(s) {
     $(id).checked = s[id];
     store.set(id, s[id]);
   }
-  for (const id of ["yearFrom", "yearTo", "target", "radius", "giveUpAfter", "mapName"]) {
+  for (const id of [
+    "yearFrom",
+    "monthFrom",
+    "yearTo",
+    "monthTo",
+    "tagDate",
+    "target",
+    "radius",
+    "giveUpAfter",
+    "mapName",
+  ]) {
     if (NUMBER_FIELDS[id]) showNumber(id, s[id]);
     else $(id).value = String(s[id]);
     store.set(id, s[id]);
   }
   updateYears();
   updateOlder();
+  updateTagDate();
   updateMapName();
   updateMore();
   renderShares();

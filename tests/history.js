@@ -81,7 +81,7 @@ const path = require("path");
   ok(h.length === 2 && h[0].title === "Oceania test", "a different search is added on top");
   rows = await openHistory();
   ok(
-    /Oceania · A Balanced World · 2012–2016 · 7 locations · 2,500 m/.test(rows[0]),
+    /Oceania · A Balanced World · Jan 2012 – Dec 2016 · 7 locations · 2,500 m/.test(rows[0]),
     "a continent with a map and years is described: " + rows[0],
   );
 
@@ -238,7 +238,7 @@ const path = require("path");
       cleaned.settings.target === 100 &&
       cleaned.settings.radius === 1000 &&
       cleaned.settings.giveUpAfter === 2000 &&
-      cleaned.settings.yearFrom === 2009 &&
+      cleaned.settings.yearFrom === 2007 &&
       cleaned.settings.noRoadName === false &&
       cleaned.settings.mapName === "",
     "its settings are cleaned: " + JSON.stringify(cleaned.settings),

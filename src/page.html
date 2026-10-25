@@ -71,7 +71,7 @@
           </li>
           <li>
             <b>Choose what to look for:</b> spots where Street View shows no road name, spots where the
-            coverage ends (only one arrow), photos from certain years, or a mix.
+            coverage ends (only one arrow), photos from a certain period, or a mix.
           </li>
           <li><b>Choose how many,</b> then select "Find locations".</li>
           <li>
@@ -202,11 +202,13 @@
       </p>
     </template>
     <template id="help-years">
-      <h2>Photos taken in certain years</h2>
+      <h2>Photos taken in a certain period</h2>
       <p>
-        Checks the photos Google shows by default at a spot, normally the newest. Older years are rarer and
-        take longer to find.
+        Checks the photos Google shows by default at a spot, normally the newest. Google gives each photo's
+        month and year, so the period can start and end in any month, from May 2007, when Street View began.
+        "Now" always means the current month.
       </p>
+      <p>Older photos are rarer and take longer to find.</p>
     </template>
     <template id="help-noBadCamera">
       <h2>No bad camera</h2>
@@ -368,15 +370,24 @@
               </summary>
               <div class="checkrow">
                 <label class="check"
-                  ><input type="checkbox" id="yearsOn" /><span>Photos taken in certain years</span></label
+                  ><input type="checkbox" id="yearsOn" /><span>Photos taken in a certain period</span></label
                 >
-                <button type="button" class="help" data-help="years" aria-label="Help: photo years">?</button>
+                <button type="button" class="help" data-help="years" aria-label="Help: photo period">
+                  ?
+                </button>
               </div>
-              <div class="years" id="yearsBox">
-                <label for="yearFrom">From</label>
-                <select id="yearFrom"></select>
-                <label for="yearTo">to</label>
-                <select id="yearTo"></select>
+              <!-- Month and year from, month and year to ("Now" follows the calendar) -->
+              <div class="period" id="yearsBox">
+                <div class="period-row" role="group" aria-label="From">
+                  <span class="period-word">From</span>
+                  <select id="monthFrom" aria-label="From month"></select>
+                  <select id="yearFrom" aria-label="From year"></select>
+                </div>
+                <div class="period-row" role="group" aria-label="To">
+                  <span class="period-word">to</span>
+                  <select id="monthTo" aria-label="To month"></select>
+                  <select id="yearTo" aria-label="To year"></select>
+                </div>
               </div>
               <div class="checkrow">
                 <label class="check"
@@ -479,8 +490,16 @@
                   ><input type="checkbox" id="tagDeadEnd" /><span>"Dead end", where it applies</span></label
                 >
                 <label class="check"
-                  ><input type="checkbox" id="tagYear" /><span>The year the photos were taken</span></label
+                  ><input type="checkbox" id="tagYear" /><span
+                    >The date the photos were taken, as</span
+                  ></label
                 >
+                <div class="indent tagdate">
+                  <select id="tagDate" aria-label="Date in the tag">
+                    <option value="year">year (2023)</option>
+                    <option value="month">month and year (04-2023)</option>
+                  </select>
+                </div>
               </div>
               <button type="button" class="linkbtn reset" data-reset="moreMapFile">Reset to defaults</button>
             </details>

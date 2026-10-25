@@ -341,27 +341,28 @@ a:focus-visible {
 .indent .check {
   margin-top: 8px;
 }
-.indent .years {
-  flex-wrap: wrap;
-}
-.years label,
-.years span {
-  white-space: nowrap;
-}
-/* "From [year] to [year]", indented under its tick box */
-.years {
+/* "From [month] [year] to [month] [year]", indented under its tick box */
+.period {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   margin: 8px 0 0 28px;
 }
-.years label {
-  margin: 0;
-  font-weight: 400;
+.period-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.years select {
+.period-word {
+  min-width: 2.6em;
+}
+.period select,
+.tagdate select {
   width: auto;
   padding: 6px 10px;
+}
+.tagdate {
+  margin-top: 6px;
 }
 
 /* ---------- step 1: where ---------- */

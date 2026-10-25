@@ -123,9 +123,9 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
       t.chosen === "" &&
       t.tagCountry &&
       !t.tagYear &&
-      t.yearFrom === "2009" &&
+      t.yearFrom === "2007" &&
       t.giveUpAfter === 2000 &&
-      t.yearTo === String(new Date().getFullYear()) &&
+      t.yearTo === "now" &&
       !t.wanted.noRoadName &&
       !t.wanted.deadEnd,
     "tampered settings fall back to defaults: " + JSON.stringify(t),
