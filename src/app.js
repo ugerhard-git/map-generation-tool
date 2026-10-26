@@ -45,7 +45,7 @@
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution (a Vali map, "continent", "own" or "preset:<id>"), own (the distribution of one's own being
  *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
+ *   radius, giveUpAfter, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -71,6 +71,7 @@
  * @property {number} lng
  * @property {number} heading    compass direction the camera faces, 0–360
  * @property {number} [pitch]    how far the camera looks up (+) or down (−), −90 to 90; 0 is level
+ * @property {number} [zoom]     how far the camera is zoomed in, 0 (widest) to 4, one decimal
  * @property {string} panoId     Google's panorama id
  * @property {string} date       photo date "YYYY-MM" or "YYYY", or ""
  * @property {string} cc         two-letter country code
@@ -127,7 +128,7 @@ const COVERAGE = (
   "TN TR TW UA UG US UY VI VN XK ZA"
 ).split(" ");
 const TARGET_MAX = 130000; // most locations one search may ask for
-const TARGET_DEFAULT = 100;
+const TARGET_DEFAULT = 300;
 const RADIUS_MIN = 50,
   RADIUS_MAX = 10000,
   RADIUS_DEFAULT = 1000; // metres around a random spot to look for a panorama
@@ -1110,12 +1111,13 @@ $("apiKey").value = keyStore.get();
 $("apiKey").onchange = () => keyStore.set($("apiKey").value.trim());
 
 /* ---------- camera view ----------
-   Where the camera faces at each location and how far it tilts (plan step 16): along the road (the
-   default), at an angle to the car, or random; a tilt for every location, or a random tilt within a
-   range. The car is the direction the Street View car faced when the photo was taken (Google's
+   Where the camera faces at each location, how far it tilts (plan step 16) and how far it is zoomed in
+   (plan step 20): along the road (the default), at an angle to the car, or random; a tilt and a zoom for
+   every location, or each random within a range. The car is the direction the Street View car faced when the photo was taken (Google's
    centerHeading, checked on real panoramas with the owner: it matches one of the arrows within a few
    degrees). The drawings show and set the angles with the mouse or by touch; the number fields beside
-   them do the same by keyboard. locationView() turns the settings into each location's heading and pitch. */
+   them do the same by keyboard. locationView() turns the settings into each location's heading, pitch
+   and zoom. */
 const VIEW_DIRECTIONS = ["road", "car", "random"],
   TILT_MODES = ["fixed", "random"];
 /* The angle fields: the angle to the car goes round (0–359), the tilts go from straight down to up. */
@@ -1141,6 +1143,27 @@ function angleField(id) {
   if (f.wrap) return ((n % 360) + 360) % 360;
   return Math.min(f.hi, Math.max(f.lo, n));
 }
+/* The zoom, as in map-making.app's and GeoGuessr's map files and Google's Street View player: 0 is the
+   widest view (lower numbers look the same), 1 about Street View's normal view, and each 1 more about
+   twice as close; decimals zoom in between. Checked with the owner in map-making.app and GeoGuessr
+   (October 2026), where 4 was only a little closer than 3, so 4 is the closest offered. */
+const ZOOM_MODES = ["fixed", "random"],
+  ZOOM_MAX = 4;
+/* The zoom fields and their defaults: the zoom for every location, and the range of a random zoom. */
+const ZOOM_FIELDS = { zoom: 0, zoomMin: 0, zoomMax: 2 };
+/* A zoom as kept: a number from 0 to 4 with one decimal; d if it is not one. */
+const cleanZoom = (v, d) => (typeof v === "number" && v >= 0 && v <= ZOOM_MAX ? Math.round(v * 10) / 10 : d);
+/* A zoom as typed: "2", "1.5", "1,5"; NaN if it is not one. */
+function typedZoom(text) {
+  const t = String(text).trim().replace(",", ".");
+  return /^\d{1,3}(\.\d{1,3})?$/.test(t) ? Math.round(Number(t) * 10) / 10 : NaN;
+}
+/* The zoom in a field, kept within 0 to 4; the saved one (or the default) if none is typed. */
+function zoomField(id) {
+  const n = typedZoom($(id).value);
+  if (Number.isNaN(n)) return cleanZoom(store.get(id, ZOOM_FIELDS[id]), ZOOM_FIELDS[id]);
+  return Math.min(ZOOM_MAX, n);
+}
 /* The value of a radio group, if it is one of those allowed. */
 const radioValue = (name, allowed, d) => {
   const v = document.querySelector(`input[name=${name}]:checked`)?.value;
@@ -1152,7 +1175,7 @@ const setRadio = (name, value) => {
   if (r) r.checked = true;
 };
 /* The camera view settings in the form: { direction, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin,
-   tiltMax }. */
+   tiltMax, zoomMode, zoom, zoomMin, zoomMax }. */
 function viewSettings() {
   return {
     direction: radioValue("viewDirection", VIEW_DIRECTIONS, "road"),
@@ -1163,6 +1186,10 @@ function viewSettings() {
     tilt: angleField("tilt"),
     tiltMin: angleField("tiltMin"),
     tiltMax: angleField("tiltMax"),
+    zoomMode: radioValue("zoomMode", ZOOM_MODES, "fixed"),
+    zoom: zoomField("zoom"),
+    zoomMin: zoomField("zoomMin"),
+    zoomMax: zoomField("zoomMax"),
   };
 }
 /* An angle to the car in words: "right", "front left", or "" between the eight directions. */
@@ -1191,9 +1218,15 @@ function viewSummary(v) {
     hi = Math.max(v.tiltMin, v.tiltMax);
   const tilt =
     v.tiltMode === "random" ? `random tilt ${signedDegrees(lo)} to ${signedDegrees(hi)}` : tiltWord(v.tilt);
-  return `${dir}, ${tilt}`;
+  const zoom =
+    v.zoomMode === "random"
+      ? `, random zoom ${Math.min(v.zoomMin, v.zoomMax)} to ${Math.max(v.zoomMin, v.zoomMax)}`
+      : v.zoom
+        ? `, zoom ${v.zoom}`
+        : "";
+  return `${dir}, ${tilt}${zoom}`;
 }
-/* True when the camera view is as it is without changes: along the road, level. */
+/* True when the camera view is as it is without changes: along the road, level, zoom 0. */
 const viewIsDefault = v =>
   v.direction === "road" &&
   v.carAngle === 0 &&
@@ -1202,7 +1235,9 @@ const viewIsDefault = v =>
   v.tiltMode === "fixed" &&
   v.tilt === 0 &&
   v.tiltMin === ANGLE_FIELDS.tiltMin.d &&
-  v.tiltMax === ANGLE_FIELDS.tiltMax.d;
+  v.tiltMax === ANGLE_FIELDS.tiltMax.d &&
+  v.zoomMode === "fixed" &&
+  Object.entries(ZOOM_FIELDS).every(([id, d]) => v[id] === d);
 // Saved settings
 setRadio(
   "viewDirection",
@@ -1231,14 +1266,39 @@ for (const [id, f] of Object.entries(ANGLE_FIELDS)) {
     $(id).onchange();
   };
 }
-for (const name of ["viewDirection", "tiltMode"])
+setRadio("zoomMode", ZOOM_MODES.includes(store.get("zoomMode")) ? store.get("zoomMode") : "fixed");
+for (const [id, d] of Object.entries(ZOOM_FIELDS)) {
+  $(id).value = String(cleanZoom(store.get(id, d), d));
+  // On leaving the field: keep the zoom and show it as it will be used
+  $(id).onchange = () => {
+    const n = zoomField(id);
+    store.set(id, n);
+    $(id).value = String(n);
+    drawZoom();
+    updateMore();
+  };
+  // Its slider: dragging it types the zoom into the field
+  $(id + "Slider").oninput = () => {
+    $(id).value = $(id + "Slider").value;
+    $(id).onchange();
+  };
+  // The arrow keys change it by 0.5 (0.1 with Shift)
+  $(id).onkeydown = e => {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    const step = (e.shiftKey ? 0.1 : 0.5) * (e.key === "ArrowUp" ? 1 : -1);
+    $(id).value = String(Math.max(0, Math.round((zoomField(id) + step) * 10) / 10));
+    $(id).onchange();
+  };
+}
+for (const name of ["viewDirection", "tiltMode", "zoomMode"])
   for (const r of document.querySelectorAll(`input[name=${name}]`))
     r.onchange = () => {
       store.set(name, r.value);
       updateView();
     };
-/* Greys out what does not apply: the angle to the car unless it is chosen; the fixed tilt or the range,
-   whichever is not chosen. */
+/* Greys out what does not apply: the angle to the car unless it is chosen; the fixed tilt or zoom or
+   their ranges, whichever is not chosen. */
 function updateView() {
   const v = viewSettings();
   $("carAngle").disabled = v.direction !== "car";
@@ -1248,7 +1308,26 @@ function updateView() {
   $("tilt").disabled = v.tiltMode !== "fixed";
   $("tiltMin").disabled = $("tiltMax").disabled = v.tiltMode !== "random";
   $("tiltBox").classList.toggle("random", v.tiltMode === "random");
+  $("zoom").disabled = v.zoomMode !== "fixed";
+  $("zoomMin").disabled = $("zoomMax").disabled = v.zoomMode !== "random";
+  $("zoomBox").classList.toggle("random", v.zoomMode === "random");
+  for (const id of Object.keys(ZOOM_FIELDS)) $(id + "Slider").disabled = $(id).disabled;
+  drawZoom();
   drawView();
+}
+/* Puts the zoom sliders' handles at the zooms in the fields and fills in the part chosen: from 0 to the
+   zoom, or between the two ends of the range. */
+function drawZoom() {
+  const v = viewSettings();
+  for (const id of Object.keys(ZOOM_FIELDS)) $(id + "Slider").value = String(v[id]);
+  // a zoom's place on the track, allowing for the handle, which stays inside the track at both ends
+  const at = z => `calc(${(z / ZOOM_MAX) * 100}% + ${(0.5 - z / ZOOM_MAX) * 20}px)`;
+  const span = (el, lo, hi) => {
+    el.style.left = lo ? at(lo) : "0";
+    el.style.width = `calc(${at(hi)} - ${lo ? at(lo) : "0px"})`;
+  };
+  span($("zoomFill"), 0, v.zoom);
+  span($("zoomRangeFill"), Math.min(v.zoomMin, v.zoomMax), Math.max(v.zoomMin, v.zoomMax));
 }
 /* A point on the tilt drawing's half circle for a tilt: right is level, up is +90°. */
 const tiltPoint = (t, r = 80) => [r * Math.cos((t * Math.PI) / 180), -r * Math.sin((t * Math.PI) / 180)];
@@ -1449,7 +1528,10 @@ const MORE = {
       setRadio("tiltMode", "fixed");
       store.set("viewDirection", "road");
       store.set("tiltMode", "fixed");
+      setRadio("zoomMode", "fixed");
+      store.set("zoomMode", "fixed");
       for (const [id, f] of Object.entries(ANGLE_FIELDS)) setControl(id, String(f.d));
+      for (const [id, d] of Object.entries(ZOOM_FIELDS)) setControl(id, String(d));
       updateView();
     },
   },
@@ -1916,7 +1998,10 @@ function showArea(codes) {
 }
 /* Street View at a location, facing its heading. */
 const streetViewLink = l =>
-  `https://www.google.com/maps/@?api=1&map_action=pano&pano=${encodeURIComponent(l.panoId)}&heading=${Math.round(l.heading)}&pitch=${Math.round(l.pitch || 0)}`;
+  `https://www.google.com/maps/@?api=1&map_action=pano&pano=${encodeURIComponent(l.panoId)}&heading=${Math.round(l.heading)}&pitch=${Math.round(l.pitch || 0)}&fov=${linkFov(l.zoom || 0)}`;
+/* A zoom as Google Maps links take it: the field of view in degrees, 180° halved for each step of zoom,
+   kept within the 10° to 100° such links accept. */
+const linkFov = zoom => Math.round(Math.min(100, Math.max(10, 180 / 2 ** zoom)));
 /* Draws a found location as a dot with a popup: country, what it has, photo date, Street View button. */
 function drawLocation(l) {
   if (!map) return;
@@ -2408,9 +2493,9 @@ async function attempt(code, want, rad, key) {
 }
 /* Where the camera faces and how far it tilts, from the camera view settings of the search (see
    "camera view"): along the road (cameraHeading), at an angle to the car, or random; level, at a set
-   tilt, or a random tilt within a range. "The car" is the direction it faced when the photo was taken
-   (carHeading); when Google does not say, the road direction stands in for it.
-   @returns {{heading: number, pitch: number}} */
+   tilt, or a random tilt within a range; the zoom set, or random within a range. "The car" is the
+   direction it faced when the photo was taken (carHeading); when Google does not say, the road direction
+   stands in for it. @returns {{heading: number, pitch: number, zoom: number}} */
 function locationView(r, facts, view) {
   let heading;
   const front = r.carHeading ?? (r.links.length ? r.links[0].heading : 0);
@@ -2423,7 +2508,15 @@ function locationView(r, facts, view) {
     view.tiltMode === "random"
       ? Math.min(view.tiltMin, view.tiltMax) + Math.random() * Math.abs(view.tiltMax - view.tiltMin)
       : view.tilt;
-  return { heading: Math.round(heading * 10) / 10, pitch: Math.round(pitch * 10) / 10 };
+  const zoom =
+    view.zoomMode === "random"
+      ? Math.min(view.zoomMin, view.zoomMax) + Math.random() * Math.abs(view.zoomMax - view.zoomMin)
+      : view.zoom;
+  return {
+    heading: Math.round(heading * 10) / 10,
+    pitch: Math.round(pitch * 10) / 10,
+    zoom: Math.round(zoom * 10) / 10,
+  };
 }
 /* Where the camera faces along the road. At the end of the coverage: away from the one arrow, towards
    where it stops. Elsewhere: in the direction of a random arrow (any direction if there is none). */
@@ -2584,7 +2677,18 @@ let searchSettings = {
   key: "",
   giveUpAfter: GIVE_UP_DEFAULT,
   useOlder: false,
-  view: { direction: "road", carAngle: 0, tiltMode: "fixed", tilt: 0, tiltMin: -20, tiltMax: 20 },
+  view: {
+    direction: "road",
+    carAngle: 0,
+    tiltMode: "fixed",
+    tilt: 0,
+    tiltMin: -20,
+    tiltMax: 20,
+    zoomMode: "fixed",
+    zoom: 0,
+    zoomMin: 0,
+    zoomMax: 2,
+  },
 };
 $("form").onsubmit = e => {
   e.preventDefault();
@@ -2761,7 +2865,7 @@ function exportJson() {
         lng: +l.lng.toFixed(7),
         heading: +l.heading.toFixed(1),
         pitch: +(l.pitch || 0).toFixed(1),
-        zoom: 0,
+        zoom: +(l.zoom || 0).toFixed(1),
         panoId: l.panoId,
         countryCode: l.cc,
       };
@@ -2835,6 +2939,10 @@ const HISTORY_MAX = 20;
  * @property {number} tilt          −90 to 90, with tiltMode "fixed"
  * @property {number} tiltMin       −90 to 90, the range with tiltMode "random"
  * @property {number} tiltMax
+ * @property {"fixed"|"random"} zoomMode
+ * @property {number} zoom          0 to 4, with zoomMode "fixed"
+ * @property {number} zoomMin       0 to 4, the range with zoomMode "random"
+ * @property {number} zoomMax
  * @property {number} target
  * @property {number} radius
  * @property {number} giveUpAfter
@@ -2922,6 +3030,9 @@ function cleanSettings(raw) {
       Object.entries(ANGLE_FIELDS).map(([id, f]) => [id, wholeNumber(r[id], f.lo, f.hi, f.d)]),
     ),
     tiltMode: TILT_MODES.includes(r.tiltMode) ? r.tiltMode : "fixed",
+    // (settings from before the zoom was kept get zoom 0, as the map files had then)
+    zoomMode: ZOOM_MODES.includes(r.zoomMode) ? r.zoomMode : "fixed",
+    ...Object.fromEntries(Object.entries(ZOOM_FIELDS).map(([id, d]) => [id, cleanZoom(r[id], d)])),
     target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
     radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
     giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
@@ -3110,7 +3221,9 @@ function applySettings(s) {
   setRadio("tiltMode", s.tiltMode);
   store.set("viewDirection", s.viewDirection);
   store.set("tiltMode", s.tiltMode);
-  for (const id of Object.keys(ANGLE_FIELDS)) {
+  setRadio("zoomMode", s.zoomMode);
+  store.set("zoomMode", s.zoomMode);
+  for (const id of [...Object.keys(ANGLE_FIELDS), ...Object.keys(ZOOM_FIELDS)]) {
     $(id).value = String(s[id]);
     store.set(id, s[id]);
   }
@@ -3368,6 +3481,7 @@ function cleanLocation(l) {
     lng: l.lng,
     heading: l.heading,
     pitch: inRange(l.pitch, -90, 90) ? l.pitch : 0,
+    zoom: inRange(l.zoom, 0, ZOOM_MAX) ? l.zoom : 0,
     panoId: l.panoId,
     date: /^\d{4}(-\d{2})?$/.test(date) ? date : "",
     cc: l.cc,

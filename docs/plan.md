@@ -55,6 +55,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 19. **Roads and arrows** (done, 26 October 2026, at the owner's request): "No road name" and the arrows moved from the first screen into their own closed section, between "Photos" and "Camera view"; a line under step 2 says what is looked for. The rule in CONTRIBUTING.md changed with it: the first screen shows where, how many and "Find locations". Also in your own distributions: "Edit the shares" scrolls to the editor every time, a × next to each share takes that country out (sets it to 0), and "Set all to 0" (after a second click) starts from nothing.
 
+20. **Zoom** (done, 26 October 2026, at the owner's request): in "Camera view", how far the camera is zoomed in, the same for every location or random within a range (0 to 2 by default), from 0 to 4 with one decimal. The scale is that of map-making.app, GeoGuessr and Google's Street View player, checked by the owner with a test map: 0 is the widest view (−1 looks the same), 1 is about Street View's normal view, each step of 1 about twice as close, and 4 only a little closer than 3; GeoGuessr uses the zoom. By default nothing changes: zoom 0, as the map files had before. The Street View link opens with the matching field of view (180° halved for each step, within the 10° to 100° such links take). Set with a slider (two handles for the range) or by typing. No tag, at the owner's choice. Also at the owner's request: the number of locations is 300 by default (was 100).
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits

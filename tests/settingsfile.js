@@ -186,7 +186,7 @@ const { openPage, chooseCountry } = require("./helpers.js");
     evil.s.scope === "countries" &&
       evil.s.countries.join() === "MT" &&
       evil.s.distribution === "aaw" &&
-      evil.s.target === 100 &&
+      evil.s.target === 300 &&
       evil.s.radius === 1000 &&
       evil.s.yearFrom === 2007 &&
       evil.s.mapName.length <= 100 &&

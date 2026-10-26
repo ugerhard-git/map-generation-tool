@@ -72,7 +72,7 @@ const { openPage, search, searchEnded } = require("./helpers.js");
       JSON.stringify(withCar),
   );
   ok(
-    /&heading=220&pitch=15$/.test(
+    /&heading=220&pitch=15&fov=100$/.test(
       await p.evaluate(() => streetViewLink(results.find(l => l.heading === 220))),
     ),
     "the Street View link opens looking that way",

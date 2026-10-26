@@ -235,7 +235,7 @@ const path = require("path");
       cleaned.settings.countries.join() === "DE" &&
       cleaned.settings.continent === "europe" &&
       cleaned.settings.distribution === "aaw" &&
-      cleaned.settings.target === 100 &&
+      cleaned.settings.target === 300 &&
       cleaned.settings.radius === 1000 &&
       cleaned.settings.giveUpAfter === 2000 &&
       cleaned.settings.yearFrom === 2007 &&

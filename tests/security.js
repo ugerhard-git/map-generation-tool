@@ -137,7 +137,7 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
   }));
   ok(
     t.radius === 1000 &&
-      t.target === 100 &&
+      t.target === 300 &&
       t.name === "" &&
       t.country === "" &&
       t.chosen === "" &&
