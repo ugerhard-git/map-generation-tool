@@ -63,6 +63,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 23. **Older photos off by default** (done, 26 October 2026, at the owner's request): "Use an older photo instead" is no longer ticked by default. A visitor who ticked it keeps it ticked; history entries and settings files that say on stay on, and those without it read as off.
 
+24. **Welcome dialog** (done, 26 October 2026, at the owner's request): it now also tells about your own distributions (from a map, or from scratch with equal shares or all at 0; percentages or numbers; presets), the settings file (save, load, share; never the key), the camera choice and "Camera view".
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits

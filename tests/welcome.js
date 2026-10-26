@@ -37,6 +37,14 @@ const { PAGE, isSite, serveSite } = require("./site.js");
       ),
     "it says the map shows the first 20,000 locations and the file has all",
   );
+  const welcomeText = (await p.textContent("#welcomeBox")).replace(/\s+/g, " ");
+  ok(
+    /make your own from one of those maps, or start from scratch with equal shares/.test(welcomeText) &&
+      /set them all to 0/.test(welcomeText) &&
+      /"Settings file": save every setting/.test(welcomeText) &&
+      /Your Google key is never in it/.test(welcomeText),
+    "it tells about your own distribution (also from scratch) and the settings file",
+  );
   for (let i = 0; i < 4; i++) await p.keyboard.press("Tab");
   ok(
     await p.evaluate(() => document.getElementById("welcomeBox").contains(document.activeElement)),
