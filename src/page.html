@@ -71,7 +71,8 @@
           </li>
           <li>
             <b>Choose what to look for:</b> spots where Street View shows no road name, spots where the
-            coverage ends (only one arrow), photos from a certain period, or a mix.
+            coverage ends (only one arrow), intersections (three or more arrows), photos from a certain
+            period, or a mix.
           </li>
           <li><b>Choose how many,</b> then select "Find locations".</li>
           <li>
@@ -194,12 +195,18 @@
       <h2>No road name</h2>
       <p>Street View shows no street name on the arrows at that spot.</p>
     </template>
-    <template id="help-deadEnd">
-      <h2>End of coverage</h2>
-      <p>
-        Only one arrow: Google's coverage stops there. The camera faces where it stops. These spots are rare,
-        so many of them can take a long time to find.
-      </p>
+    <template id="help-arrows">
+      <h2>Arrows</h2>
+      <p>The arrows Street View shows at a spot, one for each way the coverage goes on.</p>
+      <ul>
+        <li>
+          <b>End of coverage:</b> only one arrow, so Google's coverage stops there. The camera faces where it
+          stops. These spots are rare, so many of them can take a long time to find.
+        </li>
+        <li>
+          <b>Intersection:</b> three or more arrows, where roads meet. The camera faces along one of them.
+        </li>
+      </ul>
     </template>
     <template id="help-years">
       <h2>Photos taken in a certain period</h2>
@@ -377,11 +384,24 @@
                 ?
               </button>
             </div>
-            <div class="checkrow">
-              <label class="check"><input type="checkbox" id="deadEnd" /><span>End of coverage</span></label>
-              <button type="button" class="help" data-help="deadEnd" aria-label="Help: end of coverage">
-                ?
-              </button>
+            <!-- Arrows: one choice, as "end of coverage" (one arrow) and "intersection" (three or more)
+                 exclude each other -->
+            <div class="field arrows" role="radiogroup" aria-labelledby="arrowsTitle">
+              <div class="labelrow">
+                <div class="label" id="arrowsTitle">Arrows</div>
+                <button type="button" class="help" data-help="arrows" aria-label="Help: arrows">?</button>
+              </div>
+              <label class="radio"
+                ><input type="radio" name="arrows" id="arrowsAny" value="any" checked />Any</label
+              >
+              <label class="radio"
+                ><input type="radio" name="arrows" id="arrowsEnd" value="end" />End of coverage (one
+                arrow)</label
+              >
+              <label class="radio"
+                ><input type="radio" name="arrows" id="arrowsIntersection" value="intersection" />Intersection
+                (three or more arrows)</label
+              >
             </div>
             <!-- More options: photos (app.js: more options) -->
             <details class="more" id="morePhotos">
@@ -521,6 +541,11 @@
                 >
                 <label class="check"
                   ><input type="checkbox" id="tagDeadEnd" /><span>"Dead end", where it applies</span></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagIntersection" /><span
+                    >"Intersection", where it applies</span
+                  ></label
                 >
                 <label class="check"
                   ><input type="checkbox" id="tagYear" /><span

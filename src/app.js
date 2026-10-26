@@ -43,7 +43,7 @@
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
- *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
+ *   over on load), continent, distribution, noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
  *   radius, giveUpAfter, mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
@@ -74,6 +74,7 @@
  * @property {string} cc         two-letter country code
  * @property {boolean} noRoadName no road name shown on the arrows
  * @property {boolean} deadEnd   only one arrow: the coverage ends here
+ * @property {boolean} [intersection] three or more arrows
  * @property {string} [camera]   "gen4", "gen23", "badcam", or "" when not known (see cameraOf)
  */
 /**
@@ -779,16 +780,33 @@ function cameras() {
     .map(([, cam]) => cam);
   return chosen.length ? chosen : null;
 }
-/* What each location must have: { noRoadName, deadEnd, years: {from, to} | null, cameras, noBadCamera }.
+/* The arrows asked for: "any", "end" (one arrow: the end of the coverage) or "intersection" (three or
+   more). One choice, as the two exclude each other (CONTRIBUTING.md: "A simple interface"). */
+const ARROWS = ["any", "end", "intersection"];
+const arrows = () => document.querySelector("input[name=arrows]:checked")?.value || "any";
+// Before intersections, "End of coverage" was a tick box, saved as "deadEnd": it is moved over once.
+{
+  let saved = store.get("arrows", null);
+  if (!ARROWS.includes(saved)) saved = store.get("deadEnd", false) === true ? "end" : "any";
+  store.set("arrows", saved);
+  store.remove("deadEnd");
+  document.querySelector(`input[name=arrows][value="${saved}"]`).checked = true;
+  for (const r of document.querySelectorAll("input[name=arrows]"))
+    r.onchange = () => {
+      store.set("arrows", arrows());
+      updateMapName();
+    };
+}
+/* What each location must have: { noRoadName, arrows, years: {from, to} | null, cameras, noBadCamera }.
    "No bad camera" does not apply when cameras are chosen: the choice already says. */
 const wanted = () => ({
   noRoadName: $("noRoadName").checked,
-  deadEnd: $("deadEnd").checked,
+  arrows: arrows(),
   years: years(),
   cameras: cameras(),
   noBadCamera: $("noBadCamera").checked && !cameras(),
 });
-for (const id of ["noRoadName", "deadEnd", "yearsOn", "noBadCamera", ...Object.keys(CAMERA_BOXES)]) {
+for (const id of ["noRoadName", "yearsOn", "noBadCamera", ...Object.keys(CAMERA_BOXES)]) {
   $(id).checked = store.get(id, false) === true;
   $(id).onchange = () => {
     store.set(id, $(id).checked);
@@ -843,7 +861,8 @@ function inYears(date, p) {
 function wantedLabel(w) {
   const parts = [];
   if (w.noRoadName) parts.push("no road name");
-  if (w.deadEnd) parts.push("end of coverage");
+  if (w.arrows === "end") parts.push("end of coverage");
+  if (w.arrows === "intersection") parts.push("intersection");
   if (w.years) parts.push(periodLabel(w.years, " – "));
   if (w.cameras) parts.push(w.cameras.map(c => CAMERAS[c]).join(" and "));
   else if (w.noBadCamera) parts.push("no bad camera");
@@ -931,6 +950,7 @@ const TAG_OPTIONS = {
   tagCountry: true,
   tagNoRoadName: false,
   tagDeadEnd: false,
+  tagIntersection: false,
   tagYear: false,
   tagCamera: false,
 };
@@ -960,6 +980,7 @@ function tagsFor(l) {
   if ($("tagCountry").checked) tags.push(countryName(l.cc));
   if ($("tagNoRoadName").checked && l.noRoadName) tags.push("No road name");
   if ($("tagDeadEnd").checked && l.deadEnd) tags.push("Dead end");
+  if ($("tagIntersection").checked && l.intersection) tags.push("Intersection");
   if ($("tagYear").checked && l.date)
     tags.push(
       $("tagDate").value === "month" && l.date.length === 7
@@ -1043,6 +1064,7 @@ const MORE = {
         ["tagCountry", "country"],
         ["tagNoRoadName", "no road name"],
         ["tagDeadEnd", "dead end"],
+        ["tagIntersection", "intersection"],
         ["tagYear", $("tagDate").value === "month" ? "month and year" : "year"],
         ["tagCamera", "camera"],
       ]
@@ -1223,7 +1245,13 @@ const streetViewLink = l =>
 /* Draws a found location as a dot with a popup: country, what it has, photo date, Street View button. */
 function drawLocation(l) {
   if (!map) return;
-  const has = [l.noRoadName && "No road name", l.deadEnd && "End of coverage"].filter(Boolean).join(", ");
+  const has = [
+    l.noRoadName && "No road name",
+    l.deadEnd && "End of coverage",
+    l.intersection && "Intersection",
+  ]
+    .filter(Boolean)
+    .join(", ");
   L.circleMarker([l.lat, l.lng], {
     radius: 5,
     weight: 1.5,
@@ -1416,6 +1444,7 @@ function arrowFacts(links) {
   return {
     noRoadName: links.every(l => !l.description),
     deadEnd: links.length === 1,
+    intersection: links.length >= 3,
   };
 }
 
@@ -1647,7 +1676,8 @@ async function attempt(code, want, rad, key) {
   if (
     !isOfficial(r.copyright) ||
     (want.noRoadName && !facts.noRoadName) ||
-    (want.deadEnd && !facts.deadEnd) ||
+    (want.arrows === "end" && !facts.deadEnd) ||
+    (want.arrows === "intersection" && !facts.intersection) ||
     (want.years && !inYears(r.date, want.years))
   ) {
     stats.notMatching++;
@@ -1687,6 +1717,7 @@ async function attempt(code, want, rad, key) {
     cc: code,
     noRoadName: facts.noRoadName,
     deadEnd: facts.deadEnd,
+    intersection: facts.intersection,
     camera: cameraOf(r, code),
   };
   results.push(l);
@@ -2077,7 +2108,7 @@ const HISTORY_MAX = 20;
  * @property {string} continent     Vali's continent code ("europe")
  * @property {string} distribution  Vali's map code ("aaw"), or "continent" for a continent's own map
  * @property {boolean} noRoadName
- * @property {boolean} deadEnd
+ * @property {"any"|"end"|"intersection"} arrows  the arrows asked for (before intersections: deadEnd)
  * @property {boolean} yearsOn
  * @property {boolean} camGen4      the chosen cameras (none ticked: any camera but Gen 1)
  * @property {boolean} camGen23
@@ -2117,7 +2148,7 @@ function currentSettings() {
     continent: $("continent").value,
     distribution: $("distribution").value,
     noRoadName: $("noRoadName").checked,
-    deadEnd: $("deadEnd").checked,
+    arrows: arrows(),
     yearsOn: $("yearsOn").checked,
     ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, $(id).checked])),
     noBadCamera: $("noBadCamera").checked,
@@ -2150,7 +2181,8 @@ function cleanSettings(raw) {
     distribution:
       r.distribution === "continent" || known(VALI.maps, r.distribution) ? r.distribution : DEFAULT_MAP,
     noRoadName: r.noRoadName === true,
-    deadEnd: r.deadEnd === true,
+    // (settings from before intersections have deadEnd instead)
+    arrows: ARROWS.includes(r.arrows) ? r.arrows : r.deadEnd === true ? "end" : "any",
     yearsOn: r.yearsOn === true,
     ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, r[id] === true])),
     noBadCamera: r.noBadCamera === true,
@@ -2239,7 +2271,7 @@ function historyDetails(s) {
   bits.push(
     wantedLabel({
       noRoadName: s.noRoadName,
-      deadEnd: s.deadEnd,
+      arrows: s.arrows,
       years: s.yearsOn ? periodOf(s) : null,
       cameras: Object.entries(CAMERA_BOXES).some(([id]) => s[id])
         ? Object.entries(CAMERA_BOXES)
@@ -2306,9 +2338,10 @@ function applySettings(s) {
   if ([...$("distribution").options].some(o => o.value === s.distribution))
     $("distribution").value = s.distribution;
   whereChanged();
+  document.querySelector(`input[name=arrows][value="${s.arrows}"]`).checked = true;
+  store.set("arrows", s.arrows);
   for (const id of [
     "noRoadName",
-    "deadEnd",
     "yearsOn",
     ...Object.keys(CAMERA_BOXES),
     "noBadCamera",
@@ -2376,6 +2409,8 @@ $("historyOn").onchange = () => {
    setting is in the file without changes here. Never the Google key. A loaded file is untrusted: it is
    read with size and format checks, and every setting goes through cleanSettings. SETTINGS_VERSION goes
    up only when a setting changes its meaning; cleanSettings then moves the old shape over. */
+/* Settings that older versions saved under another name, which cleanSettings moves over. */
+const OLDER_SETTING_NAMES = ["deadEnd"];
 const SETTINGS_FORMAT = "map-generation-tool settings",
   SETTINGS_VERSION = 1,
   SETTINGS_MAX_BYTES = 100000; // a settings file is about 1 KB
@@ -2413,7 +2448,10 @@ function readSettingsFile(text) {
   const notes = [];
   if (file.version > SETTINGS_VERSION)
     notes.push("It was saved by a newer version of this tool, so some settings may not have come across.");
-  const unknown = Object.keys(raw).filter(k => !Object.hasOwn(settings, k));
+  // (settings that older versions of this tool saved under another name are moved over, not "unknown")
+  const unknown = Object.keys(raw).filter(
+    k => !Object.hasOwn(settings, k) && !OLDER_SETTING_NAMES.includes(k),
+  );
   if (unknown.length)
     notes.push(
       `Not used, as this tool does not know ${unknown.length === 1 ? "it" : "them"}: ` +
@@ -2585,6 +2623,7 @@ function cleanLocation(l) {
     cc: l.cc,
     noRoadName: l.noRoadName === true,
     deadEnd: l.deadEnd === true,
+    intersection: l.intersection === true,
     camera: typeof l.camera === "string" && Object.hasOwn(CAMERAS, l.camera) ? l.camera : "",
   };
 }

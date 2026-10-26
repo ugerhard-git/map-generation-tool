@@ -36,7 +36,7 @@ const { PAGE, isSite, serveSite } = require("./site.js");
   ok(
     (await p.isVisible("#country")) &&
       (await p.isVisible("#noRoadName")) &&
-      (await p.isVisible("#deadEnd")) &&
+      (await p.isVisible("#arrowsEnd")) &&
       (await p.isVisible("#target")) &&
       (await p.isVisible("#go")),
     "and where, the main criteria, how many and Find locations",

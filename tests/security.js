@@ -147,7 +147,7 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
       t.giveUpAfter === 2000 &&
       t.yearTo === "now" &&
       !t.wanted.noRoadName &&
-      !t.wanted.deadEnd,
+      t.wanted.arrows === "any",
     "tampered settings fall back to defaults: " + JSON.stringify(t),
   );
   await p.evaluate(() => localStorage.setItem("mapgen.radius", "99999"));
