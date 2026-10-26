@@ -43,8 +43,8 @@
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
- *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate (which tags the export
+ *   over on load), continent, distribution, noRoadName, deadEnd, yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
+ *   radius, giveUpAfter, mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -74,6 +74,7 @@
  * @property {string} cc         two-letter country code
  * @property {boolean} noRoadName no road name shown on the arrows
  * @property {boolean} deadEnd   only one arrow: the coverage ends here
+ * @property {string} [camera]   "gen4", "gen23", "badcam", or "" when not known (see cameraOf)
  */
 /**
  * One arrow of a panorama: the direction to a neighbouring panorama and the road name shown on it.
@@ -140,6 +141,15 @@ const MAX_DRAWN = 20000;
 const BAD_CAMERA_HEIGHT = 6656,
   BAD_CAMERA_FROM = 2020;
 const BAD_CAMERA_KEPT = ["IN", "NP", "NG", "LB", "ST"];
+/* The cameras, told apart by the image height Google gives (checked on real panoramas with the owner,
+   October 2026: San Francisco and Sydney, 2007–2026): 8192 is Gen 4; 6656 is Gen 2 or 3 (they cannot be
+   told apart), or bad camera (see above); 1664 (3328 × 1664, 2007–2008) is Gen 1, which is left out of
+   every search (agreed with the owner). Other sizes exist (Sydney has 12000 × 6000 photos from 2017–2018,
+   not ordinary car coverage): their camera is unknown, as for a panorama without a size. */
+const GEN4_HEIGHT = 8192,
+  GEN1_MAX_HEIGHT = 3328; // Gen 1 is 1664 high; anything up to twice that counts as Gen 1
+const CAMERAS = { gen4: "Gen 4", gen23: "Gen 2/3", badcam: "Bad camera" };
+const CAMERA_BOXES = { camGen4: "gen4", camGen23: "gen23", camBad: "badcam" };
 const GIVE_UP_MIN = 50,
   GIVE_UP_MAX = 100000,
   GIVE_UP_DEFAULT = 2000; // random spots in a row without a new location before a country gives up
@@ -762,14 +772,23 @@ function periodLabel(p, joiner = " to ") {
   if (!p.toNow && p.from === p.to) return monthLabel(p.from);
   return monthLabel(p.from) + joiner + (p.toNow ? "now" : monthLabel(p.to));
 }
-/* What each location must have: { noRoadName, deadEnd, years: {from, to} | null }. */
+/* The chosen cameras ("gen4", "gen23", "badcam"), or null when none is ticked (any camera but Gen 1). */
+function cameras() {
+  const chosen = Object.entries(CAMERA_BOXES)
+    .filter(([id]) => $(id).checked)
+    .map(([, cam]) => cam);
+  return chosen.length ? chosen : null;
+}
+/* What each location must have: { noRoadName, deadEnd, years: {from, to} | null, cameras, noBadCamera }.
+   "No bad camera" does not apply when cameras are chosen: the choice already says. */
 const wanted = () => ({
   noRoadName: $("noRoadName").checked,
   deadEnd: $("deadEnd").checked,
   years: years(),
-  noBadCamera: $("noBadCamera").checked,
+  cameras: cameras(),
+  noBadCamera: $("noBadCamera").checked && !cameras(),
 });
-for (const id of ["noRoadName", "deadEnd", "yearsOn", "noBadCamera"]) {
+for (const id of ["noRoadName", "deadEnd", "yearsOn", "noBadCamera", ...Object.keys(CAMERA_BOXES)]) {
   $(id).checked = store.get(id, false) === true;
   $(id).onchange = () => {
     store.set(id, $(id).checked);
@@ -801,13 +820,16 @@ updateYears();
 // Removed options: following the road to the end of coverage (walkOn, walkSteps) made finding ends
 // slower, not faster, so it was taken out. Their saved values are cleared.
 for (const id of ["walkOn", "walkSteps"]) store.remove(id);
-// Using an older photo instead of bad camera: only with "No bad camera", and on unless switched off.
+// Using an older photo when the newest is not the camera asked for: only with chosen cameras or "No bad
+// camera", and on unless switched off.
 $("useOlder").checked = store.get("useOlder", true) !== false;
 $("useOlder").onchange = () => store.set("useOlder", $("useOlder").checked);
-const useOlder = () => $("noBadCamera").checked && $("useOlder").checked;
-/* The older-photo option can only be changed while "No bad camera" is ticked. */
+const useOlder = () => (!!cameras() || $("noBadCamera").checked) && $("useOlder").checked;
+/* "No bad camera" does not apply while cameras are chosen, and the older-photo option only with one of
+   the two: greyed out otherwise. */
 function updateOlder() {
-  $("useOlder").disabled = !$("noBadCamera").checked;
+  $("noBadCamera").disabled = !!cameras();
+  $("useOlder").disabled = !cameras() && !$("noBadCamera").checked;
 }
 updateOlder();
 /* True if a photo date ("2023-04", or only "2023") lies within the period ({ from, to } in "YYYY-MM").
@@ -823,7 +845,8 @@ function wantedLabel(w) {
   if (w.noRoadName) parts.push("no road name");
   if (w.deadEnd) parts.push("end of coverage");
   if (w.years) parts.push(periodLabel(w.years, " – "));
-  if (w.noBadCamera) parts.push("no bad camera");
+  if (w.cameras) parts.push(w.cameras.map(c => CAMERAS[c]).join(" and "));
+  else if (w.noBadCamera) parts.push("no bad camera");
   const text = parts.join(", ") || "official coverage";
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -904,7 +927,13 @@ updateMapName();
 /* The map name for the export: what the visitor typed, or the suggestion. */
 const mapName = () => $("mapName").value.trim().slice(0, 100) || suggestedName();
 /* Which tags the export gets. The country is ticked unless the visitor unticked it; the others are not. */
-const TAG_OPTIONS = { tagCountry: true, tagNoRoadName: false, tagDeadEnd: false, tagYear: false };
+const TAG_OPTIONS = {
+  tagCountry: true,
+  tagNoRoadName: false,
+  tagDeadEnd: false,
+  tagYear: false,
+  tagCamera: false,
+};
 // The date in the tag: the year ("2023") or month and year ("04-2023", as agreed with the owner).
 const TAG_DATES = ["year", "month"];
 $("tagDate").value = TAG_DATES.includes(store.get("tagDate", "year")) ? store.get("tagDate", "year") : "year";
@@ -937,6 +966,7 @@ function tagsFor(l) {
         ? `${l.date.slice(5, 7)}-${l.date.slice(0, 4)}`
         : l.date.slice(0, 4),
     );
+  if ($("tagCamera").checked && l.camera) tags.push(CAMERAS[l.camera]);
   return tags;
 }
 $("tagYear").addEventListener("change", updateTagDate);
@@ -966,8 +996,16 @@ const MORE = {
   morePhotos: {
     summary: () => {
       const bits = [years() ? periodLabel(years()) : "Any time"];
-      if ($("noBadCamera").checked)
-        bits.push($("useOlder").checked ? "no bad camera, older photos instead" : "no bad camera");
+      const older = $("useOlder").checked ? ", older photos instead" : "";
+      if (cameras())
+        bits.push(
+          cameras()
+            .map(c => CAMERAS[c])
+            .join(" and ") +
+            " only" +
+            older,
+        );
+      else if ($("noBadCamera").checked) bits.push("no bad camera" + older);
       return bits.join(", ");
     },
     changed: () =>
@@ -977,6 +1015,7 @@ const MORE = {
       $("yearTo").value !== "now" ||
       +$("monthTo").value !== 12 ||
       $("noBadCamera").checked ||
+      !!cameras() ||
       !$("useOlder").checked,
     reset: () => {
       setControl("yearFrom", String(YEAR_FIRST));
@@ -984,6 +1023,7 @@ const MORE = {
       setControl("yearTo", "now");
       setControl("monthTo", "12");
       setControl("yearsOn", false);
+      for (const id of Object.keys(CAMERA_BOXES)) setControl(id, false);
       setControl("noBadCamera", false);
       setControl("useOlder", true);
     },
@@ -1004,6 +1044,7 @@ const MORE = {
         ["tagNoRoadName", "no road name"],
         ["tagDeadEnd", "dead end"],
         ["tagYear", $("tagDate").value === "month" ? "month and year" : "year"],
+        ["tagCamera", "camera"],
       ]
         .filter(([id]) => $(id).checked)
         .map(([, word]) => word);
@@ -1353,6 +1394,23 @@ function isBadCamera(r, code) {
     !BAD_CAMERA_KEPT.includes(code)
   );
 }
+/* A panorama's camera in a country: "gen4", "gen23", "badcam", "gen1", or "" when it is not known (no
+   size given, or a size none of these cameras makes). */
+function cameraOf(r, code) {
+  if (!r.height) return "";
+  if (r.height === GEN4_HEIGHT) return "gen4";
+  if (r.height === BAD_CAMERA_HEIGHT) return isBadCamera(r, code) ? "badcam" : "gen23";
+  if (r.height <= GEN1_MAX_HEIGHT) return "gen1";
+  return "";
+}
+/* Whether a panorama has the camera asked for: never Gen 1; one of the chosen cameras when some are
+   chosen (an unknown camera then does not count); not bad camera with "No bad camera". */
+function cameraWanted(r, code, want) {
+  const cam = cameraOf(r, code);
+  if (cam === "gen1") return false;
+  if (want.cameras) return want.cameras.includes(cam);
+  return !(want.noBadCamera && cam === "badcam");
+}
 /* What a panorama's arrows say: whether a road name is shown and whether the coverage ends here. */
 function arrowFacts(links) {
   return {
@@ -1386,6 +1444,8 @@ function emptyStats() {
     outside: 0, // the panorama lies in a neighbouring country
     failed: 0, // lookups that failed (network, Google errors)
     badCamera: 0, // left out as bad camera
+    gen1: 0, // left out as Gen 1, in every search
+    otherCamera: 0, // left out as not one of the chosen cameras
     olderLookups: 0, // older photos looked up instead of bad camera
     olderUsed: 0, // locations that are an older photo used instead of bad camera
     searchedMs: 0, // time spent searching in the runs that have ended (see searchedFor)
@@ -1453,6 +1513,8 @@ function paint(status) {
   if (stats.outside) add(stats.outside, "across the border");
   if (stats.failed) add(stats.failed, "failed lookups");
   if (stats.badCamera) add(stats.badCamera, "bad camera");
+  if (stats.otherCamera) add(stats.otherCamera, "other cameras");
+  if (stats.gen1) add(stats.gen1, "Gen 1");
   if (stats.olderUsed) add(stats.olderUsed, "older photos used instead");
   if (results.length > MAX_DRAWN) add(MAX_DRAWN, "shown on the map");
   renderShares();
@@ -1514,16 +1576,18 @@ function miss(code) {
   // (a country that is already full, through another worker's lookup, does not give up)
   if (n >= searchSettings.giveUpAfter && (foundBy.get(code) || 0) < searchTargets.get(code)) gaveUp.add(code);
 }
-/* An older photo at the same spot that is not bad camera, for a panorama that is: the newest of up to
-   OLDER_TRIES other photos that Google confirms as official and not bad camera. One lookup each.
+/* An older photo at the same spot with the camera asked for, for a panorama without it: the newest of
+   up to OLDER_TRIES other photos that Google confirms as official, with a wanted camera and, if a period
+   is chosen, from that period (an older photo outside it would be left out anyway). One lookup each.
    @returns {Promise<PanoAnswer|null>} */
 const OLDER_TRIES = 3;
-async function olderPhoto(r, code, key) {
-  for (const o of r.older.slice(0, OLDER_TRIES)) {
+async function olderPhoto(r, code, key, want) {
+  const candidates = r.older.filter(o => !want.years || inYears(o.date, want.years));
+  for (const o of candidates.slice(0, OLDER_TRIES)) {
     if (stopRequested || fatal) return null;
     stats.olderLookups++;
     const a = await lookupPano(o.pano, key);
-    if (a.status === "OK" && isOfficial(a.copyright) && !isBadCamera(a, code)) return a;
+    if (a.status === "OK" && isOfficial(a.copyright) && cameraWanted(a, code, want)) return a;
   }
   return null;
 }
@@ -1560,10 +1624,16 @@ async function attempt(code, want, rad, key) {
   stats.failedInRow = 0;
   let facts = arrowFacts(r.links);
   let fromOlder = false;
-  // Bad camera, with an older photo allowed: use the newest older photo that is not bad camera. It then
-  // goes through every check below, as its arrows and date can differ.
-  if (want.noBadCamera && searchSettings.useOlder && isOfficial(r.copyright) && isBadCamera(r, code)) {
-    const older = await olderPhoto(r, code, key);
+  // Not the camera asked for (a chosen camera, or bad camera with "No bad camera"), with an older photo
+  // allowed: use the newest older photo with it. It then goes through every check below, as its arrows
+  // and date can differ. (Gen 1 is never asked for and is the oldest, so it is not looked for.)
+  if (
+    searchSettings.useOlder &&
+    isOfficial(r.copyright) &&
+    cameraOf(r, code) !== "gen1" &&
+    !cameraWanted(r, code, want)
+  ) {
+    const older = await olderPhoto(r, code, key, want);
     if (keyRefused) {
       fatal = "Google refused the API key. Check that it is right and has the Maps JavaScript API enabled.";
       return;
@@ -1589,8 +1659,14 @@ async function attempt(code, want, rad, key) {
     miss(code);
     return;
   }
-  if (want.noBadCamera && isBadCamera(r, code)) {
-    stats.badCamera++;
+  if (cameraOf(r, code) === "gen1") {
+    stats.gen1++;
+    miss(code);
+    return;
+  }
+  if (!cameraWanted(r, code, want)) {
+    if (cameraOf(r, code) === "badcam" && !want.cameras) stats.badCamera++;
+    else stats.otherCamera++;
     miss(code);
     return;
   }
@@ -1611,6 +1687,7 @@ async function attempt(code, want, rad, key) {
     cc: code,
     noRoadName: facts.noRoadName,
     deadEnd: facts.deadEnd,
+    camera: cameraOf(r, code),
   };
   results.push(l);
   if (fromOlder) stats.olderUsed++; // counted only when it became a location
@@ -2002,7 +2079,10 @@ const HISTORY_MAX = 20;
  * @property {boolean} noRoadName
  * @property {boolean} deadEnd
  * @property {boolean} yearsOn
- * @property {boolean} noBadCamera  leave out bad camera coverage
+ * @property {boolean} camGen4      the chosen cameras (none ticked: any camera but Gen 1)
+ * @property {boolean} camGen23
+ * @property {boolean} camBad
+ * @property {boolean} noBadCamera  leave out bad camera coverage (only without chosen cameras)
  * @property {boolean} useOlder     use an older photo at the spot instead of bad camera, if there is one
  * @property {number} yearFrom
  * @property {number} monthFrom      1–12 (settings from before months were kept have none: January)
@@ -2016,6 +2096,7 @@ const HISTORY_MAX = 20;
  * @property {boolean} tagNoRoadName
  * @property {boolean} tagDeadEnd
  * @property {boolean} tagYear
+ * @property {boolean} tagCamera
  * @property {"year"|"month"} tagDate  the date in the tag: "2023" or "04-2023"
  */
 /**
@@ -2038,6 +2119,7 @@ function currentSettings() {
     noRoadName: $("noRoadName").checked,
     deadEnd: $("deadEnd").checked,
     yearsOn: $("yearsOn").checked,
+    ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, $(id).checked])),
     noBadCamera: $("noBadCamera").checked,
     useOlder: $("useOlder").checked,
     yearFrom: wholeNumber($("yearFrom").value, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
@@ -2070,6 +2152,7 @@ function cleanSettings(raw) {
     noRoadName: r.noRoadName === true,
     deadEnd: r.deadEnd === true,
     yearsOn: r.yearsOn === true,
+    ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, r[id] === true])),
     noBadCamera: r.noBadCamera === true,
     useOlder: r.useOlder !== false,
     yearFrom: wholeNumber(r.yearFrom, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
@@ -2158,10 +2241,16 @@ function historyDetails(s) {
       noRoadName: s.noRoadName,
       deadEnd: s.deadEnd,
       years: s.yearsOn ? periodOf(s) : null,
-      noBadCamera: s.noBadCamera,
+      cameras: Object.entries(CAMERA_BOXES).some(([id]) => s[id])
+        ? Object.entries(CAMERA_BOXES)
+            .filter(([id]) => s[id])
+            .map(([, cam]) => cam)
+        : null,
+      noBadCamera: s.noBadCamera && !Object.keys(CAMERA_BOXES).some(id => s[id]),
     }),
   );
-  if (s.noBadCamera && s.useOlder) bits.push("older photos instead");
+  if ((s.noBadCamera || Object.keys(CAMERA_BOXES).some(id => s[id])) && s.useOlder)
+    bits.push("older photos instead");
   bits.push(`${fmt(s.target)} ${s.target === 1 ? "location" : "locations"}`, `${fmt(s.radius)} m`);
   return bits.join(" · ");
 }
@@ -2221,6 +2310,7 @@ function applySettings(s) {
     "noRoadName",
     "deadEnd",
     "yearsOn",
+    ...Object.keys(CAMERA_BOXES),
     "noBadCamera",
     "useOlder",
     ...Object.keys(TAG_OPTIONS),
@@ -2495,6 +2585,7 @@ function cleanLocation(l) {
     cc: l.cc,
     noRoadName: l.noRoadName === true,
     deadEnd: l.deadEnd === true,
+    camera: typeof l.camera === "string" && Object.hasOwn(CAMERAS, l.camera) ? l.camera : "",
   };
 }
 /* The saved search, checked like every saved value, or null if there is none or it is broken. */

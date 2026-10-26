@@ -818,3 +818,20 @@ a:focus-visible {
   gap: 8px;
   margin-top: 14px;
 }
+
+/* ---------- camera choice (Photos) ---------- */
+.camera-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+}
+.camera-choices .check {
+  margin-top: 4px;
+}
+#helpBody ul {
+  margin: 0 0 12px;
+  padding-left: 1.2em;
+}
+#helpBody li {
+  margin-bottom: 6px;
+}

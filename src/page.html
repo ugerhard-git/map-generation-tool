@@ -210,18 +210,39 @@
       </p>
       <p>Older photos are rarer and take longer to find.</p>
     </template>
+    <template id="help-camera">
+      <h2>Camera</h2>
+      <p>Only photos from the cameras ticked here. With none ticked, any camera counts.</p>
+      <ul>
+        <li><b>Gen 4:</b> the current camera, with the sharpest photos.</li>
+        <li>
+          <b>Gen 2/3:</b> the cameras used from about 2008 to the late 2010s. They cannot be told apart.
+        </li>
+        <li>
+          <b>Bad camera:</b> the low-quality camera used since 2020 (often called "badcam"), outside India,
+          Nepal, Nigeria, Lebanon, and São Tomé and Príncipe, where the same photos count as Gen 2/3.
+        </li>
+      </ul>
+      <p>
+        The camera is told by the size of the photos Google gives. The first camera (Gen 1, 2007–2009) is
+        always left out.
+      </p>
+    </template>
     <template id="help-noBadCamera">
       <h2>No bad camera</h2>
       <p>
         Leaves out photos from the low-quality camera used since 2020 (often called "bad camera" or "badcam").
         Not in India, Nepal, Nigeria, Lebanon, and São Tomé and Príncipe, where it is much of the coverage.
       </p>
+      <p>When cameras are ticked under "Camera", this is greyed out: the cameras ticked decide.</p>
     </template>
     <template id="help-useOlder">
       <h2>Use an older photo instead</h2>
       <p>
-        When the newest photo at a spot is bad camera, the newest older photo at the same spot that is not bad
-        camera is used instead. It must still have everything ticked, such as the years.
+        When the newest photo at a spot is not one of the cameras ticked (or is bad camera, with "No bad
+        camera"), the newest older photo at the same spot that is is used instead. For example, many places
+        have Gen 4 photos on top of older Gen 2/3 ones. It must still have everything else ticked, such as the
+        period.
       </p>
     </template>
     <template id="help-apiKey">
@@ -389,6 +410,18 @@
                   <select id="yearTo" aria-label="To year"></select>
                 </div>
               </div>
+              <!-- The cameras: none ticked means any camera but Gen 1 -->
+              <div class="field" role="group" aria-labelledby="camerasTitle">
+                <div class="labelrow">
+                  <div class="label" id="camerasTitle">Camera</div>
+                  <button type="button" class="help" data-help="camera" aria-label="Help: camera">?</button>
+                </div>
+                <div class="camera-choices">
+                  <label class="check"><input type="checkbox" id="camGen4" /><span>Gen 4</span></label>
+                  <label class="check"><input type="checkbox" id="camGen23" /><span>Gen 2/3</span></label>
+                  <label class="check"><input type="checkbox" id="camBad" /><span>Bad camera</span></label>
+                </div>
+              </div>
               <div class="checkrow">
                 <label class="check"
                   ><input type="checkbox" id="noBadCamera" /><span>No bad camera</span></label
@@ -500,6 +533,11 @@
                     <option value="month">month and year (04-2023)</option>
                   </select>
                 </div>
+                <label class="check"
+                  ><input type="checkbox" id="tagCamera" /><span
+                    >The camera (Gen 4, Gen 2/3, Bad camera)</span
+                  ></label
+                >
               </div>
               <button type="button" class="linkbtn reset" data-reset="moreMapFile">Reset to defaults</button>
             </details>
