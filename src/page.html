@@ -190,7 +190,10 @@
         "Photos", road names and arrows (the end of the coverage, intersections) under "Roads and arrows".
         With several chosen, a location must have all of them. With none, any official location counts.
       </p>
-      <p>"Camera view" sets where the camera faces at each location, and how far it tilts.</p>
+      <p>
+        "Camera view" sets where the camera faces at each location, how far it tilts and how far it is zoomed
+        in.
+      </p>
     </template>
     <template id="help-own">
       <h2>Your own distribution</h2>
@@ -306,6 +309,18 @@
       <p>
         With "Random, within a range", every location gets its own tilt between the two angles, set with the
         two handles. Looking far up or down is rarely useful, so the range is −20° to 20° to start with.
+      </p>
+    </template>
+    <template id="help-zoom">
+      <h2>Zoom</h2>
+      <p>
+        How far the camera is zoomed in when a location opens, in map-making.app and in GeoGuessr: 0 is the
+        widest view, 1 about Street View's normal view, and each step of 1 about twice as close. 4 is the
+        closest. Steps in between, such as 1.5, work too.
+      </p>
+      <p>
+        With "Random, within a range", every location gets its own zoom between the two numbers, 0 to 2 to
+        start with.
       </p>
     </template>
     <template id="help-apiKey">
@@ -544,7 +559,7 @@
               </div>
               <button type="button" class="linkbtn reset" data-reset="moreRoads">Reset to defaults</button>
             </details>
-            <!-- More options: where the camera faces and how far it tilts (app.js: camera view). The drawings
+            <!-- More options: where the camera faces, how far it tilts and the zoom (app.js: camera view). The drawings
                  are for the mouse and touch; the number fields next to them do the same by keyboard. -->
             <details class="more" id="moreView">
               <summary>
@@ -703,6 +718,82 @@
                   </div>
                 </div>
               </div>
+              <div class="field" role="radiogroup" aria-labelledby="zoomTitle">
+                <div class="labelrow">
+                  <div class="label" id="zoomTitle">Zoom</div>
+                  <button type="button" class="help" data-help="zoom" aria-label="Help: zoom">?</button>
+                </div>
+                <label class="radio"
+                  ><input type="radio" name="zoomMode" id="zoomFixed" value="fixed" checked />The same for
+                  every location</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="zoomMode" id="zoomRandom" value="random" />Random, within a
+                  range</label
+                >
+                <div class="dial-fields zoom-box" id="zoomBox">
+                  <div id="zoomFixedFields">
+                    <div class="zoom-slider">
+                      <div class="zoom-track"></div>
+                      <div class="zoom-fill" id="zoomFill"></div>
+                      <input
+                        type="range"
+                        id="zoomSlider"
+                        min="0"
+                        max="4"
+                        step="0.1"
+                        value="0"
+                        aria-label="Zoom"
+                      />
+                    </div>
+                    <div class="zoom-scale" aria-hidden="true">
+                      <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+                    </div>
+                    <label for="zoom">Zoom</label>
+                    <div class="unit">
+                      <input type="text" inputmode="decimal" autocomplete="off" id="zoom" value="0" />
+                    </div>
+                  </div>
+                  <div id="zoomRangeFields">
+                    <div class="zoom-slider two">
+                      <div class="zoom-track"></div>
+                      <div class="zoom-fill" id="zoomRangeFill"></div>
+                      <input
+                        type="range"
+                        id="zoomMinSlider"
+                        min="0"
+                        max="4"
+                        step="0.1"
+                        value="0"
+                        aria-label="Zoom from"
+                      />
+                      <input
+                        type="range"
+                        id="zoomMaxSlider"
+                        min="0"
+                        max="4"
+                        step="0.1"
+                        value="2"
+                        aria-label="Zoom to"
+                      />
+                    </div>
+                    <div class="zoom-scale" aria-hidden="true">
+                      <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+                    </div>
+                    <div class="tilt-range-fields">
+                      <label for="zoomMin">From</label>
+                      <div class="unit">
+                        <input type="text" inputmode="decimal" autocomplete="off" id="zoomMin" value="0" />
+                      </div>
+                      <label for="zoomMax">to</label>
+                      <div class="unit">
+                        <input type="text" inputmode="decimal" autocomplete="off" id="zoomMax" value="2" />
+                      </div>
+                    </div>
+                  </div>
+                  <p class="hint">0 widest, 1 about Street View's normal view, 4 closest.</p>
+                </div>
+              </div>
               <button type="button" class="linkbtn reset" data-reset="moreView">Reset to defaults</button>
             </details>
           </section>
@@ -711,7 +802,7 @@
           <section class="step" id="stepHowMany">
             <h2><span class="n">3</span>How many?</h2>
             <label for="target">Number of locations</label>
-            <input type="text" inputmode="numeric" autocomplete="off" id="target" value="100" />
+            <input type="text" inputmode="numeric" autocomplete="off" id="target" value="300" />
             <p class="hint">Up to 130,000.</p>
             <div class="field" id="keyBox" hidden>
               <div class="labelrow">

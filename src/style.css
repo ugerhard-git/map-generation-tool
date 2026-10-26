@@ -927,8 +927,91 @@ a:focus-visible {
 #tiltBox:not(.random) .tilt-handle,
 #tiltBox:not(.random) #tiltRangeFields,
 #tiltBox.random #tiltArrow,
-#tiltBox.random #tiltFixedFields {
+#tiltBox.random #tiltFixedFields,
+#zoomBox:not(.random) #zoomRangeFields,
+#zoomBox.random #zoomFixedFields {
   display: none;
+}
+.zoom-box {
+  margin-top: 8px;
+}
+.zoom-box .tilt-range-fields {
+  justify-content: start;
+}
+/* The zoom sliders: a track, the part chosen filled in, and round handles like the drawings' handles.
+   For the range, two sliders lie on top of each other; only their handles take the pointer. */
+.zoom-slider {
+  position: relative;
+  height: 28px;
+  max-width: 280px;
+}
+.zoom-track,
+.zoom-fill {
+  position: absolute;
+  top: 12px;
+  height: 4px;
+  border-radius: 2px;
+}
+.zoom-track {
+  left: 0;
+  right: 0;
+  background: var(--line);
+}
+.zoom-fill {
+  left: 0;
+  background: var(--blue);
+}
+.zoom-slider input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.zoom-slider.two input[type="range"] {
+  pointer-events: none;
+}
+.zoom-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--blue);
+}
+.zoom-slider input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--blue);
+}
+.zoom-slider input[type="range"]:focus-visible {
+  outline: none;
+}
+.zoom-slider input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+.zoom-slider input[type="range"]:focus-visible::-moz-range-thumb {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+.zoom-scale {
+  display: flex;
+  justify-content: space-between;
+  max-width: 280px;
+  padding: 0 7px; /* the numbers sit under the handle's middle at each end */
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 /* ---------- your own distributions ---------- */

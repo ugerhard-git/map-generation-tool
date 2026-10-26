@@ -202,8 +202,8 @@ const { openPage, chooseCountry, searchEnded } = require("./helpers.js");
   });
   ok(
     (await p.inputValue("#distribution")) === "own" &&
-      (await p.evaluate(() => JSON.stringify(planTargets()))) === JSON.stringify({ MT: 70, LU: 30 }),
-    "loaded settings bring the distribution back as Your own",
+      (await p.evaluate(() => JSON.stringify(planTargets()))) === JSON.stringify({ MT: 210, LU: 90 }),
+    "loaded settings bring the distribution back as Your own (70% and 30% of the default 300)",
   );
   const hostile = await p.evaluate(() =>
     cleanSettings({
