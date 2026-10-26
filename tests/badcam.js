@@ -130,7 +130,8 @@ const { openPage, search, searchEnded } = require("./helpers.js");
         };
       };
     }, opts);
-  ok(await p.isChecked("#useOlder"), "using an older photo is on by default");
+  ok(!(await p.isChecked("#useOlder")), "using an older photo is off by default");
+  await p.check("#useOlder");
   await p.fill("#giveUpAfter", "50");
   await olderSpots();
   await p.check("#tagYear");
@@ -204,9 +205,18 @@ const { openPage, search, searchEnded } = require("./helpers.js");
   await searchEnded(p);
   ok((await p.evaluate(() => loadHistory()[0].settings.useOlder)) === true, "the history keeps it");
   ok(
-    (await p.evaluate(() => cleanSettings({ noBadCamera: true }).useOlder)) === true,
-    "older history entries get it on, the default",
+    (await p.evaluate(() =>
+      [
+        cleanSettings({}).useOlder,
+        cleanSettings({ useOlder: true }).useOlder,
+        cleanSettings({ useOlder: "yes" }).useOlder,
+      ].join(),
+    )) === "false,true,false",
+    "settings without it read as off; a saved choice of on is kept",
   );
+  await p.reload();
+  await p.waitForFunction(() => map !== null);
+  ok(await p.isChecked("#useOlder"), "and a visitor who ticked it keeps it ticked");
   // Reading Google's list: dates by type, newest first, the current photo and broken entries left out
   const read = await p.evaluate(() =>
     JSON.stringify(

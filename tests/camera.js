@@ -85,6 +85,8 @@ const { openPage, search, searchEnded } = require("./helpers.js");
 
   // Gen 2/3 only: "No bad camera" greyed out; newer photos replaced by the older Gen 2/3 one
   await p.check("#camGen23");
+  ok(!(await p.isChecked("#useOlder")), "using an older photo is off by default");
+  await p.check("#useOlder");
   ok(
     (await p.isDisabled("#noBadCamera")) && (await p.isEnabled("#useOlder")),
     'with a camera chosen, "No bad camera" is greyed out and older photos can be used',
