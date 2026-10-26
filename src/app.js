@@ -142,9 +142,12 @@ const BAD_CAMERA_HEIGHT = 6656,
   BAD_CAMERA_FROM = 2020;
 const BAD_CAMERA_KEPT = ["IN", "NP", "NG", "LB", "ST"];
 /* The cameras, told apart by the image height Google gives (checked on real panoramas with the owner,
-   October 2026): 8192 is Gen 4; 6656 is Gen 2 or 3 (they cannot be told apart), or bad camera (see
-   above); anything smaller is Gen 1, which is left out of every search (agreed with the owner). */
-const GEN4_HEIGHT = 8192;
+   October 2026: San Francisco and Sydney, 2007–2026): 8192 is Gen 4; 6656 is Gen 2 or 3 (they cannot be
+   told apart), or bad camera (see above); 1664 (3328 × 1664, 2007–2008) is Gen 1, which is left out of
+   every search (agreed with the owner). Other sizes exist (Sydney has 12000 × 6000 photos from 2017–2018,
+   not ordinary car coverage): their camera is unknown, as for a panorama without a size. */
+const GEN4_HEIGHT = 8192,
+  GEN1_MAX_HEIGHT = 3328; // Gen 1 is 1664 high; anything up to twice that counts as Gen 1
 const CAMERAS = { gen4: "Gen 4", gen23: "Gen 2/3", badcam: "Bad camera" };
 const CAMERA_BOXES = { camGen4: "gen4", camGen23: "gen23", camBad: "badcam" };
 const GIVE_UP_MIN = 50,
@@ -1391,12 +1394,14 @@ function isBadCamera(r, code) {
     !BAD_CAMERA_KEPT.includes(code)
   );
 }
-/* A panorama's camera in a country: "gen4", "gen23", "badcam", "gen1", or "" when Google gave no size. */
+/* A panorama's camera in a country: "gen4", "gen23", "badcam", "gen1", or "" when it is not known (no
+   size given, or a size none of these cameras makes). */
 function cameraOf(r, code) {
   if (!r.height) return "";
-  if (r.height >= GEN4_HEIGHT) return "gen4";
-  if (r.height >= BAD_CAMERA_HEIGHT) return isBadCamera(r, code) ? "badcam" : "gen23";
-  return "gen1";
+  if (r.height === GEN4_HEIGHT) return "gen4";
+  if (r.height === BAD_CAMERA_HEIGHT) return isBadCamera(r, code) ? "badcam" : "gen23";
+  if (r.height <= GEN1_MAX_HEIGHT) return "gen1";
+  return "";
 }
 /* Whether a panorama has the camera asked for: never Gen 1; one of the chosen cameras when some are
    chosen (an unknown camera then does not count); not bad camera with "No bad camera". */

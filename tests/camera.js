@@ -23,11 +23,16 @@ const { openPage, search, searchEnded } = require("./helpers.js");
       [{ height: 6656, date: "2015-05" }, "MT"],
       [{ height: 1664, date: "2008-05" }, "US"],
       [{ height: 0, date: "2023-05" }, "MT"],
+      // a size none of the cameras makes (Sydney has 12000 × 6000 photos from 2017–2018)
+      [{ height: 6000, date: "2018-11" }, "AU"],
     ]
       .map(([r, cc]) => cameraOf(r, cc) || "unknown")
       .join(),
   );
-  ok(told === "gen4,badcam,gen23,gen23,gen1,unknown", "the cameras are told apart by image size: " + told);
+  ok(
+    told === "gen4,badcam,gen23,gen23,gen1,unknown,unknown",
+    "the cameras are told apart by image size (real sizes, October 2026): " + told,
+  );
 
   // Google answers in turn: Gen 4, Gen 2/3 (2015), bad camera (2023), Gen 1 (2008), no size (2023).
   // Every spot also has an older Gen 2/3 photo (OLD23, 2014) and Gen 1 (OLD1, 2008) in its history.
