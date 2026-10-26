@@ -52,6 +52,26 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
     "country lookup library built into the page, without links to outside files",
   );
   ok(!/AIza[0-9A-Za-z_-]{35}/.test(html.replace("AIza…", "")), "no Google key in the key-less build");
+  // Nothing shaped like a Google key in the repository's own files either (tests included: a made-up
+  // key in a test is flagged by GitHub's secret scanning just like a real one)
+  const keyShaped = [];
+  const walk = dir => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if ([".git", "node_modules", "dist"].includes(e.name)) continue;
+      const f = path.join(dir, e.name);
+      if (e.isDirectory()) walk(f);
+      else if (
+        /\.(js|mjs|html|css|md|json|yml|yaml|svg)$/.test(e.name) &&
+        /AIza[0-9A-Za-z_-]{35}/.test(fs.readFileSync(f, "utf8"))
+      )
+        keyShaped.push(path.relative(path.join(__dirname, ".."), f));
+    }
+  };
+  walk(path.join(__dirname, ".."));
+  ok(
+    keyShaped.length === 0,
+    "nothing shaped like a Google key in the repository" + (keyShaped.length ? ": " + keyShaped : ""),
+  );
 
   // framed by another page: the app does not run, a link opens it on its own
   const outer = path.resolve(__dirname, "../dist/frame-test.html");
