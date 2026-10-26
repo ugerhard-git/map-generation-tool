@@ -1885,15 +1885,21 @@ function confirmClick(button, ask, act) {
     if (Date.now() - Number(button.dataset.askedAt || 0) >= ASK_FOR) button.textContent = button.dataset.text;
   }, ASK_FOR);
 }
-$("ownFromMap").onclick = () => {
-  const make = () => startOwn({ mode: "percent", values: toPercent(areaWeights()), name: "" });
-  // (unsaved edits of "Your own" would be replaced: ask first)
+/* Starts "Your own" with these shares (percentages); if it would replace unsaved edits of "Your own",
+   the button asks for a second click first. */
+function replaceOwn(button, values) {
+  const make = () => startOwn({ mode: "percent", values, name: "" });
   const saved =
     !own ||
     loadPresets().some(p => p.name === own.name && JSON.stringify(p.values) === JSON.stringify(own.values));
   if (saved) make();
-  else confirmClick($("ownFromMap"), "Replace your own distribution? Click again", make);
-};
+  else confirmClick(button, "Replace your own distribution? Click again", make);
+}
+$("ownFromMap").onclick = () => replaceOwn($("ownFromMap"), toPercent(areaWeights()));
+// Equal shares for every country of the area, without choosing a map first (agreed with the owner,
+// October 2026: it can be used at once; "Set all to 0" is there to start from nothing instead)
+$("ownEqual").onclick = () =>
+  replaceOwn($("ownEqual"), toPercent(Object.fromEntries(ownAreaCodes().map(c => [c, 1]))));
 $("ownFromPreset").onclick = () => {
   const p = ownChosen();
   if (p) startOwn(p);
@@ -1950,13 +1956,14 @@ $("ownSave").onclick = () => {
   updateMore();
 };
 /* Shows the actions that fit the distribution chosen: make your own from a Vali map; edit a copy of a
-   preset or delete it; edit the shares of your own. */
+   preset or delete it; edit the shares of your own. Starting your own with equal shares is always there. */
 function updateOwnActs() {
   const v = $("distribution").value,
     preset = v.startsWith("preset:"),
     mine = v === "own";
   $("ownFromMap").hidden = preset || mine;
   $("ownFromMap").disabled = !distributionUsed();
+  $("ownEqual").disabled = !distributionUsed();
   $("ownFromPreset").hidden = $("presetDelete").hidden = !preset;
   $("ownEdit").hidden = !mine;
   $("ownEdit").disabled = !distributionUsed();

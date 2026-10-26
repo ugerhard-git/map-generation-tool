@@ -310,6 +310,57 @@ const { openPage, chooseCountry, searchEnded } = require("./helpers.js");
     "Palestine, in none of Vali's continent lists, is offered for Asia",
   );
 
+  // Your own with equal shares, without choosing a map first
+  {
+    const { page: q, errors: qErrors } = await openPage(b);
+    await chooseCountry(q, "Malta");
+    ok(await q.isDisabled("#ownEqual"), "one country: starting your own is greyed out, like the section");
+    for (const c of ["Luxembourg", "Gibraltar"]) await chooseCountry(q, c);
+    ok(
+      (await q.isVisible("#ownEqual")) && (await q.isEnabled("#ownEqual")),
+      "with several countries, you can start your own with equal shares",
+    );
+    await q.click("#ownEqual");
+    const eq = await q.$$eval("#shares .own-input", l => l.map(i => i.value).sort());
+    const counts = await q.$$eval("#shares .own-figure", l => l.map(c => c.textContent));
+    ok(
+      (await q.inputValue("#distribution")) === "own" &&
+        (await q.isVisible("#ownEditor")) &&
+        eq.join() === "33.33,33.33,33.34" &&
+        counts.join() === "100,100,100",
+      "equal shares that add up to exactly 100%, 100 locations each of 300: " + eq.join() + " / " + counts,
+    );
+    await q.waitForTimeout(900);
+    ok(
+      await q.evaluate(() => {
+        const r = document.getElementById("ownEditor").getBoundingClientRect();
+        return r.top >= 0 && r.top < innerHeight;
+      }),
+      "and the editor is scrolled into view",
+    );
+    // Edited, then equal shares for the whole world: a second click replaces "Your own"
+    await q.fill('#shares .own-input[data-code="MT"]', "80");
+    await q.check("input[name=scope][value=world]");
+    await q.click("#ownEqual");
+    ok(
+      /Click again/.test(await q.textContent("#ownEqual")) && (await q.evaluate(() => own.values.MT)) === 80,
+      "replacing edits of your own asks for a second click first",
+    );
+    await q.click("#ownEqual");
+    const world = await q.evaluate(() => ({
+      n: Object.keys(own.values).length,
+      all: COVERAGE.length,
+      sum: Math.round(Object.values(own.values).reduce((a, v) => a + v, 0) * 100) / 100,
+      max: Math.max(...Object.values(own.values)),
+      min: Math.min(...Object.values(own.values)),
+    }));
+    ok(
+      world.n === world.all && world.sum === 100 && world.max - world.min < 0.5,
+      "the whole world: every country with coverage gets the same share: " + JSON.stringify(world),
+    );
+    ok(qErrors.length === 0, "no page errors " + qErrors.join(" | "));
+  }
+
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();
   console.log(fail ? `${fail} FAILED` : "ALL PASS");

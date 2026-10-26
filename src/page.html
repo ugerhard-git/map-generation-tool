@@ -210,6 +210,11 @@
         </li>
       </ul>
       <p>
+        "Start your own (equal shares)" gives every country in the area the same share, so you need not pick a
+        map first. For a continent or the whole world, a small island then gets as much as a large country:
+        start from a map, or use "Set all to 0", if you want something else.
+      </p>
+      <p>
         Every country with official Street View in the area is listed, also those a Vali map leaves out (with
         0), so you can give them a share. The × next to a share takes that country out (sets it to 0); "Set
         all to 0" starts from nothing, so you can enter just the countries you want.
@@ -429,10 +434,11 @@
                 </div>
                 <select id="distribution"></select>
                 <p class="hint" id="distributionNote" hidden>Only used with several countries.</p>
-                <!-- Your own distributions (app.js: your own distributions): start one from the map chosen,
-                     edit a copy of a preset, or delete a preset -->
+                <!-- Your own distributions (app.js: your own distributions): start one from the map chosen
+                     or with equal shares, edit a copy of a preset, or delete a preset -->
                 <div class="own-acts" id="ownActs">
                   <button type="button" class="linkbtn" id="ownFromMap">Make your own from this map</button>
+                  <button type="button" class="linkbtn" id="ownEqual">Start your own (equal shares)</button>
                   <button type="button" class="linkbtn" id="ownFromPreset" hidden>Edit a copy</button>
                   <button type="button" class="linkbtn rm" id="presetDelete" hidden>
                     Delete this preset
