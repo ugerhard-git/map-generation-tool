@@ -20,7 +20,7 @@ const { PAGE, isSite, serveSite } = require("./site.js");
   );
   await p.goto(PAGE);
   await p.waitForFunction(() => map !== null);
-  const sections = ["moreDistribution", "morePhotos", "moreSearch", "moreMapFile"];
+  const sections = ["moreDistribution", "moreRoads", "morePhotos", "moreView", "moreSearch", "moreMapFile"];
   const summary = id => p.textContent(`#${id} .more-sum`);
   const changed = id => p.isVisible(`#${id} .more-changed`);
 
@@ -35,11 +35,21 @@ const { PAGE, isSite, serveSite } = require("./site.js");
   );
   ok(
     (await p.isVisible("#country")) &&
-      (await p.isVisible("#noRoadName")) &&
-      (await p.isVisible("#arrowsEnd")) &&
       (await p.isVisible("#target")) &&
-      (await p.isVisible("#go")),
-    "and where, the main criteria, how many and Find locations",
+      (await p.isVisible("#go")) &&
+      (await p.isHidden("#noRoadName")) &&
+      (await p.isHidden("#arrowsEnd")),
+    "and where, how many and Find locations; the filters are in closed sections too",
+  );
+  ok(
+    (await p.textContent("#whatSummary")) === "Any official location. Choose more in the sections below.",
+    "a line under step 2 says what is looked for",
+  );
+  // The order of step 2's sections: Photos, Roads and arrows, Camera view
+  ok(
+    (await p.$$eval("#stepWhat details.more", list => list.map(d => d.id).join())) ===
+      "morePhotos,moreRoads,moreView",
+    "step 2: Photos, Roads and arrows, Camera view",
   );
   ok((await p.$$("#fields .hint:visible")).length <= 2, "with little text on the page");
 
@@ -48,12 +58,33 @@ const { PAGE, isSite, serveSite } = require("./site.js");
   for (const id of sections) sums[id] = await summary(id);
   ok(
     sums.moreDistribution === "Only used with several countries" &&
+      sums.moreRoads === "Any road names, any arrows" &&
       sums.morePhotos === "Any time" &&
       sums.moreSearch === "1,000 m around each spot, give up after 2,000 spots" &&
       sums.moreMapFile === "Suggested name, tags: country",
     "each section sums up its settings: " + JSON.stringify(sums),
   );
   ok(!(await changed("morePhotos")) && !(await changed("moreSearch")), "nothing is marked changed at first");
+
+  // Roads and arrows: summed up, marked, reset; the line under step 2 follows
+  await p.click("#moreRoads summary");
+  await p.check("#noRoadName");
+  await p.check("#arrowsEnd");
+  ok(
+    (await summary("moreRoads")) === "No road name, end of coverage" &&
+      (await changed("moreRoads")) &&
+      (await p.textContent("#whatSummary")) === "Looking for: no road name, end of coverage.",
+    "roads and arrows: " + (await summary("moreRoads")) + " / " + (await p.textContent("#whatSummary")),
+  );
+  await p.click("#moreRoads .reset");
+  ok(
+    (await summary("moreRoads")) === "Any road names, any arrows" &&
+      !(await p.isChecked("#noRoadName")) &&
+      (await p.isChecked("#arrowsAny")) &&
+      (await p.evaluate(() => localStorage.getItem("mapgen.arrows"))) === '"any"',
+    "and its reset, also what is saved",
+  );
+  await p.click("#moreRoads summary"); // closed again
 
   // Changing a setting: the summary follows, the section is marked changed, Reset puts it back
   await p.click("#morePhotos summary");
@@ -126,6 +157,7 @@ const { PAGE, isSite, serveSite } = require("./site.js");
       .filter(t => !(document.getElementById("help-" + t) instanceof HTMLTemplateElement)),
   );
   ok(topics.length === 0, "every ? button has a help text" + (topics.length ? ": missing " + topics : ""));
+  await p.click("#moreRoads summary");
   await p.click('button.help[data-help="noRoadName"]');
   ok(!(await p.isChecked("#noRoadName")), "a ? next to a tick box does not tick it");
   await p.click("#helpOk");

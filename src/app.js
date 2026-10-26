@@ -1386,6 +1386,23 @@ const MORE = {
     changed: () => $("distribution").value !== defaultDistribution(),
     reset: () => setControl("distribution", defaultDistribution()),
   },
+  moreRoads: {
+    summary: () => {
+      const bits = [];
+      if ($("noRoadName").checked) bits.push("no road name");
+      if (arrows() === "end") bits.push("end of coverage");
+      if (arrows() === "intersection") bits.push("intersection");
+      const text = bits.join(", ") || "any road names, any arrows";
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    },
+    changed: () => $("noRoadName").checked || arrows() !== "any",
+    reset: () => {
+      setControl("noRoadName", false);
+      setRadio("arrows", "any");
+      store.set("arrows", "any");
+      updateMapName();
+    },
+  },
   morePhotos: {
     summary: () => {
       const bits = [years() ? periodLabel(years()) : "Any time"];
@@ -1475,8 +1492,14 @@ function setControl(id, value) {
   el.dispatchEvent(new Event(el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input"));
   if (el.type === "text") el.dispatchEvent(new Event("change"));
 }
-/* Updates the summary line and the "changed" mark of every section. */
+/* Updates the summary line and the "changed" mark of every section, and the line under step 2 that says
+   what is looked for. */
 function updateMore() {
+  const w = wanted();
+  $("whatSummary").textContent =
+    w.noRoadName || w.arrows !== "any" || w.years || w.cameras || w.noBadCamera
+      ? `Looking for: ${wantedLabel(w).replace(/^./, c => c.toLowerCase())}.`
+      : "Any official location. Choose more in the sections below.";
   for (const [id, m] of Object.entries(MORE)) {
     const sum = $("sum" + id.slice(4));
     sum.textContent = m.summary();
@@ -1625,6 +1648,11 @@ function renderOwnTable() {
     input.setAttribute("aria-label", `${countryName(code)}: ${pct ? "share in percent" : "locations"}`);
     const share = makeElement("td", { className: "own-cell" }, input);
     if (pct) share.append(makeElement("span", { className: "own-unit" }, "%"));
+    // one click takes the country out (sets it to 0)
+    const clear = makeElement("button", { type: "button", className: "own-clear", textContent: "×" });
+    clear.dataset.code = code;
+    clear.setAttribute("aria-label", `Take ${countryName(code)} out (set to 0)`);
+    share.append(clear);
     const figure = makeElement("td", { className: "own-figure" });
     figure.dataset.code = code;
     rows.append(makeElement("tr", {}, makeElement("td", {}, countryName(code)), share, figure));
@@ -1653,6 +1681,8 @@ function updateOwnFigures() {
   const pct = own.mode === "percent",
     targets = planTargets(),
     sum = ownSum();
+  for (const b of document.querySelectorAll("#shares .own-clear"))
+    b.classList.toggle("none", !own.values[b.dataset.code]);
   for (const cell of document.querySelectorAll("#shares .own-figure")) {
     const v = own.values[cell.dataset.code] || 0;
     cell.textContent = pct
@@ -1696,6 +1726,16 @@ $("shares").addEventListener("input", e => {
   saveOwn();
   updateOwnFigures();
 });
+// The × of a row: that country to 0
+$("shares").addEventListener("click", e => {
+  const b = e.target.closest?.(".own-clear");
+  if (!b || !own) return;
+  delete own.values[b.dataset.code];
+  saveOwn();
+  const input = document.querySelector(`#shares .own-input[data-code="${b.dataset.code}"]`);
+  if (input) input.value = shareText(0);
+  updateOwnFigures();
+});
 $("shares").addEventListener("change", e => {
   if (e.target.classList?.contains("own-input") && own)
     e.target.value = shareText(own.values[e.target.dataset.code] || 0);
@@ -1717,6 +1757,12 @@ for (const r of document.querySelectorAll("input[name=ownMode]"))
     saveOwn();
     renderShares();
   };
+// Every country of the area to 0, to start from nothing (asks for a second click)
+$("ownClearAll").onclick = () =>
+  confirmClick($("ownClearAll"), "Set every share to 0? Click again", () => {
+    setAreaShares({});
+    renderShares();
+  });
 $("ownMake100").onclick = () => {
   setAreaShares(toPercent(Object.fromEntries(ownAreaCodes().map(c => [c, own.values[c] || 0]))));
   renderShares();
@@ -1735,10 +1781,7 @@ function startOwn(from, open = true) {
   renderDistributionChoices();
   $("distribution").value = "own";
   whereChanged();
-  if (open) {
-    $("sharesBox").open = true;
-    $("sharesBox").scrollIntoView({ block: "nearest" });
-  }
+  if (open) showOwnEditor();
 }
 /* A button that asks for a second click within a few seconds before doing something that cannot be
    undone; ask is its text in the meantime. */
@@ -1774,8 +1817,13 @@ $("ownEdit").onclick = () => {
   searchTargets = new Map();
   hideShortfall();
   renderShares();
-  $("sharesBox").open = true;
+  showOwnEditor();
 };
+/* Opens the table of locations per country and scrolls to the editor, every time. */
+function showOwnEditor() {
+  $("sharesBox").open = true;
+  $("ownEditor").scrollIntoView({ block: "start", behavior: "smooth" });
+}
 $("presetDelete").onclick = () =>
   confirmClick($("presetDelete"), "Delete it? Click again", () => {
     const id = $("distribution").value.slice("preset:".length);

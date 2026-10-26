@@ -248,6 +248,47 @@ const { openPage, chooseCountry, searchEnded } = require("./helpers.js");
     "numbers adding up to more than 130,000 are refused",
   );
 
+  // "Edit the shares" scrolls to the editor, every time
+  await p.check("input[name=scope][value=countries]");
+  await p.evaluate(() => {
+    chosenCountries = ["MT", "LU", "GI"];
+    own = { mode: "percent", values: { MT: 50, LU: 30, GI: 20 }, name: "" };
+    saveOwn();
+    renderDistributionChoices();
+    document.getElementById("distribution").value = "own";
+    whereChanged();
+  });
+  const editorInView = () =>
+    p.evaluate(() => {
+      const r = document.getElementById("ownEditor").getBoundingClientRect();
+      return r.top >= 0 && r.top < innerHeight;
+    });
+  for (const round of [1, 2]) {
+    await p.evaluate(() => {
+      document.getElementById("form").scrollTop = 0;
+      scrollTo(0, 0);
+    });
+    await p.click("#ownEdit");
+    await p.waitForTimeout(900);
+    ok(await editorInView(), `"Edit the shares" scrolls to the editor (time ${round})`);
+  }
+  // The × takes one country out; "Set all to 0" all of them, after a second click
+  await p.click('#shares .own-clear[data-code="GI"]');
+  ok(
+    (await p.inputValue('#shares .own-input[data-code="GI"]')) === "0" &&
+      (await p.evaluate(() => own.values.GI)) === undefined &&
+      !(await p.isVisible('#shares .own-clear[data-code="GI"]')),
+    "the × of a row sets that country to 0",
+  );
+  await p.click("#ownClearAll");
+  ok((await p.evaluate(() => Object.keys(own.values).length)) === 2, "Set all to 0 asks for a second click");
+  await p.click("#ownClearAll");
+  ok(
+    (await p.evaluate(() => Object.keys(own.values).length)) === 0 &&
+      /Give at least one country a share/.test(await p.textContent("#ownSum")),
+    "then every share is 0",
+  );
+
   // The whole world: every country with official coverage can get a share
   await p.check("input[name=scope][value=world]");
   ok(

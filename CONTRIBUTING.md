@@ -54,7 +54,7 @@ The code is read by the owner and by developers who don't know the project. Writ
 The tool should feel easy on first sight, also as settings are added. Every change that adds or moves a setting follows these rules (agreed with the owner, October 2026):
 
 - **Every setting has a good default.** A visitor who changes nothing gets a sensible search.
-- **The first screen shows only what most visitors need:** where, the main criteria, how many, and "Find locations". Any other setting goes into a closed "More options" section for its topic.
+- **The first screen shows only what most visitors need:** where, how many, and "Find locations". Every filter and every other setting goes into a closed "More options" section for its topic (agreed with the owner, October 2026: also "No road name" and the arrows, under "Roads and arrows"). A short line under step 2 says what is looked for.
 - **Nothing changed stays hidden.** A closed section shows a one-line summary of what is set, marks what differs from the default, and offers "Reset to defaults".
 - **Little text on the page.** At most a short hint under a setting. A longer explanation goes into a help dialog, opened by a small "?" button next to the setting.
 - **Related choices that exclude each other are one choice**, not tick boxes that can contradict each other (such as "Arrows: any, end of coverage, intersection"). A setting that does not apply is greyed out, not hidden.

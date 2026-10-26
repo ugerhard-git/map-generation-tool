@@ -53,6 +53,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 18. **After the plan** (done, 26 October 2026, at the owner's request): a random camera direction within a range around the car (clockwise, across the front if needed; 0° to 360° by default); in your own distributions, countries a Vali map leaves out are shown with 0 (and Palestine, in none of Vali's continent lists, is offered for Asia), and the note that a small share rounds down to 0 moved into the help.
 
+19. **Roads and arrows** (done, 26 October 2026, at the owner's request): "No road name" and the arrows moved from the first screen into their own closed section, between "Photos" and "Camera view"; a line under step 2 says what is looked for. The rule in CONTRIBUTING.md changed with it: the first screen shows where, how many and "Find locations". Also in your own distributions: "Edit the shares" scrolls to the editor every time, a × next to each share takes that country out (sets it to 0), and "Set all to 0" (after a second click) starts from nothing.
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits
