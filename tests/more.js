@@ -162,6 +162,35 @@ const { PAGE, isSite, serveSite } = require("./site.js");
   ok(!(await p.isChecked("#noRoadName")), "a ? next to a tick box does not tick it");
   await p.click("#helpOk");
 
+  // Inactive elements clearly look inactive: every disabled control that can be seen is faded (by
+  // itself or by what it sits in), and a disabled link button is not underlined
+  for (const id of sections) await p.evaluate(id => (document.getElementById(id).open = true), id);
+  // one country, so the distribution and its links do not apply
+  await p.evaluate(() => {
+    chosenCountries = ["IS"];
+    whereChanged();
+  });
+  const unfaded = await p.evaluate(() =>
+    [...document.querySelectorAll("#form :disabled")]
+      .filter(el => el.offsetParent !== null)
+      .filter(el => {
+        let o = 1;
+        for (let n = el; n && n !== document.body; n = n.parentElement)
+          o *= Number(getComputedStyle(n).opacity);
+        const link = el.classList.contains("linkbtn");
+        return o > 0.65 || (link && getComputedStyle(el).textDecorationLine !== "none");
+      })
+      .map(el => el.id || el.className),
+  );
+  const disabledCount = await p.evaluate(
+    () => [...document.querySelectorAll("#form :disabled")].filter(el => el.offsetParent !== null).length,
+  );
+  ok(
+    disabledCount >= 5 && unfaded.length === 0,
+    `every one of the ${disabledCount} inactive controls looks inactive` +
+      (unfaded.length ? ": not faded " + unfaded.join(", ") : ""),
+  );
+
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();
   console.log(fail ? `${fail} FAILED` : "ALL PASS");

@@ -285,6 +285,7 @@
         have Gen 4 photos on top of older Gen 2/3 ones. It must still have everything else ticked, such as the
         period.
       </p>
+      <p>It is greyed out unless cameras are ticked or "No bad camera" is.</p>
     </template>
     <template id="help-direction">
       <h2>Direction</h2>
@@ -514,7 +515,8 @@
                   ?
                 </button>
               </div>
-              <div class="indent checkrow">
+              <!-- Not indented: it applies to the cameras ticked as well as to "No bad camera" -->
+              <div class="checkrow">
                 <label class="check"
                   ><input type="checkbox" id="useOlder" checked /><span
                     >Use an older photo instead, if there is one</span

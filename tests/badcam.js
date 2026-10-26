@@ -183,7 +183,21 @@ const { openPage, search, searchEnded } = require("./helpers.js");
   ok(used.found === 0 && used.lookups === 0, "switched off: no older photos are looked at");
   // Only with "No bad camera", and kept in the history
   await p.uncheck("#noBadCamera");
-  ok(await p.isDisabled("#useOlder"), "the option can only be changed with No bad camera ticked");
+  ok(
+    (await p.isDisabled("#useOlder")) &&
+      (await p.evaluate(
+        () => getComputedStyle(document.getElementById("useOlder").closest(".check")).opacity,
+      )) === "0.5",
+    "without cameras or No bad camera, the option is greyed out, with its text",
+  );
+  await p.check("#camGen4");
+  ok(
+    (await p.isEnabled("#useOlder")) && (await p.isDisabled("#noBadCamera")),
+    "with cameras ticked, it applies (and No bad camera does not)",
+  );
+  const left = id => p.evaluate(id => document.getElementById(id).getBoundingClientRect().left, id);
+  ok((await left("useOlder")) === (await left("noBadCamera")), "so it is not indented under No bad camera");
+  await p.uncheck("#camGen4");
   await p.check("#noBadCamera");
   await p.check("#useOlder");
   await search(p, { country: "Malta", target: 1 });

@@ -315,10 +315,27 @@ const { openPage, chooseCountry, searchEnded } = require("./helpers.js");
     const { page: q, errors: qErrors } = await openPage(b);
     await chooseCountry(q, "Malta");
     ok(await q.isDisabled("#ownEqual"), "one country: starting your own is greyed out, like the section");
+    const look = await q.evaluate(() => {
+      const st = getComputedStyle(document.getElementById("ownFromMap"));
+      return {
+        line: st.textDecorationLine,
+        opacity: st.opacity,
+        title: document.getElementById("ownEqual").title,
+      };
+    });
+    ok(
+      look.line === "none" && look.opacity === "0.6" && look.title === "Choose two or more countries first",
+      "and looks it: not underlined, faded, and says why when pointed at: " + JSON.stringify(look),
+    );
     for (const c of ["Luxembourg", "Gibraltar"]) await chooseCountry(q, c);
     ok(
       (await q.isVisible("#ownEqual")) && (await q.isEnabled("#ownEqual")),
       "with several countries, you can start your own with equal shares",
+    );
+    ok(
+      (await q.evaluate(() => getComputedStyle(document.getElementById("ownEqual")).textDecorationLine)) ===
+        "underline" && (await q.getAttribute("#ownEqual", "title")) === "",
+      "then it looks like a link again",
     );
     await q.click("#ownEqual");
     const eq = await q.$$eval("#shares .own-input", l => l.map(i => i.value).sort());

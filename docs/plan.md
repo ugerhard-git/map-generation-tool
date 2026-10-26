@@ -59,6 +59,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 21. **Your own distribution with equal shares** (done, 26 October 2026, at the owner's request): "Start your own (equal shares)" next to "Make your own from this map" starts "Your own" without choosing a map first: every country of the area gets the same percentage, adding up to exactly 100% (the largest share takes the rounding). Equal rather than empty, as agreed with the owner: it can be used at once, and "Set all to 0" starts from nothing in one click. Replacing unsaved edits of "Your own" asks for a second click; presets are not touched.
 
+22. **Greyed out looks greyed out** (done, 26 October 2026, at the owner's request): link buttons that cannot be used yet ("Make your own from this map", "Start your own (equal shares)", "Edit the shares" with one country) are faded and not underlined, and say why when pointed at; tick boxes that do not apply are faded with their text. "Use an older photo instead" is no longer indented under "No bad camera", as it applies to the cameras ticked too.
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits

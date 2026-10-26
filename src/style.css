@@ -203,6 +203,30 @@ fieldset:disabled {
 .linkbtn.rm {
   color: var(--red);
 }
+/* Greyed out when it cannot be used yet ("Make your own from this map" with one country, say) */
+.linkbtn:disabled {
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0.6;
+  cursor: default;
+}
+/* Inactive elements clearly look inactive (CONTRIBUTING.md, "A simple interface"): every disabled field,
+   list and slider is faded, and a tick box or radio button with its text, not only the box itself */
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.check:has(input:disabled),
+.radio:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+.check input:disabled,
+.radio input:disabled {
+  opacity: 1; /* (faded once, with its text) */
+}
 /* The list in the History dialog */
 .history-list {
   list-style: none;
@@ -334,7 +358,7 @@ a:focus-visible {
   accent-color: var(--blue);
   flex: none;
 }
-/* Options that belong to the tick box above them ("Use an older photo instead") */
+/* Options that belong to the tick box above them (how the year tag writes the date) */
 .indent {
   margin-left: 28px;
 }
