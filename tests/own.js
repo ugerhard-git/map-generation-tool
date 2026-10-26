@@ -217,7 +217,9 @@ const { openPage, chooseCountry, searchEnded } = require("./helpers.js");
   );
   ok(
     hostile.own.mode === "percent" &&
-      JSON.stringify(hostile.own.values) === '{"MT":100,"IS":12}' &&
+      Object.keys(hostile.own.values).sort().join() === "IS,MT" &&
+      hostile.own.values.MT === 100 &&
+      hostile.own.values.IS === 12 &&
       hostile.own.name.length === 40,
     "values from outside are checked: " + JSON.stringify(hostile.own),
   );

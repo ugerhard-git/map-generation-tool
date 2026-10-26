@@ -6,7 +6,7 @@ Please do not report security problems in public issues. Use GitHub's private re
 
 ## How the app protects itself
 
-- Everything the page receives from outside (Google, saved settings) is checked before use and shown as text, never as HTML. Panorama ids, dates and copyrights from Google must have the expected form; `tests/hostile.js` checks this with hostile answers.
+- Everything the page receives from outside (Google, saved settings) is checked before use and shown as text, never as HTML. Panorama ids, dates and copyrights from Google must have the expected form; `tests/hostile.js` checks this with hostile answers. `tests/stored.js` does the same with hostile values saved in the browser (your own distributions, presets, the camera view, the history) and in settings files.
 - A Content Security Policy only lets the page's own scripts run, plus Google's Street View script. The build fingerprints the page's scripts, so changed or injected scripts are refused. The page may only connect to Google's Maps service.
 - The page refuses to run inside another site's frame.
 - The country distributions from Vali are checked by `tools/vali.js` and built into the page; the page never contacts GitHub. The monthly update only proposes changes as a pull request for the owner to review. Its checks (which run the npm packages) have no write access; the job that pushes the branch and opens the pull request runs no outside code. `tools/vali.js` refuses shares that are out of range.
