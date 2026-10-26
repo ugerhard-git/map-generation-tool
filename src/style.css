@@ -835,3 +835,93 @@ a:focus-visible {
 #helpBody li {
   margin-bottom: 6px;
 }
+
+/* ---------- camera view ----------
+   The two drawings: the car from above with the camera arrow, and from the side with the tilt (an arrow,
+   or in "random" a shaded range between two handles). Greyed out while they do not apply. */
+.dial {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin: 10px 0 0 28px;
+}
+.dial svg {
+  width: 150px;
+  height: 150px;
+  flex: none;
+  cursor: pointer;
+  touch-action: none; /* dragging on a phone turns the arrow instead of scrolling */
+  user-select: none;
+}
+.dial.off svg {
+  opacity: 0.45;
+}
+.dial-fields {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.dial-fields .unit {
+  max-width: 110px;
+}
+.dial-fields label {
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+.tilt-range-fields {
+  display: grid;
+  grid-template-columns: auto 110px;
+  align-items: center;
+  gap: 6px 8px;
+}
+.tilt-range-fields label {
+  margin: 0;
+}
+.dial-ring {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 2;
+}
+.dial-word {
+  font-size: 11px;
+  fill: var(--muted);
+  text-anchor: middle;
+}
+.car {
+  fill: #d7deea;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.car-glass {
+  fill: #9fb3d3;
+}
+.wheel {
+  fill: var(--ink);
+}
+.cam-mast {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.cam-line {
+  stroke: var(--blue);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.cam-head {
+  fill: var(--blue);
+}
+.tilt-range {
+  fill: rgba(29, 95, 209, 0.16);
+}
+.tilt-handle {
+  fill: #fff;
+  stroke: var(--blue);
+  stroke-width: 3;
+}
+#tiltBox:not(.random) .tilt-range,
+#tiltBox:not(.random) .tilt-handle,
+#tiltBox:not(.random) #tiltRangeFields,
+#tiltBox.random #tiltArrow,
+#tiltBox.random #tiltFixedFields {
+  display: none;
+}

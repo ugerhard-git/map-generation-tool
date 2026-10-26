@@ -5,7 +5,8 @@ const { PAGE, isSite, serveSite } = require("./site.js");
  *  window.__sv(request), which a test sets with page.evaluate: it returns null (nothing found), an
  *  object with a `status` (an error), or { id, lat, lng, copyright?, links?, date?, height? } (a
  *  panorama; the photo date is "2023-04" unless `date` says otherwise, "" for none; `height` is the full
- *  image's height in pixels, none if left out; `time` lists the photos at the spot as { pano, date }).
+ *  image's height in pixels, none if left out; `carHeading` the direction the car faced; `time` lists the
+ *  photos at the spot as { pano, date }).
  *  mode "denied" makes Google refuse the key, as it does on a wrong key. */
 const googleScript = mode =>
   mode === "denied"
@@ -21,6 +22,8 @@ const googleScript = mode =>
               copyright: a.copyright || "© 2024 Google", imageDate: a.date ?? "2023-04" };
             if (a.links !== undefined) d.links = a.links;
             if (a.height) d.tiles = { worldSize: { width: a.height * 2, height: a.height } };
+            // the direction the car faced (Google's tiles.centerHeading)
+            if (a.carHeading !== undefined) d.tiles = { ...d.tiles, centerHeading: a.carHeading };
             // the other photos at the spot, shaped like Google's undocumented "time" list: the date is a
             // Date for the first of the month, under a shortened name ("gD", or a.dateKey to test a rename)
             if (a.time)
