@@ -267,11 +267,11 @@ const path = require("path");
     cleanSettings({ countries: ["MT"], deadEnd: true, walkOn: true, walkSteps: 300 }),
   );
   ok(
-    !("walkOn" in oldEntry) && !("walkSteps" in oldEntry) && oldEntry.deadEnd === true,
+    !("walkOn" in oldEntry) && !("walkSteps" in oldEntry) && oldEntry.arrows === "end",
     "an older history entry with the road option keeps everything else",
   );
   await p.evaluate(s => applySettings(s), oldEntry);
-  ok(await p.isChecked("#deadEnd"), "and its settings can be used");
+  ok(await p.isChecked("#arrowsEnd"), "and its settings can be used");
 
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();

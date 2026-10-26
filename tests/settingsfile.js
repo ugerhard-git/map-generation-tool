@@ -16,7 +16,7 @@ const { openPage, chooseCountry } = require("./helpers.js");
   await chooseCountry(p, "Malta");
   await chooseCountry(p, "Luxembourg");
   await p.selectOption("#distribution", "acw");
-  await p.check("#deadEnd");
+  await p.check("#arrowsEnd");
   await p.check("#yearsOn");
   await p.selectOption("#yearFrom", "2015");
   await p.check("#noBadCamera");
@@ -50,7 +50,7 @@ const { openPage, chooseCountry } = require("./helpers.js");
   ok(
     s.countries.join() === "MT,LU" &&
       s.distribution === "acw" &&
-      s.deadEnd === true &&
+      s.arrows === "end" &&
       s.yearsOn === true &&
       s.yearFrom === 2015 &&
       s.noBadCamera === true &&
@@ -68,7 +68,7 @@ const { openPage, chooseCountry } = require("./helpers.js");
   await p.click("#settingsX");
   await p.click("#moreSearch .reset");
   await p.click("#morePhotos .reset");
-  await p.uncheck("#deadEnd");
+  await p.check("#arrowsAny");
   await p.evaluate(() => {
     chosenCountries = ["DE"];
     whereChanged();
@@ -90,7 +90,7 @@ const { openPage, chooseCountry } = require("./helpers.js");
     (await p.isHidden("#settingsFile")) &&
       (await p.evaluate(() => chosenCountries.join())) === "MT,LU" &&
       (await p.inputValue("#distribution")) === "acw" &&
-      (await p.isChecked("#deadEnd")) &&
+      (await p.isChecked("#arrowsEnd")) &&
       (await p.isChecked("#noBadCamera")) &&
       (await p.inputValue("#yearFrom")) === "2015" &&
       (await p.inputValue("#target")) === "2,500" &&
@@ -125,7 +125,7 @@ const { openPage, chooseCountry } = require("./helpers.js");
     "a newer file: what can be used is, the rest is named: " + note,
   );
   ok(
-    (await p.inputValue("#radius")) === "1,000" && !(await p.isChecked("#deadEnd")),
+    (await p.inputValue("#radius")) === "1,000" && (await p.isChecked("#arrowsAny")),
     "settings missing from the file get their defaults",
   );
 

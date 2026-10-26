@@ -73,8 +73,18 @@ async function chooseCountry(page, name) {
 }
 
 /** Fills the form and starts a search: the countries (names; they replace those chosen before), the
- *  criteria, the number and the key. */
-async function search(page, { country = "Malta", noRoadName = false, deadEnd = false, target = 5 } = {}) {
+ *  criteria (arrows: "any", "end" or "intersection"; deadEnd: true is short for "end"), the number and
+ *  the key. */
+async function search(
+  page,
+  {
+    country = "Malta",
+    noRoadName = false,
+    deadEnd = false,
+    arrows = deadEnd ? "end" : "any",
+    target = 5,
+  } = {},
+) {
   await page.check("input[name=scope][value=countries]");
   await page.evaluate(() => {
     chosenCountries = [];
@@ -82,7 +92,7 @@ async function search(page, { country = "Malta", noRoadName = false, deadEnd = f
   });
   for (const name of [country].flat()) await chooseCountry(page, name);
   await page.setChecked("#noRoadName", noRoadName);
-  await page.setChecked("#deadEnd", deadEnd);
+  await page.check(`input[name=arrows][value="${arrows}"]`);
   await page.fill("#target", String(target));
   await page.fill("#apiKey", "TESTKEY");
   await page.click("#go");
