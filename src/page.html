@@ -196,14 +196,19 @@
       <ul>
         <li>
           <b>Percentages:</b> give each country a share. The number of locations in step 3 is shared out in
-          those proportions, in whole numbers that add up exactly. Decimals are fine (0.5 or 0,5). Shares that
-          do not add up to 100 are used in proportion; "Make it 100%" scales them so they do.
+          those proportions, in whole numbers that add up exactly, so a small share of a small number can
+          round down to 0 locations. Decimals are fine (0.5 or 0,5). Shares that do not add up to 100 are used
+          in proportion; "Make it 100%" scales them so they do.
         </li>
         <li>
           <b>Numbers:</b> give each country an exact number of locations. The number in step 3 is then their
           total; changing it there scales them all.
         </li>
       </ul>
+      <p>
+        Every country with official Street View in the area is listed, also those a Vali map leaves out (with
+        0), so you can give them a share.
+      </p>
       <p>
         Switching between the two keeps what you entered, converted. "Save as preset" keeps it in this browser
         under "Your maps" in the distribution list; saving under a name you used before replaces that preset.
@@ -283,7 +288,11 @@
           the car, 90° to its right, 180° behind it, 270° to its left. "The car" is the direction the Street
           View car was driving when the photo was taken.
         </li>
-        <li><b>Random:</b> any direction, different for every location.</li>
+        <li>
+          <b>Random:</b> a different direction for every location, between the two handles around the car (or
+          the angles typed), clockwise: 45° to 135° is anywhere to the right, 315° to 45° anywhere within 45°
+          of the front. 0° to 360°, the whole way round, is any direction.
+        </li>
       </ul>
     </template>
     <template id="help-tilt">
@@ -562,21 +571,48 @@
                     <rect class="car" x="-14" y="-30" width="28" height="60" rx="8" />
                     <rect class="car-glass" x="-10" y="-19" width="20" height="9" rx="2" />
                     <rect class="car-glass" x="-10" y="15" width="20" height="6" rx="2" />
+                    <path class="tilt-range" id="directionRangeArc" d="" />
                     <g id="directionArrow">
                       <line class="cam-line" x1="0" y1="0" x2="0" y2="-74" />
                       <polygon class="cam-head" points="0,-92 -9,-74 9,-74" />
                     </g>
+                    <circle class="tilt-handle" id="dirFromHandle" r="8" cx="0" cy="-80" />
+                    <circle class="tilt-handle" id="dirToHandle" r="8" cx="0" cy="-80" />
                   </svg>
                   <div class="dial-fields">
-                    <label for="carAngle">Angle</label>
-                    <div class="unit">
-                      <input
-                        type="text"
-                        inputmode="numeric"
-                        autocomplete="off"
-                        id="carAngle"
-                        value="0"
-                      /><span>°</span>
+                    <div id="dirCarFields">
+                      <label for="carAngle">Angle</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="carAngle"
+                          value="0"
+                        /><span>°</span>
+                      </div>
+                    </div>
+                    <div id="dirRangeFields" class="tilt-range-fields">
+                      <label for="dirFrom">From</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="dirFrom"
+                          value="0"
+                        /><span>°</span>
+                      </div>
+                      <label for="dirTo">to</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="dirTo"
+                          value="360"
+                        /><span>°</span>
+                      </div>
                     </div>
                     <p class="hint">0° front, 90° right, 180° back, 270° left.</p>
                   </div>

@@ -67,7 +67,11 @@ const { openPage, chooseCountry, searchEnded } = require("./helpers.js");
   await p.fill("#target", "10");
   await p.press("#target", "Tab");
   f = await figures();
-  ok(f.IS === "0, rounds down", "a share that rounds down to 0 locations says so: " + JSON.stringify(f));
+  ok(f.IS === "0", "a share that rounds down shows 0 locations: " + JSON.stringify(f));
+  ok(
+    /round down to 0 locations/.test(await p.evaluate(() => document.getElementById("help-own").innerHTML)),
+    "and the help says why",
+  );
   await p.fill("#target", "1000");
   await p.press("#target", "Tab");
 
@@ -249,6 +253,18 @@ const { openPage, chooseCountry, searchEnded } = require("./helpers.js");
   ok(
     await p.evaluate(() => document.querySelectorAll("#shares .own-input").length === COVERAGE.length),
     "for the whole world, a field for every country with official coverage",
+  );
+  ok(
+    (await p.inputValue('#shares .own-input[data-code="PS"]')) === "0" &&
+      (await p.inputValue('#shares .own-input[data-code="JE"]')) === "0",
+    "countries a Vali map leaves out are there with 0, to be given a share",
+  );
+  await p.check("input[name=scope][value=continent]");
+  await p.selectOption("#continent", "asia");
+  await p.selectOption("#distribution", "own");
+  ok(
+    (await p.$$eval("#shares .own-input", list => list.map(i => i.dataset.code))).includes("PS"),
+    "Palestine, in none of Vali's continent lists, is offered for Asia",
   );
 
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
