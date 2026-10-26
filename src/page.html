@@ -70,9 +70,9 @@
             choice.
           </li>
           <li>
-            <b>Choose what to look for:</b> spots where Street View shows no road name, spots where the
-            coverage ends (only one arrow), intersections (three or more arrows), photos from a certain
-            period, or a mix.
+            <b>Choose what to look for,</b> if you like, in the sections of step 2: spots where Street View
+            shows no road name, spots where the coverage ends (only one arrow), intersections (three or more
+            arrows), photos from a certain period, or a mix.
           </li>
           <li><b>Choose how many,</b> then select "Find locations".</li>
           <li>
@@ -186,10 +186,11 @@
     <template id="help-criteria">
       <h2>What each location has</h2>
       <p>
-        Tick what every location must have. With several ticked, a location must have all of them. With none
-        ticked, any official location counts.
+        Open the sections below to choose what every location must have: the photos (period, camera) under
+        "Photos", road names and arrows (the end of the coverage, intersections) under "Roads and arrows".
+        With several chosen, a location must have all of them. With none, any official location counts.
       </p>
-      <p>More criteria, such as the years of the photos, are under "Photos" in "More options".</p>
+      <p>"Camera view" sets where the camera faces at each location, and how far it tilts.</p>
     </template>
     <template id="help-own">
       <h2>Your own distribution</h2>
@@ -207,7 +208,8 @@
       </ul>
       <p>
         Every country with official Street View in the area is listed, also those a Vali map leaves out (with
-        0), so you can give them a share.
+        0), so you can give them a share. The × next to a share takes that country out (sets it to 0); "Set
+        all to 0" starts from nothing, so you can enter just the countries you want.
       </p>
       <p>
         Switching between the two keeps what you entered, converted. "Save as preset" keeps it in this browser
@@ -442,31 +444,8 @@
                 ?
               </button>
             </div>
-            <div class="checkrow">
-              <label class="check"><input type="checkbox" id="noRoadName" /><span>No road name</span></label>
-              <button type="button" class="help" data-help="noRoadName" aria-label="Help: no road name">
-                ?
-              </button>
-            </div>
-            <!-- Arrows: one choice, as "end of coverage" (one arrow) and "intersection" (three or more)
-                 exclude each other -->
-            <div class="field arrows" role="radiogroup" aria-labelledby="arrowsTitle">
-              <div class="labelrow">
-                <div class="label" id="arrowsTitle">Arrows</div>
-                <button type="button" class="help" data-help="arrows" aria-label="Help: arrows">?</button>
-              </div>
-              <label class="radio"
-                ><input type="radio" name="arrows" id="arrowsAny" value="any" checked />Any</label
-              >
-              <label class="radio"
-                ><input type="radio" name="arrows" id="arrowsEnd" value="end" />End of coverage (one
-                arrow)</label
-              >
-              <label class="radio"
-                ><input type="radio" name="arrows" id="arrowsIntersection" value="intersection" />Intersection
-                (three or more arrows)</label
-              >
-            </div>
+            <!-- What is looked for, in a line (app.js: more options): the filters are in the sections below -->
+            <p class="step-sum" id="whatSummary"></p>
             <!-- More options: photos (app.js: more options) -->
             <details class="more" id="morePhotos">
               <summary>
@@ -525,6 +504,45 @@
                 </button>
               </div>
               <button type="button" class="linkbtn reset" data-reset="morePhotos">Reset to defaults</button>
+            </details>
+            <!-- More options: road names and arrows (app.js: more options) -->
+            <details class="more" id="moreRoads">
+              <summary>
+                <span class="more-title">Roads and arrows</span>
+                <span class="more-sum" id="sumRoads"></span>
+              </summary>
+              <div class="checkrow">
+                <label class="check"
+                  ><input type="checkbox" id="noRoadName" /><span>No road name</span></label
+                >
+                <button type="button" class="help" data-help="noRoadName" aria-label="Help: no road name">
+                  ?
+                </button>
+              </div>
+              <!-- Arrows: one choice, as "end of coverage" (one arrow) and "intersection" (three or more)
+                   exclude each other -->
+              <div class="field arrows" role="radiogroup" aria-labelledby="arrowsTitle">
+                <div class="labelrow">
+                  <div class="label" id="arrowsTitle">Arrows</div>
+                  <button type="button" class="help" data-help="arrows" aria-label="Help: arrows">?</button>
+                </div>
+                <label class="radio"
+                  ><input type="radio" name="arrows" id="arrowsAny" value="any" checked />Any</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="arrows" id="arrowsEnd" value="end" />End of coverage (one
+                  arrow)</label
+                >
+                <label class="radio"
+                  ><input
+                    type="radio"
+                    name="arrows"
+                    id="arrowsIntersection"
+                    value="intersection"
+                  />Intersection (three or more arrows)</label
+                >
+              </div>
+              <button type="button" class="linkbtn reset" data-reset="moreRoads">Reset to defaults</button>
             </details>
             <!-- More options: where the camera faces and how far it tilts (app.js: camera view). The drawings
                  are for the mouse and touch; the number fields next to them do the same by keyboard. -->
@@ -813,7 +831,10 @@
               </button>
             </div>
             <p class="own-sum" id="ownSum" role="status"></p>
-            <button type="button" class="linkbtn" id="ownMake100" hidden>Make it 100%</button>
+            <div class="own-links">
+              <button type="button" class="linkbtn" id="ownMake100" hidden>Make it 100%</button>
+              <button type="button" class="linkbtn rm" id="ownClearAll">Set all to 0</button>
+            </div>
             <div class="own-save">
               <label for="ownName">Save as preset</label>
               <div class="own-save-row">
