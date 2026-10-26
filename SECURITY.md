@@ -15,4 +15,5 @@ Please do not report security problems in public issues. Use GitHub's private re
 - A visitor's own Google key is kept only for the browser tab, and never shown in error messages.
 - An unfinished search (its settings, the locations found and each country's progress) is kept in the visitor's browser only, in IndexedDB, never with the key, and is checked when read back.
 - A loaded settings file is treated as untrusted: it is size-limited and must have the expected format, every setting is checked (anything not well-formed gets its default) and shown as text only. Saved settings files never hold the Google key.
+- Distributions of one's own and their presets are kept in the visitor's browser only, and checked when read back or loaded from a settings file (only countries with official coverage, shares in range, names cut to length and shown as text).
 - The history of searches is kept in the visitor's browser only. It holds the search settings, never the key or the results, and is checked when read back.

@@ -191,6 +191,25 @@
       </p>
       <p>More criteria, such as the years of the photos, are under "Photos" in "More options".</p>
     </template>
+    <template id="help-own">
+      <h2>Your own distribution</h2>
+      <ul>
+        <li>
+          <b>Percentages:</b> give each country a share. The number of locations in step 3 is shared out in
+          those proportions, in whole numbers that add up exactly. Decimals are fine (0.5 or 0,5). Shares that
+          do not add up to 100 are used in proportion; "Make it 100%" scales them so they do.
+        </li>
+        <li>
+          <b>Numbers:</b> give each country an exact number of locations. The number in step 3 is then their
+          total; changing it there scales them all.
+        </li>
+      </ul>
+      <p>
+        Switching between the two keeps what you entered, converted. "Save as preset" keeps it in this browser
+        under "Your maps" in the distribution list; saving under a name you used before replaces that preset.
+        A percentages preset fits any number of locations, like Vali's maps.
+      </p>
+    </template>
     <template id="help-noRoadName">
       <h2>No road name</h2>
       <p>Street View shows no street name on the arrows at that spot.</p>
@@ -384,6 +403,16 @@
                 </div>
                 <select id="distribution"></select>
                 <p class="hint" id="distributionNote" hidden>Only used with several countries.</p>
+                <!-- Your own distributions (app.js: your own distributions): start one from the map chosen,
+                     edit a copy of a preset, or delete a preset -->
+                <div class="own-acts" id="ownActs">
+                  <button type="button" class="linkbtn" id="ownFromMap">Make your own from this map</button>
+                  <button type="button" class="linkbtn" id="ownFromPreset" hidden>Edit a copy</button>
+                  <button type="button" class="linkbtn rm" id="presetDelete" hidden>
+                    Delete this preset
+                  </button>
+                  <button type="button" class="linkbtn" id="ownEdit" hidden>Edit the shares</button>
+                </div>
               </div>
               <button type="button" class="linkbtn reset" data-reset="moreDistribution">
                 Reset to defaults
@@ -733,13 +762,38 @@
              (app.js: locations per country). Outside the fieldset, so it stays readable while searching. -->
         <details class="shares" id="sharesBox" hidden>
           <summary id="sharesSummary">Locations per country</summary>
+          <!-- Editing your own distribution (app.js: your own distributions) -->
+          <div class="own-editor" id="ownEditor" hidden>
+            <div class="labelrow">
+              <div class="scope own-mode" role="radiogroup" aria-label="Enter the shares as">
+                <span>Enter as</span>
+                <label class="radio"
+                  ><input type="radio" name="ownMode" value="percent" checked />percentages</label
+                >
+                <label class="radio"><input type="radio" name="ownMode" value="number" />numbers</label>
+              </div>
+              <button type="button" class="help" data-help="own" aria-label="Help: your own distribution">
+                ?
+              </button>
+            </div>
+            <p class="own-sum" id="ownSum" role="status"></p>
+            <button type="button" class="linkbtn" id="ownMake100" hidden>Make it 100%</button>
+            <div class="own-save">
+              <label for="ownName">Save as preset</label>
+              <div class="own-save-row">
+                <input type="text" id="ownName" maxlength="40" placeholder="A name, e.g. Small islands" />
+                <button type="button" class="btn" id="ownSave">Save</button>
+              </div>
+              <p class="hint" id="ownSaved" hidden></p>
+            </div>
+          </div>
           <p class="hint" id="sharesNote" hidden></p>
           <table>
             <thead>
               <tr>
                 <th scope="col">Country</th>
-                <th scope="col">Wanted</th>
-                <th scope="col">Found</th>
+                <th scope="col" id="sharesWantedHead">Wanted</th>
+                <th scope="col" id="sharesFoundHead">Found</th>
               </tr>
             </thead>
             <tbody id="shares"></tbody>
