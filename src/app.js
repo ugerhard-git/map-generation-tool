@@ -45,7 +45,7 @@
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution (a Vali map, "continent", "own" or "preset:<id>"), own (the distribution of one's own being
  *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, viewDirection, carAngle, tiltMode, tilt, tiltMin, tiltMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
+ *   radius, giveUpAfter, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -736,14 +736,22 @@ function ownChosen() {
   if (v.startsWith("preset:")) return loadPresets().find(p => "preset:" + p.id === v) || null;
   return null;
 }
+/* Countries with official coverage that none of Vali's continent lists has (October 2026), and the
+   continent they belong to, so they can get a share of one's own there too. */
+const OUTSIDE_VALI_CONTINENTS = { PS: "asia" };
 /* The countries of the area that can get a share of one's own: the chosen countries, the continent's
    countries, or every country with official coverage. */
 function ownAreaCodes() {
   const s = scope(),
     official = code => COVERAGE.includes(code);
   if (s === "countries") return chosenCountries.filter(official);
-  if (s === "continent")
-    return Object.keys(VALI.continents[$("continent").value]?.weights || {}).filter(official);
+  if (s === "continent") {
+    const code = $("continent").value;
+    const members = Object.keys(VALI.continents[code]?.weights || {});
+    for (const [c, continent] of Object.entries(OUTSIDE_VALI_CONTINENTS))
+      if (continent === code && !members.includes(c)) members.push(c);
+    return members.filter(official);
+  }
   return [...COVERAGE];
 }
 /* How many locations each country of the area gets with the settings now: exact numbers from a
@@ -1110,6 +1118,9 @@ const VIEW_DIRECTIONS = ["road", "car", "random"],
 /* The angle fields: the angle to the car goes round (0–359), the tilts go from straight down to up. */
 const ANGLE_FIELDS = {
   carAngle: { lo: 0, hi: 359, d: 0, wrap: true },
+  // the range of a random direction, clockwise from "from" to "to"; 0° to 360° is the whole way round
+  dirFrom: { lo: 0, hi: 359, d: 0, wrap: true },
+  dirTo: { lo: 0, hi: 360, d: 360 },
   tilt: { lo: -90, hi: 90, d: 0 },
   tiltMin: { lo: -90, hi: 90, d: -20 },
   tiltMax: { lo: -90, hi: 90, d: 20 },
@@ -1137,11 +1148,14 @@ const setRadio = (name, value) => {
   const r = document.querySelector(`input[name=${name}][value="${value}"]`);
   if (r) r.checked = true;
 };
-/* The camera view settings in the form: { direction, carAngle, tiltMode, tilt, tiltMin, tiltMax }. */
+/* The camera view settings in the form: { direction, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin,
+   tiltMax }. */
 function viewSettings() {
   return {
     direction: radioValue("viewDirection", VIEW_DIRECTIONS, "road"),
     carAngle: angleField("carAngle"),
+    dirFrom: angleField("dirFrom"),
+    dirTo: angleField("dirTo"),
     tiltMode: radioValue("tiltMode", TILT_MODES, "fixed"),
     tilt: angleField("tilt"),
     tiltMin: angleField("tiltMin"),
@@ -1153,6 +1167,8 @@ function angleWord(a) {
   const words = ["front", "front right", "right", "back right", "back", "back left", "left", "front left"];
   return a % 45 === 0 ? words[a / 45] : "";
 }
+/* How wide the range of a random direction is, clockwise from dirFrom to dirTo: 1–360°. */
+const directionSpan = v => (((v.dirTo - v.dirFrom) % 360) + 360) % 360 || 360;
 /* A tilt in words: "level", "10° up", "25° down". */
 const tiltWord = t => (t === 0 ? "level" : t > 0 ? `${t}° up` : `${-t}° down`);
 /* A signed angle as written on the page: "−20°", "20°". */
@@ -1164,7 +1180,9 @@ function viewSummary(v) {
     v.direction === "car"
       ? `${v.carAngle}° to the car${word ? ` (${word})` : ""}`
       : v.direction === "random"
-        ? "Random direction"
+        ? directionSpan(v) === 360
+          ? "Random direction"
+          : `Random direction, ${v.dirFrom}° to ${v.dirTo % 360}° from the car`
         : "Along the road";
   const lo = Math.min(v.tiltMin, v.tiltMax),
     hi = Math.max(v.tiltMin, v.tiltMax);
@@ -1176,6 +1194,8 @@ function viewSummary(v) {
 const viewIsDefault = v =>
   v.direction === "road" &&
   v.carAngle === 0 &&
+  v.dirFrom === ANGLE_FIELDS.dirFrom.d &&
+  v.dirTo === ANGLE_FIELDS.dirTo.d &&
   v.tiltMode === "fixed" &&
   v.tilt === 0 &&
   v.tiltMin === ANGLE_FIELDS.tiltMin.d &&
@@ -1219,7 +1239,9 @@ for (const name of ["viewDirection", "tiltMode"])
 function updateView() {
   const v = viewSettings();
   $("carAngle").disabled = v.direction !== "car";
-  $("directionBox").classList.toggle("off", v.direction !== "car");
+  $("dirFrom").disabled = $("dirTo").disabled = v.direction !== "random";
+  $("directionBox").classList.toggle("off", v.direction === "road");
+  $("directionBox").classList.toggle("random", v.direction === "random");
   $("tilt").disabled = v.tiltMode !== "fixed";
   $("tiltMin").disabled = $("tiltMax").disabled = v.tiltMode !== "random";
   $("tiltBox").classList.toggle("random", v.tiltMode === "random");
@@ -1231,9 +1253,30 @@ const tiltPoint = (t, r = 80) => [r * Math.cos((t * Math.PI) / 180), -r * Math.s
 function drawView() {
   const v = viewSettings();
   $("directionArrow").setAttribute("transform", `rotate(${v.carAngle})`);
+  // the range of a random direction: a slice of the circle, clockwise, between two handles
+  const around = (a, r = 80) => [r * Math.sin((a * Math.PI) / 180), -r * Math.cos((a * Math.PI) / 180)];
+  for (const [id, a] of [
+    ["dirFromHandle", v.dirFrom],
+    ["dirToHandle", v.dirTo],
+  ]) {
+    const [x, y] = around(a);
+    $(id).setAttribute("cx", x.toFixed(1));
+    $(id).setAttribute("cy", y.toFixed(1));
+  }
+  const span = directionSpan(v),
+    [fx, fy] = around(v.dirFrom),
+    [tx, ty] = around(v.dirFrom + span);
+  $("directionRangeArc").setAttribute(
+    "d",
+    span === 360
+      ? "M0,-80 A80,80 0 1,1 0,80 A80,80 0 1,1 0,-80 Z"
+      : `M0,0 L${fx.toFixed(1)},${fy.toFixed(1)} A80,80 0 ${span > 180 ? 1 : 0},1 ${tx.toFixed(1)},${ty.toFixed(1)} Z`,
+  );
   $("directionDial").setAttribute(
     "aria-label",
-    `The car from above; the camera points ${v.carAngle}°${angleWord(v.carAngle) ? " (" + angleWord(v.carAngle) + ")" : ""}`,
+    v.direction === "random"
+      ? `The car from above; the camera points somewhere from ${v.dirFrom}° to ${v.dirTo % 360}°, clockwise`
+      : `The car from above; the camera points ${v.carAngle}°${angleWord(v.carAngle) ? " (" + angleWord(v.carAngle) + ")" : ""}`,
   );
   $("tiltArrow").setAttribute("transform", `rotate(${-v.tilt})`);
   const lo = Math.min(v.tiltMin, v.tiltMax),
@@ -1289,13 +1332,26 @@ function dragOn(svg, onPoint) {
   });
   for (const end of ["pointerup", "pointercancel"]) svg.addEventListener(end, () => (dragging = false));
 }
-dragOn($("directionDial"), (x, y) => {
-  if (radioValue("viewDirection", VIEW_DIRECTIONS, "road") !== "car") {
-    setRadio("viewDirection", "car");
-    store.set("viewDirection", "car");
-    updateView();
+let directionHandle = "carAngle"; // what a drag on the car from above moves: the angle, or an end of the range
+dragOn($("directionDial"), (x, y, first) => {
+  const a = ((((Math.atan2(x, -y) * 180) / Math.PI) % 360) + 360) % 360;
+  if (first) {
+    if (radioValue("viewDirection", VIEW_DIRECTIONS, "road") === "road") {
+      setRadio("viewDirection", "car");
+      store.set("viewDirection", "car");
+      updateView();
+    }
+    // in "random", the end of the range nearest to where the drag starts
+    const gap = b => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+    directionHandle =
+      radioValue("viewDirection", VIEW_DIRECTIONS, "road") === "car"
+        ? "carAngle"
+        : gap(angleField("dirFrom")) <= gap(angleField("dirTo") % 360)
+          ? "dirFrom"
+          : "dirTo";
   }
-  setAngle("carAngle", ((((Math.atan2(x, -y) * 180) / Math.PI) % 360) + 360) % 360);
+  // (the "to" end at the front is 360°, the whole way round, rather than 0°)
+  setAngle(directionHandle, directionHandle === "dirTo" && Math.round(a) === 0 ? 360 : a);
 });
 let tiltHandle = "tilt"; // what a drag on the tilt drawing moves: the tilt, or one end of the range
 dragOn($("tiltDial"), (x, y, first) => {
@@ -1576,8 +1632,9 @@ function renderOwnTable() {
   $("sharesNote").hidden = true;
   updateOwnFigures();
 }
-/* A share as shown in its field: "12.5" (percent) or "1,000" (locations); empty for none. */
-const shareText = v => (!v ? "" : own?.mode === "number" ? fmt(v) : String(v));
+/* A share as shown in its field: "12.5" (percent) or "1,000" (locations); "0" for none, so countries that
+   a Vali map leaves out are clearly there to be given a share. */
+const shareText = v => (!v ? "0" : own?.mode === "number" ? fmt(v) : String(v));
 /* A share as typed: a percentage up to 100 with up to two decimals ("12.5", "12,5"), or a whole number of
    locations (with any thousands separator); 0 for an empty field; NaN if it is neither. */
 function typedShare(text, mode) {
@@ -1599,9 +1656,7 @@ function updateOwnFigures() {
   for (const cell of document.querySelectorAll("#shares .own-figure")) {
     const v = own.values[cell.dataset.code] || 0;
     cell.textContent = pct
-      ? v > 0 && !targets[cell.dataset.code]
-        ? "0, rounds down"
-        : fmt(targets[cell.dataset.code] || 0)
+      ? fmt(targets[cell.dataset.code] || 0) // (a small share can round down to 0: the help says so)
       : sum
         ? `${((100 * v) / sum).toFixed(1)}%`
         : "–";
@@ -2307,11 +2362,12 @@ async function attempt(code, want, rad, key) {
    @returns {{heading: number, pitch: number}} */
 function locationView(r, facts, view) {
   let heading;
-  if (view.direction === "random") heading = Math.random() * 360;
-  else if (view.direction === "car") {
-    const front = r.carHeading ?? (r.links.length ? r.links[0].heading : 0);
-    heading = (front + view.carAngle) % 360;
-  } else heading = cameraHeading(r.links, facts);
+  const front = r.carHeading ?? (r.links.length ? r.links[0].heading : 0);
+  if (view.direction === "random")
+    // within the range, clockwise from dirFrom (the whole way round by default)
+    heading = (front + view.dirFrom + Math.random() * directionSpan(view)) % 360;
+  else if (view.direction === "car") heading = (front + view.carAngle) % 360;
+  else heading = cameraHeading(r.links, facts);
   const pitch =
     view.tiltMode === "random"
       ? Math.min(view.tiltMin, view.tiltMax) + Math.random() * Math.abs(view.tiltMax - view.tiltMin)
@@ -2721,6 +2777,9 @@ const HISTORY_MAX = 20;
  * @property {number} monthTo        1–12 (none before months were kept: December)
  * @property {"road"|"car"|"random"} viewDirection  where the camera faces (see "camera view")
  * @property {number} carAngle      0–359, the angle to the car with viewDirection "car"
+ * @property {number} dirFrom       0–359, and dirTo 0–360: the range of a random direction, clockwise
+ *                                  from the front of the car (0 to 360, the default, is any direction)
+ * @property {number} dirTo
  * @property {"fixed"|"random"} tiltMode
  * @property {number} tilt          −90 to 90, with tiltMode "fixed"
  * @property {number} tiltMin       −90 to 90, the range with tiltMode "random"

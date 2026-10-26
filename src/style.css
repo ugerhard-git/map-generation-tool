@@ -918,6 +918,11 @@ a:focus-visible {
   stroke: var(--blue);
   stroke-width: 3;
 }
+#directionBox:not(.random) .tilt-range,
+#directionBox:not(.random) .tilt-handle,
+#directionBox:not(.random) #dirRangeFields,
+#directionBox.random #directionArrow,
+#directionBox.random #dirCarFields,
 #tiltBox:not(.random) .tilt-range,
 #tiltBox:not(.random) .tilt-handle,
 #tiltBox:not(.random) #tiltRangeFields,

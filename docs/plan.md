@@ -51,6 +51,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
     - Switching between the two converts what is there (300 / 200 / 500 ⇄ 30% / 20% / 50% of the total).
     - "Save as preset" with a name keeps it in this browser, listed under "Your maps" above Vali's, with rename and delete. A preset keeps its mode: a percentages preset scales to any total, like Vali's maps; a numbers preset gives the same counts every time. The history and the settings file keep the mode and the values.
 
+18. **After the plan** (done, 26 October 2026, at the owner's request): a random camera direction within a range around the car (clockwise, across the front if needed; 0° to 360° by default); in your own distributions, countries a Vali map leaves out are shown with 0 (and Palestine, in none of Vali's continent lists, is offered for Asia), and the note that a small share rounds down to 0 moved into the help.
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits

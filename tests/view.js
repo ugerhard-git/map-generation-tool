@@ -98,6 +98,59 @@ const { openPage, search, searchEnded } = require("./helpers.js");
     "random tilts, all within −10° to 10°: " + c.map(l => l.pitch).join(" "),
   );
 
+  // A random direction within a range, clockwise from the front of the car: 45° to 135° (the right
+  // side), then 315° to 45° (the front, across 0°). The car drives towards 130°; without Google's car
+  // direction, the road (100°) stands in.
+  ok(await p.isVisible("#dirFromHandle"), "in random, the car drawing shows the range with two handles");
+  await p.fill("#dirFrom", "45");
+  await p.press("#dirFrom", "Tab");
+  await p.fill("#dirTo", "135");
+  await p.press("#dirTo", "Tab");
+  ok(
+    (await sum()) === "Random direction, 45° to 135° from the car, random tilt −10° to 10°",
+    "the summary says the range: " + (await sum()),
+  );
+  const within = (h, from, span) => (((h - from) % 360) + 360) % 360 <= span;
+  const ranged = async (from, span) => {
+    await search(p, { country: "Malta", target: 12 });
+    await searchEnded(p);
+    return p.evaluate(
+      ([from, span]) =>
+        results.map(l => {
+          const front = Number(l.panoId.slice(5)) % 3 ? 130 : 100;
+          return [l.heading, (((l.heading - front - from) % 360) + 360) % 360 <= span];
+        }),
+      [from, span],
+    );
+  };
+  let r = await ranged(45, 90);
+  ok(
+    r.every(([, ok]) => ok),
+    "45° to 135°: every direction on the right side of the car: " + r.map(([h]) => h).join(" "),
+  );
+  await p.fill("#dirFrom", "315");
+  await p.press("#dirFrom", "Tab");
+  await p.fill("#dirTo", "45");
+  await p.press("#dirTo", "Tab");
+  r = await ranged(315, 90);
+  ok(
+    r.every(([, ok]) => ok),
+    "315° to 45°: within 45° of the front, across 0°: " + r.map(([h]) => h).join(" "),
+  );
+  ok(within(10, 350, 30) && !within(40, 350, 30), "(the check itself handles the way round)");
+  ok(
+    (await p.evaluate(() => loadHistory()[0].settings.dirFrom)) === 315 &&
+      (await p.evaluate(() => cleanSettings({}).dirTo)) === 360 &&
+      (await p.evaluate(() => cleanSettings({ dirFrom: 400, dirTo: -5 }).dirFrom)) === 0,
+    "the range is kept with the settings, 0° to 360° by default, and checked",
+  );
+  // The whole way round again
+  await p.fill("#dirFrom", "0");
+  await p.press("#dirFrom", "Tab");
+  await p.fill("#dirTo", "360");
+  await p.press("#dirTo", "Tab");
+  ok((await sum()) === "Random direction, random tilt −10° to 10°", "0° to 360° is any direction");
+
   // Typed angles: kept within range, the angle to the car goes round; the arrow keys turn it
   await p.check("#directionCar");
   await p.check("#tiltFixed");
