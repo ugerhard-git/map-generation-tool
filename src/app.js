@@ -439,9 +439,12 @@ function cleanOwn(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const mode = OWN_MODES.includes(raw.mode) ? raw.mode : "percent";
   const values = {};
+  // Only the coverage countries are looked up, so names that are not countries (any number of them, in a
+  // settings file) can neither crowd out the real shares nor slow the page down.
   if (raw.values && typeof raw.values === "object" && !Array.isArray(raw.values))
-    for (const [code, v] of Object.entries(raw.values).slice(0, 400))
-      if (COVERAGE.includes(code) && cleanShare(v, mode) > 0) values[code] = cleanShare(v, mode);
+    for (const code of COVERAGE)
+      if (Object.hasOwn(raw.values, code) && cleanShare(raw.values[code], mode) > 0)
+        values[code] = cleanShare(raw.values[code], mode);
   return { mode, values, name: cleanText(raw.name, 40).trim() };
 }
 /** The distribution being edited ("Your own"), or null. @type {{mode: string, values: Record<string, number>, name: string}|null} */
