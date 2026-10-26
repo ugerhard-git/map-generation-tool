@@ -57,6 +57,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 20. **Zoom** (done, 26 October 2026, at the owner's request): in "Camera view", how far the camera is zoomed in, the same for every location or random within a range (0 to 2 by default), from 0 to 4 with one decimal. The scale is that of map-making.app, GeoGuessr and Google's Street View player, checked by the owner with a test map: 0 is the widest view (−1 looks the same), 1 is about Street View's normal view, each step of 1 about twice as close, and 4 only a little closer than 3; GeoGuessr uses the zoom. By default nothing changes: zoom 0, as the map files had before. The Street View link opens with the matching field of view (180° halved for each step, within the 10° to 100° such links take). Set with a slider (two handles for the range) or by typing. No tag, at the owner's choice. Also at the owner's request: the number of locations is 300 by default (was 100).
 
+21. **Your own distribution with equal shares** (done, 26 October 2026, at the owner's request): "Start your own (equal shares)" next to "Make your own from this map" starts "Your own" without choosing a map first: every country of the area gets the same percentage, adding up to exactly 100% (the largest share takes the rounding). Equal rather than empty, as agreed with the owner: it can be used at once, and "Set all to 0" starts from nothing in one click. Replacing unsaved edits of "Your own" asks for a second click; presets are not touched.
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits
