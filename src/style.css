@@ -925,3 +925,67 @@ a:focus-visible {
 #tiltBox.random #tiltFixedFields {
   display: none;
 }
+
+/* ---------- your own distributions ---------- */
+.own-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+  font-size: 0.92rem;
+}
+.own-editor {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+.own-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+.own-mode .radio {
+  margin: 0;
+}
+.own-sum {
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+}
+.own-editor #ownMake100 {
+  font-size: 0.92rem;
+}
+.own-save {
+  margin-top: 10px;
+}
+.own-save label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.own-save-row {
+  display: flex;
+  gap: 8px;
+}
+.own-save-row input {
+  flex: 1;
+  min-width: 0;
+}
+.own-save-row .btn {
+  padding: 7px 14px;
+}
+/* The share fields in the table */
+.shares td.own-cell {
+  white-space: nowrap;
+}
+.shares .own-input {
+  width: 5.5em;
+  padding: 4px 6px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.own-unit {
+  margin-left: 3px;
+  color: var(--muted);
+}

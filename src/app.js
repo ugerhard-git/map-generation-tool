@@ -43,7 +43,8 @@
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
- *   over on load), continent, distribution, noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
+ *   over on load), continent, distribution (a Vali map, "continent", "own" or "preset:<id>"), own (the distribution of one's own being
+ *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
  *   radius, giveUpAfter, viewDirection, carAngle, tiltMode, tilt, tiltMin, tiltMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
@@ -416,6 +417,63 @@ function pickSpot(code, parts, landOnly) {
   return null;
 }
 
+/* ---------- your own distributions ----------
+   Besides Vali's maps, the visitor can share the locations in a distribution of their own (plan step 17):
+   started from a Vali map ("Make your own from this map") or a preset, edited in the table of locations
+   per country, as percentages (shares of the number of locations; the default) or as exact numbers (their
+   sum is the number of locations), and saved as a preset in this browser. In the distribution list,
+   "Your own" (value "own") is the one being edited and presets are "preset:<id>", under "Your maps".
+   The history and the settings file keep the values themselves (setting "own"), never a preset id, so
+   they still work where the preset does not exist. */
+const OWN_MODES = ["percent", "number"],
+  PRESETS_MAX = 30;
+/* A share as kept: a percentage 0–100 with up to two decimals, or a whole number of locations. */
+function cleanShare(v, mode) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return mode === "number" ? Math.min(TARGET_MAX, Math.round(n)) : Math.min(100, Math.round(n * 100) / 100);
+}
+/* A distribution of one's own, read from outside (saved, history, settings file): { mode, values, name }
+   with values only for countries with official coverage and above 0; null if it is not one. */
+function cleanOwn(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const mode = OWN_MODES.includes(raw.mode) ? raw.mode : "percent";
+  const values = {};
+  if (raw.values && typeof raw.values === "object" && !Array.isArray(raw.values))
+    for (const [code, v] of Object.entries(raw.values).slice(0, 400))
+      if (COVERAGE.includes(code) && cleanShare(v, mode) > 0) values[code] = cleanShare(v, mode);
+  return { mode, values, name: cleanText(raw.name, 40).trim() };
+}
+/** The distribution being edited ("Your own"), or null. @type {{mode: string, values: Record<string, number>, name: string}|null} */
+let own = cleanOwn(store.get("own", null));
+const saveOwn = () => store.set("own", own);
+/* The saved presets, checked: [{ id, name, mode, values }]. */
+function loadPresets() {
+  const raw = store.get("presets", []);
+  if (!Array.isArray(raw)) return [];
+  const out = [],
+    ids = new Set();
+  for (const p of raw.slice(0, PRESETS_MAX)) {
+    const c = cleanOwn(p),
+      id = cleanText(p?.id, 20);
+    if (!c || !c.name || !/^[a-z0-9]{4,20}$/.test(id) || ids.has(id)) continue;
+    ids.add(id);
+    out.push({ id, ...c });
+  }
+  return out;
+}
+const savePresets = list => store.set("presets", list.slice(0, PRESETS_MAX));
+/* Percentages for shares that add up to exactly 100 (two decimals; the largest takes the rounding). */
+function toPercent(shares) {
+  const entries = Object.entries(shares).filter(([, v]) => v > 0);
+  const sum = entries.reduce((n, [, v]) => n + v, 0);
+  if (!sum) return {};
+  const out = Object.fromEntries(entries.map(([c, v]) => [c, Math.round((v / sum) * 10000) / 100]));
+  const largest = entries.sort((a, b) => b[1] - a[1])[0][0];
+  out[largest] = Math.round((out[largest] + 100 - Object.values(out).reduce((n, v) => n + v, 0)) * 100) / 100;
+  return out;
+}
+
 /* ---------- step 1: where ----------
    Three ways to say where: chosen countries, a continent, or the whole world. Countries are added as
    chips through a field that suggests countries while typing (the same pattern as Lookout's kind
@@ -593,20 +651,22 @@ function renderDistributionChoices() {
     before = s === "continent" ? "continent" : before === "continent" ? DEFAULT_MAP : before;
   lastScope = s;
   el.textContent = "";
-  if (scope() === "continent") {
-    const o = document.createElement("option");
-    o.value = "continent";
-    o.textContent = `Vali's ${VALI.continents[$("continent").value]?.name || "continent"} map`;
-    el.append(o);
-  }
-  for (const [code, m] of Object.entries(VALI.maps).sort((a, b) => a[1].name.localeCompare(b[1].name))) {
-    const o = document.createElement("option");
-    o.value = code;
-    o.textContent = m.name;
-    el.append(o);
-  }
+  const option = (value, text) => makeElement("option", { value, textContent: text });
+  // Your own first: the one being edited, then the presets
+  const mine = makeElement("optgroup", { label: "Your maps" });
+  if (own) mine.append(option("own", own.name ? `Your own: ${own.name}` : "Your own"));
+  for (const p of loadPresets()) mine.append(option("preset:" + p.id, p.name));
+  if (mine.children.length) el.append(mine);
+  const vali = makeElement("optgroup", { label: "Vali's maps" });
+  if (s === "continent")
+    vali.append(
+      option("continent", `Vali's ${VALI.continents[$("continent").value]?.name || "continent"} map`),
+    );
+  for (const [code, m] of Object.entries(VALI.maps).sort((a, b) => a[1].name.localeCompare(b[1].name)))
+    vali.append(option(code, m.name));
+  el.append(vali);
   const offered = [...el.options].map(o => o.value);
-  el.value = offered.includes(before) ? before : scope() === "continent" ? "continent" : DEFAULT_MAP;
+  el.value = offered.includes(before) ? before : s === "continent" ? "continent" : DEFAULT_MAP;
 }
 /* Shows the parts of step 1 that belong to the chosen area. */
 function renderWhere() {
@@ -616,6 +676,7 @@ function renderWhere() {
   // A single country gets every location, so the distribution does not apply: greyed out, not hidden
   $("distribution").disabled = !distributionUsed();
   $("distributionNote").hidden = distributionUsed();
+  updateOwnActs();
   renderCountryChips();
 }
 /* True when the locations are shared between countries, so the distribution matters. */
@@ -647,6 +708,8 @@ $("distribution").onchange = whereChanged;
 /* The countries of the chosen area with their shares (relative numbers, not counts). Only countries
    with official coverage. A chosen country that the chosen map does not include gets 0. */
 function areaWeights() {
+  const mine = distributionUsed() ? ownChosen() : null;
+  if (mine) return Object.fromEntries(ownAreaCodes().map(c => [c, mine.values[c] || 0]));
   const s = scope(),
     dist = $("distribution").value;
   const mapWeights = VALI.maps[dist]?.weights || {};
@@ -665,6 +728,35 @@ function areaWeights() {
     );
   }
   return Object.fromEntries(Object.entries(mapWeights).filter(([c]) => official(c)));
+}
+/* The distribution chosen, if it is one of your own ("Your own" or a preset): { mode, values, name }. */
+function ownChosen() {
+  const v = $("distribution").value;
+  if (v === "own") return own;
+  if (v.startsWith("preset:")) return loadPresets().find(p => "preset:" + p.id === v) || null;
+  return null;
+}
+/* The countries of the area that can get a share of one's own: the chosen countries, the continent's
+   countries, or every country with official coverage. */
+function ownAreaCodes() {
+  const s = scope(),
+    official = code => COVERAGE.includes(code);
+  if (s === "countries") return chosenCountries.filter(official);
+  if (s === "continent")
+    return Object.keys(VALI.continents[$("continent").value]?.weights || {}).filter(official);
+  return [...COVERAGE];
+}
+/* How many locations each country of the area gets with the settings now: exact numbers from a
+   distribution of one's own in numbers, else the number of locations shared out (splitTotal). */
+function planTargets() {
+  const mine = distributionUsed() ? ownChosen() : null;
+  if (mine && mine.mode === "number")
+    return Object.fromEntries(
+      ownAreaCodes()
+        .filter(c => mine.values[c] > 0)
+        .map(c => [c, mine.values[c]]),
+    );
+  return splitTotal(areaWeights(), target());
 }
 /* Splits a total between countries in proportion to their shares, in whole numbers that add up to the
    total (largest remainder method: everyone gets the whole part of their exact share, and what is left
@@ -693,6 +785,8 @@ function areaLabel() {
 /* The chosen distribution in words, or "" when it does not matter (a single country, a continent's own). */
 function distributionLabel() {
   if (!distributionUsed() || $("distribution").value === "continent") return "";
+  const mine = ownChosen();
+  if (mine) return mine.name || "your own distribution";
   return VALI.maps[$("distribution").value]?.name || "";
 }
 {
@@ -913,6 +1007,7 @@ for (const [id, f] of Object.entries(NUMBER_FIELDS)) {
     showNumber(id, n);
     if (id === "target") {
       if (!running) searchTargets = new Map();
+      if (!running && distributionUsed() && ownChosen()?.mode === "number") scaleOwnTo(n);
       renderShares();
     }
   };
@@ -920,6 +1015,9 @@ for (const [id, f] of Object.entries(NUMBER_FIELDS)) {
   if (id === "target")
     $(id).oninput = () => {
       if (running || Number.isNaN(typedNumber($(id).value))) return;
+      // (with your own numbers, their sum is the number of locations: they are scaled on leaving the
+      // field, so the table does not set the field back while typing)
+      if (distributionUsed() && ownChosen()?.mode === "number") return;
       searchTargets = new Map();
       renderShares();
     };
@@ -1224,9 +1322,11 @@ updateView();
 const MORE = {
   moreDistribution: {
     summary: () =>
-      distributionUsed()
-        ? $("distribution").selectedOptions[0]?.textContent || ""
-        : "Only used with several countries",
+      !distributionUsed()
+        ? "Only used with several countries"
+        : ownChosen()
+          ? `${$("distribution").selectedOptions[0]?.textContent || ""}, ${ownChosen().mode === "number" ? "numbers" : "percentages"}`
+          : $("distribution").selectedOptions[0]?.textContent || "",
     changed: () => $("distribution").value !== defaultDistribution(),
     reset: () => setControl("distribution", defaultDistribution()),
   },
@@ -1378,8 +1478,18 @@ function renderShares() {
     rows = $("shares"),
     note = $("sharesNote");
   const searched = running || searchTargets.size > 0;
+  // Your own distribution, before a search: the table is where its shares are entered
+  const editing = !searched && distributionUsed() && $("distribution").value === "own" && !!own;
+  $("ownEditor").hidden = !editing;
+  if (editing) {
+    box.hidden = false;
+    renderOwnTable();
+    return;
+  }
+  $("sharesWantedHead").textContent = "Wanted";
+  $("sharesFoundHead").textContent = "Found";
   const weights = searched ? null : areaWeights();
-  const wantedBy = searched ? Object.fromEntries(searchTargets) : splitTotal(weights, target());
+  const wantedBy = searched ? Object.fromEntries(searchTargets) : planTargets();
   const codes = Object.keys(wantedBy);
   box.hidden = scope() === "countries" && chosenCountries.length < 2 && !(searched && searchTargets.size > 1);
   if (box.hidden) return;
@@ -1420,17 +1530,248 @@ function renderShares() {
     const left = Object.keys(weights).filter(c => !wantedBy[c] || wantedBy[c] === 0);
     const notInMap = left.filter(c => !weights[c]),
       tooFew = left.filter(c => weights[c] > 0);
+    const mapName = ownChosen()
+      ? `"${distributionLabel()}"`
+      : VALI.maps[$("distribution").value]?.name || "this map";
     if (!codes.length && notInMap.length)
-      why = `None of these countries is in ${VALI.maps[$("distribution").value]?.name || "this map"}. Choose another map.`;
+      why = `None of these countries is in ${mapName}. Choose another map.`;
     else {
       if (notInMap.length)
-        why += `Not in ${VALI.maps[$("distribution").value]?.name || "this map"}, so they get none: ${notInMap.map(countryName).join(", ")}. `;
+        why += `Not in ${mapName}, so they get none: ${notInMap.map(countryName).join(", ")}. `;
       if (tooFew.length)
         why += `${fmt(tooFew.length)} more ${tooFew.length === 1 ? "country gets" : "countries get"} none: their share of ${fmt(target())} locations rounds down to 0.`;
     }
   }
   note.textContent = why.trim();
   note.hidden = !why;
+}
+
+/* The table as the editor of your own distribution: a field per country of the area (a share in %, or a
+   number of locations) and what it comes to (the locations, or the share). */
+function renderOwnTable() {
+  const rows = $("shares"),
+    pct = own.mode === "percent";
+  setRadio("ownMode", own.mode);
+  $("ownName").value = own.name;
+  $("sharesWantedHead").textContent = pct ? "Share" : "Locations";
+  $("sharesFoundHead").textContent = pct ? "Locations" : "Share";
+  rows.textContent = "";
+  for (const code of ownAreaCodes().sort((a, b) => countryName(a).localeCompare(countryName(b)))) {
+    const input = makeElement("input", {
+      type: "text",
+      inputMode: pct ? "decimal" : "numeric",
+      autocomplete: "off",
+      className: "own-input",
+      placeholder: "0",
+      value: shareText(own.values[code] || 0),
+    });
+    input.dataset.code = code;
+    input.setAttribute("aria-label", `${countryName(code)}: ${pct ? "share in percent" : "locations"}`);
+    const share = makeElement("td", { className: "own-cell" }, input);
+    if (pct) share.append(makeElement("span", { className: "own-unit" }, "%"));
+    const figure = makeElement("td", { className: "own-figure" });
+    figure.dataset.code = code;
+    rows.append(makeElement("tr", {}, makeElement("td", {}, countryName(code)), share, figure));
+  }
+  $("sharesNote").hidden = true;
+  updateOwnFigures();
+}
+/* A share as shown in its field: "12.5" (percent) or "1,000" (locations); empty for none. */
+const shareText = v => (!v ? "" : own?.mode === "number" ? fmt(v) : String(v));
+/* A share as typed: a percentage up to 100 with up to two decimals ("12.5", "12,5"), or a whole number of
+   locations (with any thousands separator); 0 for an empty field; NaN if it is neither. */
+function typedShare(text, mode) {
+  const t = String(text).trim().replace(/%$/, "").trim();
+  if (!t) return 0;
+  if (mode === "number") return typedNumber(t) <= TARGET_MAX ? typedNumber(t) : NaN;
+  if (!/^\d{1,3}([.,]\d{1,2})?$/.test(t)) return NaN;
+  const n = Number(t.replace(",", "."));
+  return n <= 100 ? n : NaN;
+}
+/* The sum of the shares of the area's countries. */
+const ownSum = () => ownAreaCodes().reduce((n, c) => n + (own.values[c] || 0), 0);
+/* Updates what the shares come to, the sum line and (for numbers) the number of locations, without
+   rebuilding the fields, so typing is not interrupted. */
+function updateOwnFigures() {
+  const pct = own.mode === "percent",
+    targets = planTargets(),
+    sum = ownSum();
+  for (const cell of document.querySelectorAll("#shares .own-figure")) {
+    const v = own.values[cell.dataset.code] || 0;
+    cell.textContent = pct
+      ? v > 0 && !targets[cell.dataset.code]
+        ? "0, rounds down"
+        : fmt(targets[cell.dataset.code] || 0)
+      : sum
+        ? `${((100 * v) / sum).toFixed(1)}%`
+        : "–";
+  }
+  const round = Math.round(sum * 100) / 100;
+  if (pct)
+    $("ownSum").textContent = !sum
+      ? "Give at least one country a share."
+      : round === 100
+        ? `Adds up to 100%: ${fmt(target())} locations, shared as above.`
+        : `Adds up to ${round}%: shared in proportion.`;
+  else
+    $("ownSum").textContent =
+      sum > TARGET_MAX
+        ? `Adds up to ${fmt(sum)} locations, more than one search can find (${fmt(TARGET_MAX)}).`
+        : `Adds up to ${fmt(sum)} locations.`;
+  $("ownMake100").hidden = !pct || !sum || round === 100;
+  // with numbers, their sum is the number of locations
+  if (!pct && sum > 0 && sum <= TARGET_MAX && sum !== target()) {
+    showNumber("target", sum);
+    store.set("target", sum);
+  }
+  $("sharesSummary").textContent = `Locations per country: ${fmt(ownAreaCodes().length)} countries, ${
+    pct ? "your shares" : "your numbers"
+  }`;
+  updateMore();
+  updateMapName();
+}
+// Typing a share: kept at once (an invalid one is not), and shown cleanly on leaving the field
+$("shares").addEventListener("input", e => {
+  const input = e.target;
+  if (!input.classList?.contains("own-input") || !own) return;
+  const v = typedShare(input.value, own.mode);
+  if (Number.isNaN(v)) return;
+  if (v > 0) own.values[input.dataset.code] = cleanShare(v, own.mode);
+  else delete own.values[input.dataset.code];
+  saveOwn();
+  updateOwnFigures();
+});
+$("shares").addEventListener("change", e => {
+  if (e.target.classList?.contains("own-input") && own)
+    e.target.value = shareText(own.values[e.target.dataset.code] || 0);
+});
+/* Replaces the shares of the area's countries (others, from another area, are kept). */
+function setAreaShares(values) {
+  for (const c of ownAreaCodes()) delete own.values[c];
+  Object.assign(own.values, values);
+  saveOwn();
+}
+// Percentages and numbers: switching converts what is there
+for (const r of document.querySelectorAll("input[name=ownMode]"))
+  r.onchange = () => {
+    if (!own || r.value === own.mode) return;
+    const area = Object.fromEntries(ownAreaCodes().map(c => [c, own.values[c] || 0]));
+    if (r.value === "number") setAreaShares(splitTotal(area, target()));
+    else setAreaShares(toPercent(area));
+    own.mode = r.value;
+    saveOwn();
+    renderShares();
+  };
+$("ownMake100").onclick = () => {
+  setAreaShares(toPercent(Object.fromEntries(ownAreaCodes().map(c => [c, own.values[c] || 0]))));
+  renderShares();
+};
+/* With numbers, a new number of locations scales them all (a preset becomes "Your own" first). */
+function scaleOwnTo(total) {
+  const mine = ownChosen();
+  if (!mine) return;
+  if (mine !== own) startOwn(mine, false);
+  setAreaShares(splitTotal(Object.fromEntries(ownAreaCodes().map(c => [c, own.values[c] || 0])), total));
+}
+/* Makes "Your own" from a distribution (a copy) and chooses it; open: show the table to edit it in. */
+function startOwn(from, open = true) {
+  own = { mode: from.mode, values: { ...from.values }, name: from.name || "" };
+  saveOwn();
+  renderDistributionChoices();
+  $("distribution").value = "own";
+  whereChanged();
+  if (open) {
+    $("sharesBox").open = true;
+    $("sharesBox").scrollIntoView({ block: "nearest" });
+  }
+}
+/* A button that asks for a second click within a few seconds before doing something that cannot be
+   undone; ask is its text in the meantime. */
+function confirmClick(button, ask, act) {
+  const ASK_FOR = 4000; // ms the second click may take
+  if (Date.now() - Number(button.dataset.askedAt || 0) < ASK_FOR) {
+    delete button.dataset.askedAt;
+    button.textContent = button.dataset.text;
+    act();
+    return;
+  }
+  button.dataset.text ||= button.textContent;
+  button.dataset.askedAt = String(Date.now());
+  button.textContent = ask;
+  setTimeout(() => {
+    if (Date.now() - Number(button.dataset.askedAt || 0) >= ASK_FOR) button.textContent = button.dataset.text;
+  }, ASK_FOR);
+}
+$("ownFromMap").onclick = () => {
+  const make = () => startOwn({ mode: "percent", values: toPercent(areaWeights()), name: "" });
+  // (unsaved edits of "Your own" would be replaced: ask first)
+  const saved =
+    !own ||
+    loadPresets().some(p => p.name === own.name && JSON.stringify(p.values) === JSON.stringify(own.values));
+  if (saved) make();
+  else confirmClick($("ownFromMap"), "Replace your own distribution? Click again", make);
+};
+$("ownFromPreset").onclick = () => {
+  const p = ownChosen();
+  if (p) startOwn(p);
+};
+$("ownEdit").onclick = () => {
+  searchTargets = new Map();
+  hideShortfall();
+  renderShares();
+  $("sharesBox").open = true;
+};
+$("presetDelete").onclick = () =>
+  confirmClick($("presetDelete"), "Delete it? Click again", () => {
+    const id = $("distribution").value.slice("preset:".length);
+    savePresets(loadPresets().filter(p => p.id !== id));
+    renderDistributionChoices();
+    $("distribution").value = defaultDistribution();
+    whereChanged();
+  });
+$("ownSave").onclick = () => {
+  const name = $("ownName").value.trim().slice(0, 40) || own?.name || "";
+  if (!own) return;
+  if (!name) {
+    $("ownSaved").textContent = "Give the preset a name first.";
+    $("ownSaved").hidden = false;
+    $("ownName").focus();
+    return;
+  }
+  const list = loadPresets(),
+    same = list.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if (!same && list.length >= PRESETS_MAX) {
+    $("ownSaved").textContent =
+      `You have ${PRESETS_MAX} presets, the most this browser keeps: delete one first.`;
+    $("ownSaved").hidden = false;
+    return;
+  }
+  const entry = {
+    id: same ? same.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name,
+    mode: own.mode,
+    values: { ...own.values },
+  };
+  savePresets(same ? list.map(p => (p.id === same.id ? entry : p)) : [...list, entry]);
+  own.name = name;
+  saveOwn();
+  renderDistributionChoices();
+  $("ownSaved").textContent =
+    `${same ? "Replaced" : "Saved as"} "${name}" under "Your maps" in the distribution list.`;
+  $("ownSaved").hidden = false;
+  updateMore();
+};
+/* Shows the actions that fit the distribution chosen: make your own from a Vali map; edit a copy of a
+   preset or delete it; edit the shares of your own. */
+function updateOwnActs() {
+  const v = $("distribution").value,
+    preset = v.startsWith("preset:"),
+    mine = v === "own";
+  $("ownFromMap").hidden = preset || mine;
+  $("ownFromMap").disabled = !distributionUsed();
+  $("ownFromPreset").hidden = $("presetDelete").hidden = !preset;
+  $("ownEdit").hidden = !mine;
+  $("ownEdit").disabled = !distributionUsed();
 }
 
 /* ---------- map ---------- */
@@ -1993,10 +2334,16 @@ async function startSearch() {
     countryEl.focus();
     return;
   }
-  const targets = splitTotal(areaWeights(), target());
+  const targets = planTargets();
+  if (Object.values(targets).reduce((n, v) => n + v, 0) > TARGET_MAX) {
+    showError(`Your numbers add up to more than ${fmt(TARGET_MAX)} locations, the most one search can find.`);
+    return;
+  }
   if (!Object.keys(targets).length) {
     showError(
-      `None of the chosen countries is in ${distributionLabel() || "this map"}. Choose another map in step 1.`,
+      ownChosen()
+        ? 'No country has a share in your distribution. Enter some under "Locations per country".'
+        : `None of the chosen countries is in ${distributionLabel() || "this map"}. Choose another map in step 1.`,
     );
     return;
   }
@@ -2357,7 +2704,9 @@ const HISTORY_MAX = 20;
  * @property {"countries"|"continent"|"world"} scope
  * @property {string[]} countries   country codes, for scope "countries"
  * @property {string} continent     Vali's continent code ("europe")
- * @property {string} distribution  Vali's map code ("aaw"), or "continent" for a continent's own map
+ * @property {string} distribution  Vali's map code ("aaw"), "continent" for a continent's own map, or "own"
+ * @property {{mode: string, values: Record<string, number>, name: string}|null} own  with distribution
+ *                                  "own": the values themselves (a preset is kept as its values, too)
  * @property {boolean} noRoadName
  * @property {"any"|"end"|"intersection"} arrows  the arrows asked for (before intersections: deadEnd)
  * @property {boolean} yearsOn
@@ -2403,7 +2752,10 @@ function currentSettings() {
     scope: scope(),
     countries: [...chosenCountries],
     continent: $("continent").value,
-    distribution: $("distribution").value,
+    distribution: ownChosen() ? "own" : $("distribution").value,
+    own: ownChosen()
+      ? { mode: ownChosen().mode, values: { ...ownChosen().values }, name: ownChosen().name }
+      : null,
     noRoadName: $("noRoadName").checked,
     arrows: arrows(),
     yearsOn: $("yearsOn").checked,
@@ -2437,7 +2789,12 @@ function cleanSettings(raw) {
       : [],
     continent: known(VALI.continents, r.continent) ? r.continent : DEFAULT_CONTINENT,
     distribution:
-      r.distribution === "continent" || known(VALI.maps, r.distribution) ? r.distribution : DEFAULT_MAP,
+      r.distribution === "own" && cleanOwn(r.own)
+        ? "own"
+        : r.distribution === "continent" || known(VALI.maps, r.distribution)
+          ? r.distribution
+          : DEFAULT_MAP,
+    own: r.distribution === "own" ? cleanOwn(r.own) : null,
     noRoadName: r.noRoadName === true,
     // (settings from before intersections have deadEnd instead)
     arrows: ARROWS.includes(r.arrows) ? r.arrows : r.deadEnd === true ? "end" : "any",
@@ -2530,7 +2887,9 @@ function historyDetails(s) {
     bits.push(
       s.distribution === "continent"
         ? `Vali's ${VALI.continents[s.continent]?.name || "continent"} map`
-        : VALI.maps[s.distribution]?.name || s.distribution,
+        : s.distribution === "own"
+          ? s.own?.name || "your own distribution"
+          : VALI.maps[s.distribution]?.name || s.distribution,
     );
   bits.push(
     wantedLabel({
@@ -2600,6 +2959,11 @@ function applySettings(s) {
   document.querySelector(`input[name=scope][value="${s.scope}"]`).checked = true;
   chosenCountries = [...s.countries];
   $("continent").value = s.continent;
+  // a distribution of one's own comes back as "Your own" (replacing the one being edited)
+  if (s.distribution === "own" && s.own) {
+    own = { ...s.own, values: { ...s.own.values } };
+    saveOwn();
+  }
   whereChanged(); // fills the list of maps for this area
   if ([...$("distribution").options].some(o => o.value === s.distribution))
     $("distribution").value = s.distribution;
