@@ -252,6 +252,32 @@
         period.
       </p>
     </template>
+    <template id="help-direction">
+      <h2>Direction</h2>
+      <ul>
+        <li>
+          <b>Along the road:</b> the camera looks along one of the roads at the spot; at the end of the
+          coverage, towards where it stops.
+        </li>
+        <li>
+          <b>At an angle to the car:</b> drag the arrow around the car, or type the angle: 0° looks ahead of
+          the car, 90° to its right, 180° behind it, 270° to its left. "The car" is the direction the Street
+          View car was driving when the photo was taken.
+        </li>
+        <li><b>Random:</b> any direction, different for every location.</li>
+      </ul>
+    </template>
+    <template id="help-tilt">
+      <h2>Tilt</h2>
+      <p>
+        How far the camera looks up or down: +90° straight up at the sky, 0° level, −90° straight down at the
+        road. Drag the arrow, or type the angle.
+      </p>
+      <p>
+        With "Random, within a range", every location gets its own tilt between the two angles, set with the
+        two handles. Looking far up or down is rarely useful, so the range is −20° to 20° to start with.
+      </p>
+    </template>
     <template id="help-apiKey">
       <h2>Google API key</h2>
       <p>
@@ -461,6 +487,140 @@
                 </button>
               </div>
               <button type="button" class="linkbtn reset" data-reset="morePhotos">Reset to defaults</button>
+            </details>
+            <!-- More options: where the camera faces and how far it tilts (app.js: camera view). The drawings
+                 are for the mouse and touch; the number fields next to them do the same by keyboard. -->
+            <details class="more" id="moreView">
+              <summary>
+                <span class="more-title">Camera view</span>
+                <span class="more-sum" id="sumView"></span>
+              </summary>
+              <div class="field" role="radiogroup" aria-labelledby="directionTitle">
+                <div class="labelrow">
+                  <div class="label" id="directionTitle">Direction</div>
+                  <button type="button" class="help" data-help="direction" aria-label="Help: direction">
+                    ?
+                  </button>
+                </div>
+                <label class="radio"
+                  ><input type="radio" name="viewDirection" id="directionRoad" value="road" checked />Along
+                  the road</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="viewDirection" id="directionCar" value="car" />At an angle to the
+                  car</label
+                >
+                <label class="radio"
+                  ><input
+                    type="radio"
+                    name="viewDirection"
+                    id="directionRandom"
+                    value="random"
+                  />Random</label
+                >
+                <div class="dial" id="directionBox">
+                  <svg
+                    id="directionDial"
+                    viewBox="-110 -110 220 220"
+                    role="img"
+                    aria-label="The car from above"
+                  >
+                    <circle class="dial-ring" r="80" />
+                    <text class="dial-word" x="0" y="-92">Front</text>
+                    <text class="dial-word" x="0" y="100">Back</text>
+                    <text class="dial-word" x="-96" y="4">Left</text>
+                    <text class="dial-word" x="96" y="4">Right</text>
+                    <rect class="car" x="-14" y="-30" width="28" height="60" rx="8" />
+                    <rect class="car-glass" x="-10" y="-19" width="20" height="9" rx="2" />
+                    <rect class="car-glass" x="-10" y="15" width="20" height="6" rx="2" />
+                    <g id="directionArrow">
+                      <line class="cam-line" x1="0" y1="0" x2="0" y2="-74" />
+                      <polygon class="cam-head" points="0,-92 -9,-74 9,-74" />
+                    </g>
+                  </svg>
+                  <div class="dial-fields">
+                    <label for="carAngle">Angle</label>
+                    <div class="unit">
+                      <input
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        id="carAngle"
+                        value="0"
+                      /><span>°</span>
+                    </div>
+                    <p class="hint">0° front, 90° right, 180° back, 270° left.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="field" role="radiogroup" aria-labelledby="tiltTitle">
+                <div class="labelrow">
+                  <div class="label" id="tiltTitle">Tilt</div>
+                  <button type="button" class="help" data-help="tilt" aria-label="Help: tilt">?</button>
+                </div>
+                <label class="radio"
+                  ><input type="radio" name="tiltMode" id="tiltFixed" value="fixed" checked />The same for
+                  every location</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="tiltMode" id="tiltRandom" value="random" />Random, within a
+                  range</label
+                >
+                <div class="dial" id="tiltBox">
+                  <svg id="tiltDial" viewBox="-62 -100 182 200" role="img" aria-label="The car from the side">
+                    <path class="dial-ring" d="M0,-80 A80,80 0 0,1 0,80" />
+                    <text class="dial-word" x="0" y="-86">Up</text>
+                    <text class="dial-word" x="0" y="96">Down</text>
+                    <text class="dial-word" x="100" y="-14">Level</text>
+                    <path class="tilt-range" id="tiltRangeArc" d="" />
+                    <rect class="car" x="-48" y="12" width="76" height="20" rx="6" />
+                    <path class="car" d="M-36,13 L-26,-2 L8,-2 L18,13 Z" />
+                    <circle class="wheel" cx="-28" cy="33" r="7" />
+                    <circle class="wheel" cx="12" cy="33" r="7" />
+                    <line class="cam-mast" x1="0" y1="0" x2="0" y2="-2" />
+                    <g id="tiltArrow">
+                      <line class="cam-line" x1="0" y1="0" x2="74" y2="0" />
+                      <polygon class="cam-head" points="92,0 74,-9 74,9" />
+                    </g>
+                    <circle class="tilt-handle" id="tiltMinHandle" r="8" cx="80" cy="0" />
+                    <circle class="tilt-handle" id="tiltMaxHandle" r="8" cx="80" cy="0" />
+                  </svg>
+                  <div class="dial-fields">
+                    <div id="tiltFixedFields">
+                      <label for="tilt">Tilt</label>
+                      <div class="unit">
+                        <input type="text" inputmode="numeric" autocomplete="off" id="tilt" value="0" /><span
+                          >°</span
+                        >
+                      </div>
+                    </div>
+                    <div id="tiltRangeFields" class="tilt-range-fields">
+                      <label for="tiltMin">From</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="tiltMin"
+                          value="-20"
+                        /><span>°</span>
+                      </div>
+                      <label for="tiltMax">to</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="tiltMax"
+                          value="20"
+                        /><span>°</span>
+                      </div>
+                    </div>
+                    <p class="hint">+90° straight up, 0° level, −90° straight down.</p>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="linkbtn reset" data-reset="moreView">Reset to defaults</button>
             </details>
           </section>
 

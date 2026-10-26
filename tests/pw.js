@@ -9,7 +9,7 @@ const seen = () => {
     if (localStorage.getItem("mapgen.openSections") === null)
       localStorage.setItem(
         "mapgen.openSections",
-        JSON.stringify(["moreDistribution", "morePhotos", "moreSearch", "moreMapFile"]),
+        JSON.stringify(["moreDistribution", "morePhotos", "moreView", "moreSearch", "moreMapFile"]),
       );
   } catch {}
 };

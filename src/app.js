@@ -44,7 +44,7 @@
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution, noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
+ *   radius, giveUpAfter, viewDirection, carAngle, tiltMode, tilt, tiltMin, tiltMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -69,6 +69,7 @@
  * @property {number} lat
  * @property {number} lng
  * @property {number} heading    compass direction the camera faces, 0–360
+ * @property {number} [pitch]    how far the camera looks up (+) or down (−), −90 to 90; 0 is level
  * @property {string} panoId     Google's panorama id
  * @property {string} date       photo date "YYYY-MM" or "YYYY", or ""
  * @property {string} cc         two-letter country code
@@ -97,6 +98,8 @@
  * @property {number} [height]   the full image's height in pixels (8192 now, 6656 for older cameras and the
  *                               bad camera), or 0 when Google did not say
  * @property {{pano: string, date: string}[]} [older] the other photos at the same spot, newest first
+ * @property {number|null} [carHeading] the direction the car faced when the photo was taken, 0–360
+ *                               (Google's tiles.centerHeading), or null when Google did not say
  * @property {string} [detail]   what was wrong with the answer, if anything
  */
 
@@ -997,6 +1000,219 @@ $("keyBox").hidden = !!GOOGLE_API_KEY;
 $("apiKey").value = keyStore.get();
 $("apiKey").onchange = () => keyStore.set($("apiKey").value.trim());
 
+/* ---------- camera view ----------
+   Where the camera faces at each location and how far it tilts (plan step 16): along the road (the
+   default), at an angle to the car, or random; a tilt for every location, or a random tilt within a
+   range. The car is the direction the Street View car faced when the photo was taken (Google's
+   centerHeading, checked on real panoramas with the owner: it matches one of the arrows within a few
+   degrees). The drawings show and set the angles with the mouse or by touch; the number fields beside
+   them do the same by keyboard. locationView() turns the settings into each location's heading and pitch. */
+const VIEW_DIRECTIONS = ["road", "car", "random"],
+  TILT_MODES = ["fixed", "random"];
+/* The angle fields: the angle to the car goes round (0–359), the tilts go from straight down to up. */
+const ANGLE_FIELDS = {
+  carAngle: { lo: 0, hi: 359, d: 0, wrap: true },
+  tilt: { lo: -90, hi: 90, d: 0 },
+  tiltMin: { lo: -90, hi: 90, d: -20 },
+  tiltMax: { lo: -90, hi: 90, d: 20 },
+};
+/* An angle as typed: "90", "-20", "−20°"; NaN if it is not one. */
+function typedAngle(text) {
+  const t = String(text).trim().replace(/°$/, "").replace("−", "-").replace(/\s/g, "");
+  return /^-?\d{1,4}$/.test(t) ? Number(t) : NaN;
+}
+/* The angle in a field, kept within its range; the saved one (or the default) if none is typed. */
+function angleField(id) {
+  const f = ANGLE_FIELDS[id],
+    n = typedAngle($(id).value);
+  if (Number.isNaN(n)) return wholeNumber(store.get(id, f.d), f.lo, f.hi, f.d);
+  if (f.wrap) return ((n % 360) + 360) % 360;
+  return Math.min(f.hi, Math.max(f.lo, n));
+}
+/* The value of a radio group, if it is one of those allowed. */
+const radioValue = (name, allowed, d) => {
+  const v = document.querySelector(`input[name=${name}]:checked`)?.value;
+  return allowed.includes(v) ? v : d;
+};
+/* Ticks the radio button with this value. */
+const setRadio = (name, value) => {
+  const r = document.querySelector(`input[name=${name}][value="${value}"]`);
+  if (r) r.checked = true;
+};
+/* The camera view settings in the form: { direction, carAngle, tiltMode, tilt, tiltMin, tiltMax }. */
+function viewSettings() {
+  return {
+    direction: radioValue("viewDirection", VIEW_DIRECTIONS, "road"),
+    carAngle: angleField("carAngle"),
+    tiltMode: radioValue("tiltMode", TILT_MODES, "fixed"),
+    tilt: angleField("tilt"),
+    tiltMin: angleField("tiltMin"),
+    tiltMax: angleField("tiltMax"),
+  };
+}
+/* An angle to the car in words: "right", "front left", or "" between the eight directions. */
+function angleWord(a) {
+  const words = ["front", "front right", "right", "back right", "back", "back left", "left", "front left"];
+  return a % 45 === 0 ? words[a / 45] : "";
+}
+/* A tilt in words: "level", "10° up", "25° down". */
+const tiltWord = t => (t === 0 ? "level" : t > 0 ? `${t}° up` : `${-t}° down`);
+/* A signed angle as written on the page: "−20°", "20°". */
+const signedDegrees = t => `${t < 0 ? "−" : ""}${Math.abs(t)}°`;
+/* The camera view in words, for the summary and the history: "90° to the car (right), 10° up". */
+function viewSummary(v) {
+  const word = angleWord(v.carAngle);
+  const dir =
+    v.direction === "car"
+      ? `${v.carAngle}° to the car${word ? ` (${word})` : ""}`
+      : v.direction === "random"
+        ? "Random direction"
+        : "Along the road";
+  const lo = Math.min(v.tiltMin, v.tiltMax),
+    hi = Math.max(v.tiltMin, v.tiltMax);
+  const tilt =
+    v.tiltMode === "random" ? `random tilt ${signedDegrees(lo)} to ${signedDegrees(hi)}` : tiltWord(v.tilt);
+  return `${dir}, ${tilt}`;
+}
+/* True when the camera view is as it is without changes: along the road, level. */
+const viewIsDefault = v =>
+  v.direction === "road" &&
+  v.carAngle === 0 &&
+  v.tiltMode === "fixed" &&
+  v.tilt === 0 &&
+  v.tiltMin === ANGLE_FIELDS.tiltMin.d &&
+  v.tiltMax === ANGLE_FIELDS.tiltMax.d;
+// Saved settings
+setRadio(
+  "viewDirection",
+  VIEW_DIRECTIONS.includes(store.get("viewDirection")) ? store.get("viewDirection") : "road",
+);
+setRadio("tiltMode", TILT_MODES.includes(store.get("tiltMode")) ? store.get("tiltMode") : "fixed");
+for (const [id, f] of Object.entries(ANGLE_FIELDS)) {
+  $(id).value = String(wholeNumber(store.get(id, f.d), f.lo, f.hi, f.d));
+  // On leaving the field: keep the angle and show it as it will be used
+  $(id).onchange = () => {
+    const n = angleField(id);
+    store.set(id, n);
+    $(id).value = String(n);
+    drawView();
+  };
+  // While typing: the drawing follows
+  $(id).oninput = () => {
+    if (!Number.isNaN(typedAngle($(id).value))) drawView();
+  };
+  // The arrow keys turn it, 5° at a time (1° with Shift)
+  $(id).onkeydown = e => {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    const step = (e.shiftKey ? 1 : 5) * (e.key === "ArrowUp" ? 1 : -1);
+    $(id).value = String(angleField(id) + step);
+    $(id).onchange();
+  };
+}
+for (const name of ["viewDirection", "tiltMode"])
+  for (const r of document.querySelectorAll(`input[name=${name}]`))
+    r.onchange = () => {
+      store.set(name, r.value);
+      updateView();
+    };
+/* Greys out what does not apply: the angle to the car unless it is chosen; the fixed tilt or the range,
+   whichever is not chosen. */
+function updateView() {
+  const v = viewSettings();
+  $("carAngle").disabled = v.direction !== "car";
+  $("directionBox").classList.toggle("off", v.direction !== "car");
+  $("tilt").disabled = v.tiltMode !== "fixed";
+  $("tiltMin").disabled = $("tiltMax").disabled = v.tiltMode !== "random";
+  $("tiltBox").classList.toggle("random", v.tiltMode === "random");
+  drawView();
+}
+/* A point on the tilt drawing's half circle for a tilt: right is level, up is +90°. */
+const tiltPoint = (t, r = 80) => [r * Math.cos((t * Math.PI) / 180), -r * Math.sin((t * Math.PI) / 180)];
+/* Turns the arrows and handles of the drawings to the angles in the fields. */
+function drawView() {
+  const v = viewSettings();
+  $("directionArrow").setAttribute("transform", `rotate(${v.carAngle})`);
+  $("directionDial").setAttribute(
+    "aria-label",
+    `The car from above; the camera points ${v.carAngle}°${angleWord(v.carAngle) ? " (" + angleWord(v.carAngle) + ")" : ""}`,
+  );
+  $("tiltArrow").setAttribute("transform", `rotate(${-v.tilt})`);
+  const lo = Math.min(v.tiltMin, v.tiltMax),
+    hi = Math.max(v.tiltMin, v.tiltMax);
+  for (const [id, t] of [
+    ["tiltMinHandle", v.tiltMin],
+    ["tiltMaxHandle", v.tiltMax],
+  ]) {
+    const [x, y] = tiltPoint(t);
+    $(id).setAttribute("cx", x.toFixed(1));
+    $(id).setAttribute("cy", y.toFixed(1));
+  }
+  const [x1, y1] = tiltPoint(lo),
+    [x2, y2] = tiltPoint(hi);
+  $("tiltRangeArc").setAttribute(
+    "d",
+    `M0,0 L${x1.toFixed(1)},${y1.toFixed(1)} A80,80 0 0,0 ${x2.toFixed(1)},${y2.toFixed(1)} Z`,
+  );
+  $("tiltDial").setAttribute(
+    "aria-label",
+    "The car from the side; " +
+      (v.tiltMode === "random"
+        ? `tilt from ${signedDegrees(lo)} to ${signedDegrees(hi)}`
+        : `tilt ${tiltWord(v.tilt)}`),
+  );
+}
+/* Where a pointer is on a drawing, in the drawing's own units (its centre is 0,0). */
+function svgPoint(svg, e) {
+  const m = svg.getScreenCTM();
+  if (!m) return [0, 0];
+  const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+  return [p.x, p.y];
+}
+/* Sets an angle field as if typed, so it is saved and the drawing follows. */
+function setAngle(id, n) {
+  $(id).value = String(Math.round(n));
+  $(id).onchange();
+  updateMore();
+}
+/* Lets a drawing follow the pointer: onPoint(x, y, first) for the press and every move until released.
+   Dragging an arrow also chooses that option (an angle to the car, a fixed or random tilt). */
+function dragOn(svg, onPoint) {
+  let dragging = false;
+  svg.addEventListener("pointerdown", e => {
+    if ($("fields").disabled) return;
+    dragging = true;
+    svg.setPointerCapture(e.pointerId);
+    onPoint(...svgPoint(svg, e), true);
+    e.preventDefault();
+  });
+  svg.addEventListener("pointermove", e => {
+    if (dragging) onPoint(...svgPoint(svg, e), false);
+  });
+  for (const end of ["pointerup", "pointercancel"]) svg.addEventListener(end, () => (dragging = false));
+}
+dragOn($("directionDial"), (x, y) => {
+  if (radioValue("viewDirection", VIEW_DIRECTIONS, "road") !== "car") {
+    setRadio("viewDirection", "car");
+    store.set("viewDirection", "car");
+    updateView();
+  }
+  setAngle("carAngle", ((((Math.atan2(x, -y) * 180) / Math.PI) % 360) + 360) % 360);
+});
+let tiltHandle = "tilt"; // what a drag on the tilt drawing moves: the tilt, or one end of the range
+dragOn($("tiltDial"), (x, y, first) => {
+  const t = x <= 0 ? (y < 0 ? 90 : -90) : (Math.atan2(-y, x) * 180) / Math.PI;
+  if (first)
+    tiltHandle =
+      radioValue("tiltMode", TILT_MODES, "fixed") === "fixed"
+        ? "tilt"
+        : Math.abs(t - angleField("tiltMin")) <= Math.abs(t - angleField("tiltMax"))
+          ? "tiltMin"
+          : "tiltMax";
+  setAngle(tiltHandle, t);
+});
+updateView();
+
 /* ---------- more options and help ----------
    The first screen shows only what most visitors need (CONTRIBUTING.md: "A simple interface"); every
    other setting is in a closed "More options" section for its topic (<details class="more">). A closed
@@ -1047,6 +1263,18 @@ const MORE = {
       for (const id of Object.keys(CAMERA_BOXES)) setControl(id, false);
       setControl("noBadCamera", false);
       setControl("useOlder", true);
+    },
+  },
+  moreView: {
+    summary: () => viewSummary(viewSettings()),
+    changed: () => !viewIsDefault(viewSettings()),
+    reset: () => {
+      setRadio("viewDirection", "road");
+      setRadio("tiltMode", "fixed");
+      store.set("viewDirection", "road");
+      store.set("tiltMode", "fixed");
+      for (const [id, f] of Object.entries(ANGLE_FIELDS)) setControl(id, String(f.d));
+      updateView();
     },
   },
   moreSearch: {
@@ -1241,7 +1469,7 @@ function showArea(codes) {
 }
 /* Street View at a location, facing its heading. */
 const streetViewLink = l =>
-  `https://www.google.com/maps/@?api=1&map_action=pano&pano=${encodeURIComponent(l.panoId)}&heading=${Math.round(l.heading)}`;
+  `https://www.google.com/maps/@?api=1&map_action=pano&pano=${encodeURIComponent(l.panoId)}&heading=${Math.round(l.heading)}&pitch=${Math.round(l.pitch || 0)}`;
 /* Draws a found location as a dot with a popup: country, what it has, photo date, Street View button. */
 function drawLocation(l) {
   if (!map) return;
@@ -1324,6 +1552,7 @@ function cleanPano(r) {
     // the full image's height in pixels, which tells the camera (see BAD_CAMERA_HEIGHT); 0 if not given
     height: inRange(r.height, 1, 100000) ? Math.round(r.height) : 0,
     older: olderPhotos(r.time, r.panoId),
+    carHeading: inRange(r.carHeading, -360, 720) ? ((r.carHeading % 360) + 360) % 360 : null,
   };
 }
 /* The other photos at the same spot, newest first: [{ pano, date: "YYYY-MM" }]. They come from the list
@@ -1383,6 +1612,7 @@ async function lookup(p, radius, key) {
     copyright: d.copyright,
     date: d.imageDate,
     height: d.tiles?.worldSize?.height,
+    carHeading: d.tiles?.centerHeading,
     time: d.time,
     links: d.links,
   });
@@ -1401,6 +1631,7 @@ async function lookupPano(panoId, key) {
     copyright: d.copyright,
     date: d.imageDate,
     height: d.tiles?.worldSize?.height,
+    carHeading: d.tiles?.centerHeading,
     time: d.time,
     links: d.links,
   });
@@ -1711,7 +1942,7 @@ async function attempt(code, want, rad, key) {
   const l = {
     lat: r.lat,
     lng: r.lng,
-    heading: cameraHeading(r.links, facts),
+    ...locationView(r, facts, searchSettings.view),
     panoId: r.panoId,
     date: r.date,
     cc: code,
@@ -1728,8 +1959,26 @@ async function attempt(code, want, rad, key) {
   remember(l);
   if (results.length <= MAX_DRAWN) drawLocation(l);
 }
-/* Where the camera faces. At the end of the coverage: away from the one arrow, towards where it stops.
-   Elsewhere: along the road, in the direction of a random arrow (any direction if there is none). */
+/* Where the camera faces and how far it tilts, from the camera view settings of the search (see
+   "camera view"): along the road (cameraHeading), at an angle to the car, or random; level, at a set
+   tilt, or a random tilt within a range. "The car" is the direction it faced when the photo was taken
+   (carHeading); when Google does not say, the road direction stands in for it.
+   @returns {{heading: number, pitch: number}} */
+function locationView(r, facts, view) {
+  let heading;
+  if (view.direction === "random") heading = Math.random() * 360;
+  else if (view.direction === "car") {
+    const front = r.carHeading ?? (r.links.length ? r.links[0].heading : 0);
+    heading = (front + view.carAngle) % 360;
+  } else heading = cameraHeading(r.links, facts);
+  const pitch =
+    view.tiltMode === "random"
+      ? Math.min(view.tiltMin, view.tiltMax) + Math.random() * Math.abs(view.tiltMax - view.tiltMin)
+      : view.tilt;
+  return { heading: Math.round(heading * 10) / 10, pitch: Math.round(pitch * 10) / 10 };
+}
+/* Where the camera faces along the road. At the end of the coverage: away from the one arrow, towards
+   where it stops. Elsewhere: in the direction of a random arrow (any direction if there is none). */
 function cameraHeading(links, facts) {
   if (facts.deadEnd) return (links[0].heading + 180) % 360;
   if (links.length) return links[Math.floor(Math.random() * links.length)].heading;
@@ -1764,6 +2013,7 @@ async function startSearch() {
     key,
     giveUpAfter: giveUpAfter(),
     useOlder: useOlder(),
+    view: viewSettings(),
   };
   showNote("");
   historyId = recordSearch();
@@ -1873,13 +2123,14 @@ async function runSearch() {
   if (!stopRequested && !fatal) showShortfall();
 }
 /** The settings of the current search, kept for going on after "Fill the gap".
- *  @type {{want: object, rad: number, key: string, giveUpAfter: number, useOlder: boolean}} */
+ *  @type {{want: object, rad: number, key: string, giveUpAfter: number, useOlder: boolean, view: object}} */
 let searchSettings = {
   want: {},
   rad: RADIUS_DEFAULT,
   key: "",
   giveUpAfter: GIVE_UP_DEFAULT,
   useOlder: false,
+  view: { direction: "road", carAngle: 0, tiltMode: "fixed", tilt: 0, tiltMin: -20, tiltMax: 20 },
 };
 $("form").onsubmit = e => {
   e.preventDefault();
@@ -2055,7 +2306,7 @@ function exportJson() {
         lat: +l.lat.toFixed(7),
         lng: +l.lng.toFixed(7),
         heading: +l.heading.toFixed(1),
-        pitch: 0,
+        pitch: +(l.pitch || 0).toFixed(1),
         zoom: 0,
         panoId: l.panoId,
         countryCode: l.cc,
@@ -2119,6 +2370,12 @@ const HISTORY_MAX = 20;
  * @property {number} monthFrom      1–12 (settings from before months were kept have none: January)
  * @property {number|"now"} yearTo  a year, or "now" for the current month
  * @property {number} monthTo        1–12 (none before months were kept: December)
+ * @property {"road"|"car"|"random"} viewDirection  where the camera faces (see "camera view")
+ * @property {number} carAngle      0–359, the angle to the car with viewDirection "car"
+ * @property {"fixed"|"random"} tiltMode
+ * @property {number} tilt          −90 to 90, with tiltMode "fixed"
+ * @property {number} tiltMin       −90 to 90, the range with tiltMode "random"
+ * @property {number} tiltMax
  * @property {number} target
  * @property {number} radius
  * @property {number} giveUpAfter
@@ -2157,6 +2414,7 @@ function currentSettings() {
     monthFrom: wholeNumber($("monthFrom").value, 1, 12, 1),
     yearTo: cleanYearTo($("yearTo").value),
     monthTo: wholeNumber($("monthTo").value, 1, 12, 12),
+    ...(({ direction, ...rest }) => ({ viewDirection: direction, ...rest }))(viewSettings()),
     target: target(),
     radius: radius(),
     giveUpAfter: giveUpAfter(),
@@ -2192,6 +2450,11 @@ function cleanSettings(raw) {
     monthFrom: wholeNumber(r.monthFrom, 1, 12, 1),
     yearTo: cleanYearTo(r.yearTo),
     monthTo: wholeNumber(r.monthTo, 1, 12, 12),
+    viewDirection: VIEW_DIRECTIONS.includes(r.viewDirection) ? r.viewDirection : "road",
+    ...Object.fromEntries(
+      Object.entries(ANGLE_FIELDS).map(([id, f]) => [id, wholeNumber(r[id], f.lo, f.hi, f.d)]),
+    ),
+    tiltMode: TILT_MODES.includes(r.tiltMode) ? r.tiltMode : "fixed",
     target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
     radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
     giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
@@ -2233,8 +2496,9 @@ const saveHistory = list => store.set("history", list.slice(0, HISTORY_MAX));
    being added twice. Returns the entry's id, or null when the history is switched off. */
 function recordSearch() {
   if (!historyOn()) return null;
+  // (compared after cleanSettings, as the history keeps them, so the order of the settings does not matter)
   const settings = currentSettings(),
-    same = JSON.stringify(settings);
+    same = JSON.stringify(cleanSettings(settings));
   const list = loadHistory().filter(e => JSON.stringify(e.settings) !== same);
   const entry = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -2283,6 +2547,8 @@ function historyDetails(s) {
   );
   if ((s.noBadCamera || Object.keys(CAMERA_BOXES).some(id => s[id])) && s.useOlder)
     bits.push("older photos instead");
+  const view = { ...s, direction: s.viewDirection };
+  if (!viewIsDefault(view)) bits.push("camera " + viewSummary(view).replace(/^./, c => c.toLowerCase()));
   bits.push(`${fmt(s.target)} ${s.target === 1 ? "location" : "locations"}`, `${fmt(s.radius)} m`);
   return bits.join(" · ");
 }
@@ -2366,6 +2632,15 @@ function applySettings(s) {
     else $(id).value = String(s[id]);
     store.set(id, s[id]);
   }
+  setRadio("viewDirection", s.viewDirection);
+  setRadio("tiltMode", s.tiltMode);
+  store.set("viewDirection", s.viewDirection);
+  store.set("tiltMode", s.tiltMode);
+  for (const id of Object.keys(ANGLE_FIELDS)) {
+    $(id).value = String(s[id]);
+    store.set(id, s[id]);
+  }
+  updateView();
   updateYears();
   updateOlder();
   updateTagDate();
@@ -2618,6 +2893,7 @@ function cleanLocation(l) {
     lat: l.lat,
     lng: l.lng,
     heading: l.heading,
+    pitch: inRange(l.pitch, -90, 90) ? l.pitch : 0,
     panoId: l.panoId,
     date: /^\d{4}(-\d{2})?$/.test(date) ? date : "",
     cc: l.cc,
@@ -2729,6 +3005,7 @@ async function continueSearch() {
     key,
     giveUpAfter: giveUpAfter(),
     useOlder: useOlder(),
+    view: viewSettings(),
   };
   if (!(await googleReady(key))) {
     offerSavedSearch(); // still there, for another try
