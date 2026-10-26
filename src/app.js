@@ -1967,6 +1967,9 @@ function updateOwnActs() {
   $("ownFromPreset").hidden = $("presetDelete").hidden = !preset;
   $("ownEdit").hidden = !mine;
   $("ownEdit").disabled = !distributionUsed();
+  // (says why they are greyed out when pointed at)
+  for (const id of ["ownFromMap", "ownEqual", "ownEdit"])
+    $(id).title = $(id).disabled ? "Choose two or more countries first" : "";
 }
 
 /* ---------- map ---------- */

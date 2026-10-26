@@ -58,6 +58,7 @@ The tool should feel easy on first sight, also as settings are added. Every chan
 - **Nothing changed stays hidden.** A closed section shows a one-line summary of what is set, marks what differs from the default, and offers "Reset to defaults".
 - **Little text on the page.** At most a short hint under a setting. A longer explanation goes into a help dialog, opened by a small "?" button next to the setting.
 - **Related choices that exclude each other are one choice**, not tick boxes that can contradict each other (such as "Arrows: any, end of coverage, intersection"). A setting that does not apply is greyed out, not hidden.
+- **Inactive elements clearly look inactive** (agreed with the owner, October 2026). Anything that cannot be used right now, whether a field, a tick box with its text, a list, a slider, a button or a link button, is visibly faded, and link buttons lose their underline. Where the reason is not obvious, it is said when pointed at (`title`) or in the help. The shared styles in `src/style.css` do this for every disabled control, so a new control gets it by being disabled; `tests/more.js` checks every disabled control on the page.
 - **Every setting is part of the shared description of the settings,** so the history, the unfinished search and the settings file all keep it.
 - **Keyboard and screen readers** must work for every control, including drawings such as the camera direction.
 
