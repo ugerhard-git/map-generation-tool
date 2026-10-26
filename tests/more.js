@@ -91,6 +91,7 @@ const { PAGE, isSite, serveSite } = require("./site.js");
   await p.check("#yearsOn");
   await p.selectOption("#yearFrom", "2015");
   await p.check("#noBadCamera");
+  await p.check("#useOlder");
   ok(
     (await summary("morePhotos")) === "Jan 2015 to now, no bad camera, older photos instead" &&
       (await changed("morePhotos")),
@@ -101,6 +102,7 @@ const { PAGE, isSite, serveSite } = require("./site.js");
     (await summary("morePhotos")) === "Any time" &&
       !(await changed("morePhotos")) &&
       !(await p.isChecked("#yearsOn")) &&
+      !(await p.isChecked("#useOlder")) &&
       (await p.evaluate(() => localStorage.getItem("mapgen.noBadCamera"))) === "false",
     "Reset to defaults puts them back, also what is saved",
   );

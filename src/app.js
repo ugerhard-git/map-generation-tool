@@ -948,8 +948,9 @@ updateYears();
 // slower, not faster, so it was taken out. Their saved values are cleared.
 for (const id of ["walkOn", "walkSteps"]) store.remove(id);
 // Using an older photo when the newest is not the camera asked for: only with chosen cameras or "No bad
-// camera", and on unless switched off.
-$("useOlder").checked = store.get("useOlder", true) !== false;
+// camera", and off unless ticked (on by default until October 2026, when the owner chose off; a saved
+// choice is kept).
+$("useOlder").checked = store.get("useOlder", false) === true;
 $("useOlder").onchange = () => store.set("useOlder", $("useOlder").checked);
 const useOlder = () => (!!cameras() || $("noBadCamera").checked) && $("useOlder").checked;
 /* "No bad camera" does not apply while cameras are chosen, and the older-photo option only with one of
@@ -1508,7 +1509,7 @@ const MORE = {
       +$("monthTo").value !== 12 ||
       $("noBadCamera").checked ||
       !!cameras() ||
-      !$("useOlder").checked,
+      $("useOlder").checked,
     reset: () => {
       setControl("yearFrom", String(YEAR_FIRST));
       setControl("monthFrom", "1");
@@ -1517,7 +1518,7 @@ const MORE = {
       setControl("yearsOn", false);
       for (const id of Object.keys(CAMERA_BOXES)) setControl(id, false);
       setControl("noBadCamera", false);
-      setControl("useOlder", true);
+      setControl("useOlder", false);
     },
   },
   moreView: {
@@ -3029,7 +3030,7 @@ function cleanSettings(raw) {
     yearsOn: r.yearsOn === true,
     ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, r[id] === true])),
     noBadCamera: r.noBadCamera === true,
-    useOlder: r.useOlder !== false,
+    useOlder: r.useOlder === true,
     yearFrom: wholeNumber(r.yearFrom, YEAR_FIRST, YEAR_LAST, YEAR_FIRST),
     // (settings from before months were kept have only years: January to December)
     monthFrom: wholeNumber(r.monthFrom, 1, 12, 1),
