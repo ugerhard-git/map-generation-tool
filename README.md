@@ -10,7 +10,7 @@ Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random o
 2. **Share between countries.** With more than one country, the locations are shared between them like in a well-known GeoGuessr map you choose (An Arbitrary World by default, A Community World, A Balanced World and others), using the country distributions from [Vali](https://github.com/slashP/Vali) by slashP. A table shows how many each country gets. You can also make your own distribution, starting from one of these or with equal shares for every country: enter each country's share as a percentage, or an exact number of locations, in the table (the × next to a share takes a country out), and save it as a preset in your browser ("Your maps").
 3. **Random spots.** The page picks random spots on land inside each country (the country borders reach far out to sea, so a built-in land map keeps spots out of the water) and asks Google for the nearest official panorama within a chosen radius.
 4. **Check the arrows.** A panorama whose arrows carry no street name has no road name; a panorama with a single arrow is where the coverage ends, one with three or more is an intersection; its date gives the month and year of the photos (Google's default photos at that spot, normally the newest). Matching locations at least 100 m apart are kept. At the end of the coverage, the camera faces where it stops. Under "Camera view" you can instead choose the camera's direction relative to the Street View car (front, right, back, left or anything in between) or a random one, anywhere or within a range around the car, and how far it tilts up or down, fixed or random within a range; you set both on drawings of the car. The zoom, too, can be set for every location or be random within a range. A country where matching locations are too rare gives up after a set number of tries; you can then fill the gap from the other countries.
-5. **Export** as a map-making.app JSON file, at the end or after stopping the search. The map on the page shows the first 20,000 locations, to stay quick; the file has all of them. Each location gets its country code and the tags you tick: the country's name (ticked by default), "No road name", "Dead end" and "Intersection" (each a separate option) where they apply, and the date of the photos, as the year (2023) or month and year (04-2023), and the camera (Gen 4, Gen 2/3, Bad camera).
+5. **Export** as a map-making.app JSON file, at the end or after stopping the search. The map on the page shows the first 20,000 locations, to stay quick; the file has all of them. Each location gets its country code and the tags you tick: the country (ticked by default; its tag comes from the owner's list in `src/data/country-tags.json`, such as "USA" and "UAE"), "No road name", "Dead end" and "Intersection" (each a separate option) where they apply, and the date of the photos, as the year (2023) or month and year (04-2023), and the camera (Gen 4, Gen 2/3, Bad camera).
 
 While a search runs, the status line shows a forecast of the time left, learnt from how fast it finds locations in each country. The counters below it show how long the search has been running.
 
@@ -57,20 +57,21 @@ The tests drive the page in a headless browser. Google's script and the map tile
 
 ## Project layout
 
-| Path                 | What it is                                                       |
-| -------------------- | ---------------------------------------------------------------- |
-| `src/page.html`      | The page's markup and site owner settings                        |
-| `src/style.css`      | The page's styles                                                |
-| `src/icon.svg`       | The page icon; `npm run icons` makes the PNG versions next to it |
-| `src/app.js`         | The app code                                                     |
-| `src/build.js`       | Builds `dist/index.html`                                         |
-| `src/land.js`        | Makes the land map for the page, during the build                |
-| `src/data/vali.json` | Country distributions and continents from Vali (generated)       |
-| `tools/vali.js`      | Updates `src/data/vali.json` from Vali; runs monthly on GitHub   |
-| `tests/`             | Browser tests, one file per feature area                         |
-| `docs/`              | [How the code works](docs/how-the-code-works.md), for developers |
-| `CONTRIBUTING.md`    | How to make a change, and the rules                              |
-| `SECURITY.md`        | How to report a security problem, and the protections            |
+| Path                         | What it is                                                       |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `src/page.html`              | The page's markup and site owner settings                        |
+| `src/style.css`              | The page's styles                                                |
+| `src/icon.svg`               | The page icon; `npm run icons` makes the PNG versions next to it |
+| `src/app.js`                 | The app code                                                     |
+| `src/build.js`               | Builds `dist/index.html`                                         |
+| `src/land.js`                | Makes the land map for the page, during the build                |
+| `src/data/vali.json`         | Country distributions and continents from Vali (generated)       |
+| `tools/vali.js`              | Updates `src/data/vali.json` from Vali; runs monthly on GitHub   |
+| `src/data/country-tags.json` | The tag each country gets in the map file (edited by hand)       |
+| `tests/`                     | Browser tests, one file per feature area                         |
+| `docs/`                      | [How the code works](docs/how-the-code-works.md), for developers |
+| `CONTRIBUTING.md`            | How to make a change, and the rules                              |
+| `SECURITY.md`                | How to report a security problem, and the protections            |
 
 ## Credits
 

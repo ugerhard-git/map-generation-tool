@@ -24,7 +24,9 @@ const appCss = src("style.css"),
   appJs = src("app.js");
 if (/<\/style/i.test(appCss)) throw new Error("style.css contains a closing style tag");
 if (/<\/script/i.test(appJs)) throw new Error("app.js contains a closing script tag");
-if (/\/\*(VALI|LAND|LEAFLET_JS|COUNTRY_CODER_JS|LEAFLET_CSS|FONT_CSS|CSP)\*\//.test(appCss + appJs))
+if (
+  /\/\*(VALI|COUNTRY_TAGS|LAND|LEAFLET_JS|COUNTRY_CODER_JS|LEAFLET_CSS|FONT_CSS|CSP)\*\//.test(appCss + appJs)
+)
   throw new Error("a build placeholder appears in style.css or app.js");
 put("/*APP_CSS*/", appCss);
 put("/*APP_JS*/", appJs);
@@ -43,6 +45,26 @@ const vali = JSON.parse(fs.readFileSync(path.join(__dirname, "data/vali.json"), 
 put(
   "/*VALI*/",
   JSON.stringify({ source: vali.source, maps: vali.maps, continents: vali.continents })
+    .replace(/</g, "\\u003c")
+    .replace(/[\u2028\u2029]/g, ""),
+);
+
+// The country tags, from the owner's list (src/data/country-tags.json): a code and a tag per country,
+// checked here, so a mistake in the file stops the build instead of reaching the page. Only the tags go
+// into the page, with "<" escaped like the Vali data.
+const countryTags = JSON.parse(fs.readFileSync(path.join(__dirname, "data/country-tags.json"), "utf8")).tags;
+const tagsByCode = {};
+for (const [code, entry] of Object.entries(countryTags)) {
+  if (!/^[A-Z]{2}$/.test(code))
+    throw new Error(`country-tags.json: "${code}" is not a two-letter country code`);
+  const tag = entry && entry.tag;
+  if (typeof tag !== "string" || !tag.trim() || tag.length > 60 || [...tag].some(ch => ch < " "))
+    throw new Error(`country-tags.json: the tag for ${code} must be text of 1 to 60 characters`);
+  tagsByCode[code] = tag.trim();
+}
+put(
+  "/*COUNTRY_TAGS*/",
+  JSON.stringify(tagsByCode)
     .replace(/</g, "\\u003c")
     .replace(/[\u2028\u2029]/g, ""),
 );
