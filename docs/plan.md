@@ -65,6 +65,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 24. **Welcome dialog** (done, 26 October 2026, at the owner's request): it now also tells about your own distributions (from a map, or from scratch with equal shares or all at 0; percentages or numbers; presets), the settings file (save, load, share; never the key), the camera choice and "Camera view".
 
+25. **Country tags from the owner's list** (done, 28 October 2026, at the owner's request): with the country tag on, each location gets the tag from the owner's list of 198 countries, kept in `src/data/country-tags.json` and built into the page. Most tags are the usual English name; "USA" and "UAE" are shortened. Before, the tag was the browser's English name for the country, which differed between browsers and read "Hong Kong SAR China", "Türkiye" or "Bosnia & Herzegovina". Territories not on the list (Gibraltar, Puerto Rico, Réunion and others) keep their English name.
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits

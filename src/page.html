@@ -368,6 +368,10 @@
         Each location in the map file gets the tags ticked here, to filter by in map-making.app. You can
         change them after the search, before downloading.
       </p>
+      <p>
+        The country tag is the country's usual English name, in a few cases shortened, such as "USA" and
+        "UAE". Territories, such as Gibraltar or Puerto Rico, get their own name.
+      </p>
     </template>
     <!-- The app: settings panel on the left, map on the right (stacked on phones) -->
     <div class="app">
@@ -886,7 +890,7 @@
                   <button type="button" class="help" data-help="tags" aria-label="Help: tags">?</button>
                 </div>
                 <label class="check"
-                  ><input type="checkbox" id="tagCountry" checked /><span>The country's name</span></label
+                  ><input type="checkbox" id="tagCountry" checked /><span>The country</span></label
                 >
                 <label class="check"
                   ><input type="checkbox" id="tagNoRoadName" /><span
@@ -1018,6 +1022,9 @@
       /* Country distributions of well-known GeoGuessr maps and the continent lists, from Vali by slashP
          (https://github.com/slashP/Vali, GPL-3.0), made by tools/vali.js from src/data/vali.json. */
       const VALI = /*VALI*/;
+      /* The tag each country gets with the country tag on, from the owner's list in
+         src/data/country-tags.json (code: tag). */
+      const COUNTRY_TAGS = /*COUNTRY_TAGS*/;
       /* Where there is land, as a grid of run lengths, from Natural Earth (public domain) via the
          world-atlas package; made by src/land.js. Random spots are only made on land. */
       const LAND = /*LAND*/;

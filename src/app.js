@@ -216,6 +216,10 @@ const countryName = c => {
     return c;
   }
 };
+/* The country's tag in the map file: the tag from the owner's list (src/data/country-tags.json, built into
+   the page as COUNTRY_TAGS), such as "USA" for the United States; the English name for a country or
+   territory not on the list (Gibraltar, say). */
+const countryTag = c => (Object.hasOwn(COUNTRY_TAGS, c) ? COUNTRY_TAGS[c] : countryName(c));
 /* The country or territory at a position, from the country-coder library built into the page (offline,
    with simplified borders). Territory level, so Réunion is RE rather than France. Returns undefined at
    sea far from land, or if the library is missing. */
@@ -1091,7 +1095,7 @@ for (const [id, d] of Object.entries(TAG_OPTIONS)) {
    "04-2023". */
 function tagsFor(l) {
   const tags = [];
-  if ($("tagCountry").checked) tags.push(countryName(l.cc));
+  if ($("tagCountry").checked) tags.push(countryTag(l.cc));
   if ($("tagNoRoadName").checked && l.noRoadName) tags.push("No road name");
   if ($("tagDeadEnd").checked && l.deadEnd) tags.push("Dead end");
   if ($("tagIntersection").checked && l.intersection) tags.push("Intersection");

@@ -1,0 +1,797 @@
+{
+  "about": "The tag each country gets when country tags are on, from the owner's list (October 2026). Countries and territories not listed here are tagged with their English name.",
+  "tags": {
+    "AF": {
+      "name": "Afghanistan",
+      "tag": "Afghanistan"
+    },
+    "AL": {
+      "name": "Albania",
+      "tag": "Albania"
+    },
+    "DZ": {
+      "name": "Algeria",
+      "tag": "Algeria"
+    },
+    "AD": {
+      "name": "Andorra",
+      "tag": "Andorra"
+    },
+    "AO": {
+      "name": "Angola",
+      "tag": "Angola"
+    },
+    "AG": {
+      "name": "Antigua and Barbuda",
+      "tag": "Antigua and Barbuda"
+    },
+    "AR": {
+      "name": "Argentina",
+      "tag": "Argentina"
+    },
+    "AM": {
+      "name": "Armenia",
+      "tag": "Armenia"
+    },
+    "AU": {
+      "name": "Australia",
+      "tag": "Australia"
+    },
+    "AT": {
+      "name": "Austria",
+      "tag": "Austria"
+    },
+    "AZ": {
+      "name": "Azerbaijan",
+      "tag": "Azerbaijan"
+    },
+    "BS": {
+      "name": "Bahamas",
+      "tag": "Bahamas"
+    },
+    "BH": {
+      "name": "Bahrain",
+      "tag": "Bahrain"
+    },
+    "BD": {
+      "name": "Bangladesh",
+      "tag": "Bangladesh"
+    },
+    "BB": {
+      "name": "Barbados",
+      "tag": "Barbados"
+    },
+    "BY": {
+      "name": "Belarus",
+      "tag": "Belarus"
+    },
+    "BE": {
+      "name": "Belgium",
+      "tag": "Belgium"
+    },
+    "BZ": {
+      "name": "Belize",
+      "tag": "Belize"
+    },
+    "BJ": {
+      "name": "Benin",
+      "tag": "Benin"
+    },
+    "BT": {
+      "name": "Bhutan",
+      "tag": "Bhutan"
+    },
+    "BO": {
+      "name": "Bolivia",
+      "tag": "Bolivia"
+    },
+    "BA": {
+      "name": "Bosnia and Herzegovina",
+      "tag": "Bosnia and Herzegovina"
+    },
+    "BW": {
+      "name": "Botswana",
+      "tag": "Botswana"
+    },
+    "BR": {
+      "name": "Brazil",
+      "tag": "Brazil"
+    },
+    "BN": {
+      "name": "Brunei",
+      "tag": "Brunei"
+    },
+    "BG": {
+      "name": "Bulgaria",
+      "tag": "Bulgaria"
+    },
+    "BF": {
+      "name": "Burkina Faso",
+      "tag": "Burkina Faso"
+    },
+    "BI": {
+      "name": "Burundi",
+      "tag": "Burundi"
+    },
+    "CV": {
+      "name": "Cabo Verde",
+      "tag": "Cabo Verde"
+    },
+    "KH": {
+      "name": "Cambodia",
+      "tag": "Cambodia"
+    },
+    "CM": {
+      "name": "Cameroon",
+      "tag": "Cameroon"
+    },
+    "CA": {
+      "name": "Canada",
+      "tag": "Canada"
+    },
+    "CF": {
+      "name": "Central African Republic",
+      "tag": "Central African Republic"
+    },
+    "TD": {
+      "name": "Chad",
+      "tag": "Chad"
+    },
+    "CL": {
+      "name": "Chile",
+      "tag": "Chile"
+    },
+    "CN": {
+      "name": "China",
+      "tag": "China"
+    },
+    "CO": {
+      "name": "Colombia",
+      "tag": "Colombia"
+    },
+    "KM": {
+      "name": "Comoros",
+      "tag": "Comoros"
+    },
+    "CG": {
+      "name": "Congo",
+      "tag": "Congo"
+    },
+    "CR": {
+      "name": "Costa Rica",
+      "tag": "Costa Rica"
+    },
+    "CI": {
+      "name": "Côte d'Ivoire",
+      "tag": "Côte d'Ivoire"
+    },
+    "HR": {
+      "name": "Croatia",
+      "tag": "Croatia"
+    },
+    "CU": {
+      "name": "Cuba",
+      "tag": "Cuba"
+    },
+    "CY": {
+      "name": "Cyprus",
+      "tag": "Cyprus"
+    },
+    "CZ": {
+      "name": "Czechia",
+      "tag": "Czechia"
+    },
+    "CD": {
+      "name": "Democratic Republic of the Congo",
+      "tag": "Democratic Republic of the Congo"
+    },
+    "DK": {
+      "name": "Denmark",
+      "tag": "Denmark"
+    },
+    "DJ": {
+      "name": "Djibouti",
+      "tag": "Djibouti"
+    },
+    "DM": {
+      "name": "Dominica",
+      "tag": "Dominica"
+    },
+    "DO": {
+      "name": "Dominican Republic",
+      "tag": "Dominican Republic"
+    },
+    "EC": {
+      "name": "Ecuador",
+      "tag": "Ecuador"
+    },
+    "EG": {
+      "name": "Egypt",
+      "tag": "Egypt"
+    },
+    "SV": {
+      "name": "El Salvador",
+      "tag": "El Salvador"
+    },
+    "GQ": {
+      "name": "Equatorial Guinea",
+      "tag": "Equatorial Guinea"
+    },
+    "ER": {
+      "name": "Eritrea",
+      "tag": "Eritrea"
+    },
+    "EE": {
+      "name": "Estonia",
+      "tag": "Estonia"
+    },
+    "SZ": {
+      "name": "Eswatini",
+      "tag": "Eswatini"
+    },
+    "ET": {
+      "name": "Ethiopia",
+      "tag": "Ethiopia"
+    },
+    "FJ": {
+      "name": "Fiji",
+      "tag": "Fiji"
+    },
+    "FI": {
+      "name": "Finland",
+      "tag": "Finland"
+    },
+    "FR": {
+      "name": "France",
+      "tag": "France"
+    },
+    "GA": {
+      "name": "Gabon",
+      "tag": "Gabon"
+    },
+    "GE": {
+      "name": "Georgia",
+      "tag": "Georgia"
+    },
+    "DE": {
+      "name": "Germany",
+      "tag": "Germany"
+    },
+    "GH": {
+      "name": "Ghana",
+      "tag": "Ghana"
+    },
+    "GR": {
+      "name": "Greece",
+      "tag": "Greece"
+    },
+    "GD": {
+      "name": "Grenada",
+      "tag": "Grenada"
+    },
+    "GT": {
+      "name": "Guatemala",
+      "tag": "Guatemala"
+    },
+    "GN": {
+      "name": "Guinea",
+      "tag": "Guinea"
+    },
+    "GW": {
+      "name": "Guinea-Bissau",
+      "tag": "Guinea-Bissau"
+    },
+    "GY": {
+      "name": "Guyana",
+      "tag": "Guyana"
+    },
+    "HT": {
+      "name": "Haiti",
+      "tag": "Haiti"
+    },
+    "HN": {
+      "name": "Honduras",
+      "tag": "Honduras"
+    },
+    "HK": {
+      "name": "Hong Kong",
+      "tag": "Hong Kong"
+    },
+    "HU": {
+      "name": "Hungary",
+      "tag": "Hungary"
+    },
+    "IS": {
+      "name": "Iceland",
+      "tag": "Iceland"
+    },
+    "IN": {
+      "name": "India",
+      "tag": "India"
+    },
+    "ID": {
+      "name": "Indonesia",
+      "tag": "Indonesia"
+    },
+    "IR": {
+      "name": "Iran",
+      "tag": "Iran"
+    },
+    "IQ": {
+      "name": "Iraq",
+      "tag": "Iraq"
+    },
+    "IE": {
+      "name": "Ireland",
+      "tag": "Ireland"
+    },
+    "IL": {
+      "name": "Israel",
+      "tag": "Israel"
+    },
+    "IT": {
+      "name": "Italy",
+      "tag": "Italy"
+    },
+    "JM": {
+      "name": "Jamaica",
+      "tag": "Jamaica"
+    },
+    "JP": {
+      "name": "Japan",
+      "tag": "Japan"
+    },
+    "JO": {
+      "name": "Jordan",
+      "tag": "Jordan"
+    },
+    "KZ": {
+      "name": "Kazakhstan",
+      "tag": "Kazakhstan"
+    },
+    "KE": {
+      "name": "Kenya",
+      "tag": "Kenya"
+    },
+    "KI": {
+      "name": "Kiribati",
+      "tag": "Kiribati"
+    },
+    "XK": {
+      "name": "Kosovo",
+      "tag": "Kosovo"
+    },
+    "KW": {
+      "name": "Kuwait",
+      "tag": "Kuwait"
+    },
+    "KG": {
+      "name": "Kyrgyzstan",
+      "tag": "Kyrgyzstan"
+    },
+    "LA": {
+      "name": "Laos",
+      "tag": "Laos"
+    },
+    "LV": {
+      "name": "Latvia",
+      "tag": "Latvia"
+    },
+    "LB": {
+      "name": "Lebanon",
+      "tag": "Lebanon"
+    },
+    "LS": {
+      "name": "Lesotho",
+      "tag": "Lesotho"
+    },
+    "LR": {
+      "name": "Liberia",
+      "tag": "Liberia"
+    },
+    "LY": {
+      "name": "Libya",
+      "tag": "Libya"
+    },
+    "LI": {
+      "name": "Liechtenstein",
+      "tag": "Liechtenstein"
+    },
+    "LT": {
+      "name": "Lithuania",
+      "tag": "Lithuania"
+    },
+    "LU": {
+      "name": "Luxembourg",
+      "tag": "Luxembourg"
+    },
+    "MG": {
+      "name": "Madagascar",
+      "tag": "Madagascar"
+    },
+    "MW": {
+      "name": "Malawi",
+      "tag": "Malawi"
+    },
+    "MY": {
+      "name": "Malaysia",
+      "tag": "Malaysia"
+    },
+    "MV": {
+      "name": "Maldives",
+      "tag": "Maldives"
+    },
+    "ML": {
+      "name": "Mali",
+      "tag": "Mali"
+    },
+    "MT": {
+      "name": "Malta",
+      "tag": "Malta"
+    },
+    "MH": {
+      "name": "Marshall Islands",
+      "tag": "Marshall Islands"
+    },
+    "MR": {
+      "name": "Mauritania",
+      "tag": "Mauritania"
+    },
+    "MU": {
+      "name": "Mauritius",
+      "tag": "Mauritius"
+    },
+    "MX": {
+      "name": "Mexico",
+      "tag": "Mexico"
+    },
+    "FM": {
+      "name": "Micronesia",
+      "tag": "Micronesia"
+    },
+    "MD": {
+      "name": "Moldova",
+      "tag": "Moldova"
+    },
+    "MC": {
+      "name": "Monaco",
+      "tag": "Monaco"
+    },
+    "MN": {
+      "name": "Mongolia",
+      "tag": "Mongolia"
+    },
+    "ME": {
+      "name": "Montenegro",
+      "tag": "Montenegro"
+    },
+    "MA": {
+      "name": "Morocco",
+      "tag": "Morocco"
+    },
+    "MZ": {
+      "name": "Mozambique",
+      "tag": "Mozambique"
+    },
+    "MM": {
+      "name": "Myanmar",
+      "tag": "Myanmar"
+    },
+    "NA": {
+      "name": "Namibia",
+      "tag": "Namibia"
+    },
+    "NR": {
+      "name": "Nauru",
+      "tag": "Nauru"
+    },
+    "NP": {
+      "name": "Nepal",
+      "tag": "Nepal"
+    },
+    "NL": {
+      "name": "Netherlands",
+      "tag": "Netherlands"
+    },
+    "NZ": {
+      "name": "New Zealand",
+      "tag": "New Zealand"
+    },
+    "NI": {
+      "name": "Nicaragua",
+      "tag": "Nicaragua"
+    },
+    "NE": {
+      "name": "Niger",
+      "tag": "Niger"
+    },
+    "NG": {
+      "name": "Nigeria",
+      "tag": "Nigeria"
+    },
+    "KP": {
+      "name": "North Korea",
+      "tag": "North Korea"
+    },
+    "MK": {
+      "name": "North Macedonia",
+      "tag": "North Macedonia"
+    },
+    "NO": {
+      "name": "Norway",
+      "tag": "Norway"
+    },
+    "OM": {
+      "name": "Oman",
+      "tag": "Oman"
+    },
+    "PK": {
+      "name": "Pakistan",
+      "tag": "Pakistan"
+    },
+    "PW": {
+      "name": "Palau",
+      "tag": "Palau"
+    },
+    "PS": {
+      "name": "Palestine",
+      "tag": "Palestine"
+    },
+    "PA": {
+      "name": "Panama",
+      "tag": "Panama"
+    },
+    "PG": {
+      "name": "Papua New Guinea",
+      "tag": "Papua New Guinea"
+    },
+    "PY": {
+      "name": "Paraguay",
+      "tag": "Paraguay"
+    },
+    "PE": {
+      "name": "Peru",
+      "tag": "Peru"
+    },
+    "PH": {
+      "name": "Philippines",
+      "tag": "Philippines"
+    },
+    "PL": {
+      "name": "Poland",
+      "tag": "Poland"
+    },
+    "PT": {
+      "name": "Portugal",
+      "tag": "Portugal"
+    },
+    "QA": {
+      "name": "Qatar",
+      "tag": "Qatar"
+    },
+    "RO": {
+      "name": "Romania",
+      "tag": "Romania"
+    },
+    "RU": {
+      "name": "Russia",
+      "tag": "Russia"
+    },
+    "RW": {
+      "name": "Rwanda",
+      "tag": "Rwanda"
+    },
+    "KN": {
+      "name": "Saint Kitts and Nevis",
+      "tag": "Saint Kitts and Nevis"
+    },
+    "LC": {
+      "name": "Saint Lucia",
+      "tag": "Saint Lucia"
+    },
+    "VC": {
+      "name": "Saint Vincent and the Grenadines",
+      "tag": "Saint Vincent and the Grenadines"
+    },
+    "WS": {
+      "name": "Samoa",
+      "tag": "Samoa"
+    },
+    "SM": {
+      "name": "San Marino",
+      "tag": "San Marino"
+    },
+    "ST": {
+      "name": "Sao Tome and Principe",
+      "tag": "Sao Tome and Principe"
+    },
+    "SA": {
+      "name": "Saudi Arabia",
+      "tag": "Saudi Arabia"
+    },
+    "SN": {
+      "name": "Senegal",
+      "tag": "Senegal"
+    },
+    "RS": {
+      "name": "Serbia",
+      "tag": "Serbia"
+    },
+    "SC": {
+      "name": "Seychelles",
+      "tag": "Seychelles"
+    },
+    "SL": {
+      "name": "Sierra Leone",
+      "tag": "Sierra Leone"
+    },
+    "SG": {
+      "name": "Singapore",
+      "tag": "Singapore"
+    },
+    "SK": {
+      "name": "Slovakia",
+      "tag": "Slovakia"
+    },
+    "SI": {
+      "name": "Slovenia",
+      "tag": "Slovenia"
+    },
+    "SB": {
+      "name": "Solomon Islands",
+      "tag": "Solomon Islands"
+    },
+    "SO": {
+      "name": "Somalia",
+      "tag": "Somalia"
+    },
+    "ZA": {
+      "name": "South Africa",
+      "tag": "South Africa"
+    },
+    "KR": {
+      "name": "South Korea",
+      "tag": "South Korea"
+    },
+    "SS": {
+      "name": "South Sudan",
+      "tag": "South Sudan"
+    },
+    "ES": {
+      "name": "Spain",
+      "tag": "Spain"
+    },
+    "LK": {
+      "name": "Sri Lanka",
+      "tag": "Sri Lanka"
+    },
+    "SD": {
+      "name": "Sudan",
+      "tag": "Sudan"
+    },
+    "SR": {
+      "name": "Suriname",
+      "tag": "Suriname"
+    },
+    "SE": {
+      "name": "Sweden",
+      "tag": "Sweden"
+    },
+    "CH": {
+      "name": "Switzerland",
+      "tag": "Switzerland"
+    },
+    "SY": {
+      "name": "Syria",
+      "tag": "Syria"
+    },
+    "TW": {
+      "name": "Taiwan",
+      "tag": "Taiwan"
+    },
+    "TJ": {
+      "name": "Tajikistan",
+      "tag": "Tajikistan"
+    },
+    "TZ": {
+      "name": "Tanzania",
+      "tag": "Tanzania"
+    },
+    "TH": {
+      "name": "Thailand",
+      "tag": "Thailand"
+    },
+    "GM": {
+      "name": "The Gambia",
+      "tag": "The Gambia"
+    },
+    "TL": {
+      "name": "Timor-Leste",
+      "tag": "Timor-Leste"
+    },
+    "TG": {
+      "name": "Togo",
+      "tag": "Togo"
+    },
+    "TO": {
+      "name": "Tonga",
+      "tag": "Tonga"
+    },
+    "TT": {
+      "name": "Trinidad and Tobago",
+      "tag": "Trinidad and Tobago"
+    },
+    "TN": {
+      "name": "Tunisia",
+      "tag": "Tunisia"
+    },
+    "TR": {
+      "name": "Turkey",
+      "tag": "Turkey"
+    },
+    "TM": {
+      "name": "Turkmenistan",
+      "tag": "Turkmenistan"
+    },
+    "TV": {
+      "name": "Tuvalu",
+      "tag": "Tuvalu"
+    },
+    "UG": {
+      "name": "Uganda",
+      "tag": "Uganda"
+    },
+    "UA": {
+      "name": "Ukraine",
+      "tag": "Ukraine"
+    },
+    "AE": {
+      "name": "United Arab Emirates",
+      "tag": "UAE"
+    },
+    "GB": {
+      "name": "United Kingdom",
+      "tag": "United Kingdom"
+    },
+    "US": {
+      "name": "United States",
+      "tag": "USA"
+    },
+    "UY": {
+      "name": "Uruguay",
+      "tag": "Uruguay"
+    },
+    "UZ": {
+      "name": "Uzbekistan",
+      "tag": "Uzbekistan"
+    },
+    "VU": {
+      "name": "Vanuatu",
+      "tag": "Vanuatu"
+    },
+    "VA": {
+      "name": "Vatican City",
+      "tag": "Vatican City"
+    },
+    "VE": {
+      "name": "Venezuela",
+      "tag": "Venezuela"
+    },
+    "VN": {
+      "name": "Vietnam",
+      "tag": "Vietnam"
+    },
+    "YE": {
+      "name": "Yemen",
+      "tag": "Yemen"
+    },
+    "ZM": {
+      "name": "Zambia",
+      "tag": "Zambia"
+    },
+    "ZW": {
+      "name": "Zimbabwe",
+      "tag": "Zimbabwe"
+    }
+  }
+}
