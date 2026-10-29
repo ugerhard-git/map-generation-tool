@@ -387,7 +387,8 @@
       </p>
       <p>
         The country tag is the country's usual English name, in a few cases shortened, such as "USA" and
-        "UAE". Territories, such as Gibraltar or Puerto Rico, get their own name.
+        "UAE". A territory, such as Puerto Rico or Gibraltar, gets its own name and its country's tag ("Puerto
+        Rico" and "USA") by default; "Tag territories with" can choose only one of the two.
       </p>
     </template>
     <!-- The app: settings panel on the left, map on the right (stacked on phones) -->
@@ -914,6 +915,15 @@
                 <label class="check"
                   ><input type="checkbox" id="tagCountry" checked /><span>The country</span></label
                 >
+                <!-- How territories are tagged, copied from Lookout (app.js: countryTags) -->
+                <div class="indent tagdate territory-row">
+                  <label for="territoryTag">Tag territories with</label>
+                  <select id="territoryTag">
+                    <option value="both">both: Puerto Rico and USA</option>
+                    <option value="own">their own name: Puerto Rico</option>
+                    <option value="parent">their country: USA</option>
+                  </select>
+                </div>
                 <label class="check"
                   ><input type="checkbox" id="tagNoRoadName" /><span
                     >"No road name", where it applies</span

@@ -71,6 +71,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 27. **Map file size** (done, 29 October 2026, at the owner's request): the download button shows the file's size. "Keep the map file under [20] MB" in "Map file" (on by default; 20 MB as Discord, where many maps are shared, takes no larger uploads). Over it, once the search has stopped, the page offers to make the file smaller: each country keeps its share, and within each country either the locations closest to others are dropped, for an even spread, or random ones. The smaller set replaces the results; "Undo" brings the full set back until the next search. No warning before a search, as agreed.
 
+28. **Territories tagged with their country too** (done, 29 October 2026, at the owner's request, copied from Lookout): with the country tag on, a territory gets its own name and its country's tag ("Puerto Rico" and "USA") by default; "Tag territories with" in "Map file" can choose only its own name or only its country. The territories with coverage and their countries (`TERRITORY_OF`) come from Lookout; Hong Kong keeps its own tag only, as there. Greyed out while countries are not tagged; kept with the settings (`territoryTag`).
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits
