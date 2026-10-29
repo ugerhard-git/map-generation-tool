@@ -61,7 +61,7 @@ const { PAGE, isSite, serveSite } = require("./site.js");
       sums.moreRoads === "Any road names, any arrows" &&
       sums.morePhotos === "Any time" &&
       sums.moreSearch === "1,000 m around each spot, give up after 2,000 spots" &&
-      sums.moreMapFile === "Suggested name, tags: country",
+      sums.moreMapFile === "Suggested name, tags: country, under 20 MB",
     "each section sums up its settings: " + JSON.stringify(sums),
   );
   ok(!(await changed("morePhotos")) && !(await changed("moreSearch")), "nothing is marked changed at first");

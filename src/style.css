@@ -956,8 +956,21 @@ a:focus-visible {
 #zoomBox.random #zoomFixedFields {
   display: none;
 }
-/* The number of spots under its tick box */
-.give-up-field {
+/* The ways to make the map file smaller, in the offer */
+.prune-ways {
+  margin: 8px 0 4px;
+}
+.prune-ways .radio {
+  margin-top: 4px;
+}
+.prune-ways .radio b {
+  display: inline;
+}
+#pruned .linkbtn {
+  margin-left: 6px;
+}
+/* A number under its tick box (giving up, the size limit) */
+.sub-field {
   margin-top: 8px;
 }
 .zoom-box {

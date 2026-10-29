@@ -367,6 +367,18 @@
         may not end on its own.
       </p>
     </template>
+    <template id="help-sizeLimit">
+      <h2>Map file size</h2>
+      <p>
+        The largest map file you want, in whole MB: 20 MB to start with, the most some places take in one
+        upload, such as Discord, where many maps are shared. The download button shows the file's size.
+      </p>
+      <p>
+        When a search ends with a larger file, you can make it smaller. Each country keeps its share of the
+        locations, and either the locations closest to others are dropped, for an even spread, or random ones.
+        You can undo it until the next search. Untick it for no limit.
+      </p>
+    </template>
     <template id="help-tags">
       <h2>Tags in the map file</h2>
       <p>
@@ -871,7 +883,7 @@
                     ?
                   </button>
                 </div>
-                <div class="unit give-up-field">
+                <div class="unit sub-field">
                   <input
                     type="text"
                     inputmode="numeric"
@@ -931,6 +943,29 @@
                     >The camera (Gen 4, Gen 2/3, Bad camera)</span
                   ></label
                 >
+              </div>
+              <!-- The largest map file: over it, the page offers to make it smaller (app.js: map file size) -->
+              <div class="field">
+                <div class="checkrow">
+                  <label class="check"
+                    ><input type="checkbox" id="sizeLimitOn" checked /><span
+                      >Keep the map file under</span
+                    ></label
+                  >
+                  <button type="button" class="help" data-help="sizeLimit" aria-label="Help: map file size">
+                    ?
+                  </button>
+                </div>
+                <div class="unit sub-field">
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    id="sizeLimit"
+                    value="20"
+                    aria-label="Largest map file, in MB"
+                  /><span>MB</span>
+                </div>
               </div>
               <button type="button" class="linkbtn reset" data-reset="moreMapFile">Reset to defaults</button>
             </details>
@@ -998,6 +1033,33 @@
             </button>
             <button type="button" class="btn" id="keepFound">Keep what was found</button>
           </div>
+        </div>
+        <!-- When the map file is over the size limit: make it smaller, keeping each country's share, or
+             download it anyway (app.js: map file size) -->
+        <div class="msg note" id="prune" hidden role="status">
+          <b id="pruneTitle"></b>
+          <p id="pruneText"></p>
+          <div class="prune-ways" role="radiogroup" aria-label="How to make it smaller">
+            <label class="radio"
+              ><input type="radio" name="pruneWay" id="pruneSpread" value="spread" checked /><span
+                ><b>Even spread:</b> drop the locations closest to others</span
+              ></label
+            >
+            <label class="radio"
+              ><input type="radio" name="pruneWay" id="pruneRandom" value="random" /><span
+                ><b>Random:</b> drop locations at random</span
+              ></label
+            >
+          </div>
+          <div class="acts">
+            <button type="button" class="btn primary" id="pruneGo">Make it smaller</button>
+            <button type="button" class="btn" id="pruneSkip">Download anyway</button>
+          </div>
+        </div>
+        <!-- After making it smaller: what was kept, and Undo until the next search -->
+        <div class="msg note" id="pruned" hidden role="status">
+          <span id="prunedText"></span>
+          <button type="button" class="linkbtn" id="pruneUndo">Undo</button>
         </div>
       </form>
 
