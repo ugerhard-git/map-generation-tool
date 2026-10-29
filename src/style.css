@@ -388,6 +388,20 @@ a:focus-visible {
 .tagdate {
   margin-top: 6px;
 }
+/* "Tag territories with" and its list, on one line where there is room */
+.territory-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.territory-row label {
+  font-weight: 400;
+  margin: 0;
+}
+.territory-row:has(select:disabled) label {
+  opacity: 0.5;
+}
 
 /* ---------- step 1: where ---------- */
 /* Chosen countries, a continent or the whole world */

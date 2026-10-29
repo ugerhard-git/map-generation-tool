@@ -44,7 +44,58 @@ const { openPage, search, searchEnded } = require("./helpers.js");
       tags.DE === "Germany",
     "the others as the list writes them: " + JSON.stringify(tags),
   );
-  ok(tags.GI === "Gibraltar" && tags.MO.length > 0, "a territory not on the list keeps its English name");
+  ok(
+    tags.GI === "Gibraltar,United Kingdom" && /,China$/.test(tags.MO),
+    "a territory gets its English name and its country's tag: " + tags.GI + " / " + tags.MO,
+  );
+
+  // How territories are tagged: both (the default), their own name, or their country
+  const tagOf = cc =>
+    p.evaluate(
+      cc =>
+        tagsFor({ cc, date: "", noRoadName: false, deadEnd: false, intersection: false, camera: "" }).join(),
+      cc,
+    );
+  ok((await p.inputValue("#territoryTag")) === "both", "both names by default");
+  await p.selectOption("#territoryTag", "own");
+  ok(
+    (await tagOf("PR")) === "Puerto Rico" && (await tagOf("US")) === "USA",
+    "their own name: Puerto Rico; a country is not changed",
+  );
+  ok(
+    /country \(territories by their own name\)/.test(await p.textContent("#moreMapFile .more-sum")) &&
+      (await p.isVisible("#moreMapFile .more-changed")),
+    "the summary says so: " + (await p.textContent("#moreMapFile .more-sum")),
+  );
+  await p.selectOption("#territoryTag", "parent");
+  ok(
+    (await tagOf("PR")) === "USA" &&
+      (await tagOf("RE")) === "France" &&
+      (await tagOf("FO")) === "Denmark" &&
+      (await tagOf("HK")) === "Hong Kong",
+    "their country: Puerto Rico is USA, Réunion France, the Faroe Islands Denmark; Hong Kong keeps its own",
+  );
+  const every = await p.evaluate(() =>
+    COVERAGE.filter(c => Object.hasOwn(TERRITORY_OF, c)).every(c =>
+      Object.hasOwn(COUNTRY_TAGS, TERRITORY_OF[c]),
+    ),
+  );
+  ok(every, "every territory's country is on the list of country tags");
+  ok(
+    (await p.evaluate(() => localStorage.getItem("mapgen.territoryTag"))) === '"parent"' &&
+      (await p.evaluate(() => currentSettings().territoryTag)) === "parent" &&
+      (await p.evaluate(() =>
+        [cleanSettings({}).territoryTag, cleanSettings({ territoryTag: "<b>" }).territoryTag].join(),
+      )) === "both,both",
+    "kept in the browser and the settings; older or nonsense settings tag both",
+  );
+  await p.uncheck("#tagCountry");
+  ok(await p.isDisabled("#territoryTag"), "greyed out while countries are not tagged");
+  await p.check("#tagCountry");
+  await p.evaluate(() => applySettings(cleanSettings({ territoryTag: "own" })));
+  ok((await p.inputValue("#territoryTag")) === "own", "applied settings (history, settings file) set it");
+  await p.click("#moreMapFile .reset");
+  ok((await p.inputValue("#territoryTag")) === "both", "Reset to defaults: both");
 
   // Every country with coverage has a tag; the list covers all of them except territories
   const missing = await p.evaluate(() => COVERAGE.filter(c => !Object.hasOwn(COUNTRY_TAGS, c)).join(" "));

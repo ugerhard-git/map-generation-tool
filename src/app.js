@@ -45,7 +45,7 @@
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution (a Vali map, "continent", "own" or "preset:<id>"), own (the distribution of one's own being
  *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, sizeLimitOn, sizeLimit (the largest map file), tagCamera (which tags the export
+ *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, sizeLimitOn, sizeLimit (the largest map file), territoryTag (how territories are tagged: "both", "own" or "parent"), tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -217,6 +217,26 @@ const countryName = c => {
     return c;
   }
 };
+/* The country each territory with official coverage belongs to, for its country tag (see countryTags).
+   Copied from Lookout's TERRITORY_OF (October 2026), only the territories in COVERAGE. Hong Kong keeps
+   its own tag only, as in Lookout. */
+// prettier-ignore
+const TERRITORY_OF = {
+  AS: "US", AX: "FI", BM: "GB", CC: "AU", CW: "NL", CX: "AU", FO: "DK", GI: "GB", GL: "DK", GU: "US",
+  IM: "GB", JE: "GB", MO: "CN", MP: "US", PR: "US", RE: "FR", VI: "US",
+};
+/* How territories are tagged ("Tag territories with"): "both" (the default), "own" or "parent";
+   anything else (an old or edited value) counts as "both". Copied from Lookout. */
+const TERRITORY_TAGS = ["both", "own", "parent"];
+const territoryValue = v => (TERRITORY_TAGS.includes(v) ? v : "both");
+/* The country tags for a location's country code: a territory (Puerto Rico) gets its own name, its
+   country's tag (USA), or both, as chosen. Copied from Lookout. */
+function countryTags(c, territories = "both") {
+  const parent = Object.hasOwn(TERRITORY_OF, c) ? TERRITORY_OF[c] : "";
+  if (!parent || territories === "own") return [countryTag(c)];
+  if (territories === "parent") return [countryTag(parent)];
+  return [countryTag(c), countryTag(parent)];
+}
 /* The country's tag in the map file: the tag from the owner's list (src/data/country-tags.json, built into
    the page as COUNTRY_TAGS), such as "USA" for the United States; the English name for a country or
    territory not on the list (Gibraltar, say). */
@@ -1114,7 +1134,14 @@ $("tagDate").onchange = () => store.set("tagDate", $("tagDate").value);
 /* The date format can only be chosen while the date tag is ticked. */
 function updateTagDate() {
   $("tagDate").disabled = !$("tagYear").checked;
+  // (how territories are tagged only matters while countries are tagged: greyed out otherwise)
+  $("territoryTag").disabled = !$("tagCountry").checked;
 }
+$("territoryTag").value = territoryValue(store.get("territoryTag", "both"));
+$("territoryTag").addEventListener("change", () =>
+  store.set("territoryTag", territoryValue($("territoryTag").value)),
+);
+$("tagCountry").addEventListener("change", updateTagDate);
 // "No road name" and "Dead end" used to be one option, tagFeatures: its saved choice becomes both.
 const oldFeatures = store.get("tagFeatures", null);
 if (typeof oldFeatures === "boolean")
@@ -1130,7 +1157,7 @@ for (const [id, d] of Object.entries(TAG_OPTIONS)) {
    "04-2023". */
 function tagsFor(l) {
   const tags = [];
-  if ($("tagCountry").checked) tags.push(countryTag(l.cc));
+  if ($("tagCountry").checked) tags.push(...countryTags(l.cc, territoryValue($("territoryTag").value)));
   if ($("tagNoRoadName").checked && l.noRoadName) tags.push("No road name");
   if ($("tagDeadEnd").checked && l.deadEnd) tags.push("Dead end");
   if ($("tagIntersection").checked && l.intersection) tags.push("Intersection");
@@ -1589,7 +1616,14 @@ const MORE = {
     summary: () => {
       const name = $("mapName").value.trim() ? `"${$("mapName").value.trim()}"` : "Suggested name";
       const tags = [
-        ["tagCountry", "country"],
+        [
+          "tagCountry",
+          {
+            both: "country",
+            own: "country (territories by their own name)",
+            parent: "country (territories by their country)",
+          }[territoryValue($("territoryTag").value)],
+        ],
         ["tagNoRoadName", "no road name"],
         ["tagDeadEnd", "dead end"],
         ["tagIntersection", "intersection"],
@@ -1605,12 +1639,14 @@ const MORE = {
       $("mapName").value.trim() !== "" ||
       Object.entries(TAG_OPTIONS).some(([id, d]) => $(id).checked !== d) ||
       $("tagDate").value !== "year" ||
+      territoryValue($("territoryTag").value) !== "both" ||
       !$("sizeLimitOn").checked ||
       sizeLimit() !== SIZE_LIMIT_DEFAULT,
     reset: () => {
       setControl("mapName", "");
       for (const [id, d] of Object.entries(TAG_OPTIONS)) setControl(id, d);
       setControl("tagDate", "year");
+      setControl("territoryTag", "both");
       setControl("sizeLimitOn", true);
       setControl("sizeLimit", fmt(SIZE_LIMIT_DEFAULT));
     },
@@ -2982,6 +3018,7 @@ const sizeKey = () =>
     results[results.length - 1]?.panoId,
     mapName(),
     $("tagDate").value,
+    $("territoryTag").value,
     ...Object.keys(TAG_OPTIONS).map(id => $(id).checked),
   ].join("|");
 /* The map file's size in bytes, worked out again only when something it depends on changed. */
@@ -3243,6 +3280,7 @@ const HISTORY_MAX = 20;
  * @property {boolean} giveUpOn     false: a country never gives up
  * @property {boolean} sizeLimitOn  offer to make the map file smaller when it is over sizeLimit
  * @property {number} sizeLimit     the largest map file, in MB
+ * @property {"both"|"own"|"parent"} territoryTag  how a territory's country tag reads
  * @property {string} mapName       the name typed in step 3, or "" for the suggested one
  * @property {boolean} tagCountry    the tags the map file gets (see TAG_OPTIONS)
  * @property {boolean} tagNoRoadName
@@ -3291,6 +3329,7 @@ function currentSettings() {
     mapName: $("mapName").value.trim().slice(0, 100),
     ...Object.fromEntries(Object.keys(TAG_OPTIONS).map(id => [id, $(id).checked])),
     tagDate: TAG_DATES.includes($("tagDate").value) ? $("tagDate").value : "year",
+    territoryTag: territoryValue($("territoryTag").value),
   };
 }
 /* Settings read back from the history, an unfinished search or a settings file, checked like
@@ -3347,6 +3386,8 @@ function cleanSettings(raw) {
       Object.entries(TAG_OPTIONS).map(([id, d]) => [id, typeof r[id] === "boolean" ? r[id] : d]),
     ),
     tagDate: TAG_DATES.includes(r.tagDate) ? r.tagDate : "year",
+    // (settings from before get both names for a territory, the default)
+    territoryTag: territoryValue(r.territoryTag),
   };
 }
 /* The saved history. Saved values can be edited by anyone, so entries that are not well-formed are
@@ -3516,6 +3557,7 @@ function applySettings(s) {
     "yearTo",
     "monthTo",
     "tagDate",
+    "territoryTag",
     "target",
     "radius",
     "giveUpAfter",
