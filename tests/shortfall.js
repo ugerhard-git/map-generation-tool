@@ -162,6 +162,66 @@ const path = require("path");
   await p.waitForFunction(() => map !== null);
   ok((await p.inputValue("#giveUpAfter")) === "60", "the number of spots is remembered");
 
+  // Giving up is optional: unticked, Malta never gives up, and the search runs until it is stopped
+  await p.uncheck("#giveUpOn");
+  ok(
+    (await p.isDisabled("#giveUpAfter")) &&
+      /never give up/.test(await p.textContent("#moreSearch .more-sum")) &&
+      (await p.isVisible("#moreSearch .more-changed")),
+    "unticked: the number is greyed out, the summary says never give up: " +
+      (await p.textContent("#moreSearch .more-sum")),
+  );
+  await p.evaluate(() => {
+    let n = 0;
+    window.__sv = req =>
+      req.location.lat < 40
+        ? null
+        : { id: "LUXB_" + n++, lat: req.location.lat, lng: req.location.lng, links: [] };
+    document.getElementById("distribution").value = "abw";
+  });
+  await search(p, { country: ["Malta", "Luxembourg"], target: 20 });
+  await p.waitForFunction(() => (missesInRow.get("MT") || 0) > 300, null, { timeout: 30000 });
+  s = await state();
+  ok(
+    (await p.evaluate(() => running)) && s.gaveUp === "" && s.found.LU === s.targets.LU,
+    `after over 300 spots in a row without a location (60 is set), Malta has not given up and the search goes on: ${JSON.stringify(s)}`,
+  );
+  ok(
+    (await p.evaluate(() => searchSettings.giveUpAfter)) === Infinity &&
+      (await p.evaluate(() => spotsStillNeeded(5, 0, Infinity, 300))) === Infinity &&
+      (await p.evaluate(() => {
+        pace = { since: Date.now() - 60000, spots: 1000, tries: new Map(), found: new Map(), finishAt: 0 };
+        return timeLeftText();
+      })) === "time left unknown: nothing found yet in some countries",
+    "the time left is unknown while a country that never gives up has found nothing",
+  );
+  await p.click("#stop");
+  await searchEnded(p);
+  ok(
+    (await p.evaluate(() => results.length)) === s.targets.LU && (await p.isHidden("#shortfall")),
+    "stopping by hand ends it, with what was found and no offer",
+  );
+  // Kept: history, settings; older settings give up as before
+  ok(
+    (await p.evaluate(() => loadHistory()[0].settings.giveUpOn)) === false &&
+      /never give up/.test(await p.evaluate(() => historyDetails(loadHistory()[0].settings))),
+    "the history keeps and describes it",
+  );
+  ok(
+    (await p.evaluate(() =>
+      [cleanSettings({}).giveUpOn, cleanSettings({ giveUpOn: false }).giveUpOn].join(),
+    )) === "true,false",
+    "settings from before it was optional give up",
+  );
+  await p.reload();
+  await p.waitForFunction(() => map !== null);
+  ok(!(await p.isChecked("#giveUpOn")), "the browser remembers it");
+  await p.evaluate(() => applySettings(cleanSettings({ giveUpOn: true })));
+  ok(
+    (await p.isChecked("#giveUpOn")) && (await p.isEnabled("#giveUpAfter")),
+    "applied settings tick it again and the number can be set",
+  );
+
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();
   console.log(fail ? `${fail} FAILED` : "ALL PASS");

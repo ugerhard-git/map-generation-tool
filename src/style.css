@@ -956,6 +956,10 @@ a:focus-visible {
 #zoomBox.random #zoomFixedFields {
   display: none;
 }
+/* The number of spots under its tick box */
+.give-up-field {
+  margin-top: 8px;
+}
 .zoom-box {
   margin-top: 8px;
 }
