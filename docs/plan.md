@@ -69,6 +69,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 26. **Giving up is optional** (done, 29 October 2026, at the owner's request): "Give up on a country after" is a tick box, on by default as before. Unticked, no country gives up: the search keeps trying until it has every location or the visitor stops it. The number of spots is greyed out then, the Search section's summary says "never give up", the history too, and the time left reads "unknown" while a country has found nothing yet. Kept with the settings (`giveUpOn`); settings from before give up as they did.
 
+27. **Map file size** (done, 29 October 2026, at the owner's request): the download button shows the file's size. "Keep the map file under [20] MB" in "Map file" (on by default; 20 MB as Discord, where many maps are shared, takes no larger uploads). Over it, once the search has stopped, the page offers to make the file smaller: each country keeps its share, and within each country either the locations closest to others are dropped, for an even spread, or random ones. The smaller set replaces the results; "Undo" brings the full set back until the next search. No warning before a search, as agreed.
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits

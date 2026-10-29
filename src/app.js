@@ -45,7 +45,7 @@
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution (a Vali map, "continent", "own" or "preset:<id>"), own (the distribution of one's own being
  *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
+ *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, sizeLimitOn, sizeLimit (the largest map file), tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -156,6 +156,7 @@ const GEN4_HEIGHT = 8192,
   GEN1_MAX_HEIGHT = 3328; // Gen 1 is 1664 high; anything up to twice that counts as Gen 1
 const CAMERAS = { gen4: "Gen 4", gen23: "Gen 2/3", badcam: "Bad camera" };
 const CAMERA_BOXES = { camGen4: "gen4", camGen23: "gen23", camBad: "badcam" };
+const SIZE_LIMIT_DEFAULT = 20; // MB: the largest map file before the page offers to make it smaller
 const GIVE_UP_MIN = 50,
   GIVE_UP_MAX = 100000,
   GIVE_UP_DEFAULT = 2000; // random spots in a row without a new location before a country gives up
@@ -1002,6 +1003,9 @@ const NUMBER_FIELDS = {
   radius: { lo: RADIUS_MIN, hi: RADIUS_MAX, d: RADIUS_DEFAULT, step: 50 },
   // how many random spots in a row may bring no new location before a country gives up
   giveUpAfter: { lo: GIVE_UP_MIN, hi: GIVE_UP_MAX, d: GIVE_UP_DEFAULT, step: 50 },
+  // the largest map file, in MB (agreed with the owner, October 2026: 20 MB, as some places such as
+  // Discord take no larger uploads)
+  sizeLimit: { lo: 1, hi: 1000, d: SIZE_LIMIT_DEFAULT, step: 1 },
 };
 /* The number in a field, kept within its range; the saved one (or the default) if none is typed. */
 function fieldNumber(id) {
@@ -1015,6 +1019,19 @@ const showNumber = (id, n) => ($(id).value = fmt(n));
 const target = () => fieldNumber("target");
 const radius = () => fieldNumber("radius");
 const giveUpAfter = () => fieldNumber("giveUpAfter");
+const sizeLimit = () => fieldNumber("sizeLimit");
+$("sizeLimitOn").checked = store.get("sizeLimitOn", true) !== false;
+/* The size limit's number only applies while it is ticked: greyed out otherwise. */
+function updateSizeLimit() {
+  $("sizeLimit").disabled = !$("sizeLimitOn").checked;
+}
+$("sizeLimitOn").addEventListener("change", () => {
+  store.set("sizeLimitOn", $("sizeLimitOn").checked);
+  updateSizeLimit();
+  pruneSkipped = ""; // (a changed limit asks again)
+  sizeSoon();
+});
+updateSizeLimit();
 // Giving up is optional (agreed with the owner, October 2026): unticked, a country never gives up and the
 // search runs until it is full or the visitor stops it. On by default, as before.
 $("giveUpOn").checked = store.get("giveUpOn", true) !== false;
@@ -1036,6 +1053,10 @@ for (const [id, f] of Object.entries(NUMBER_FIELDS)) {
     const n = fieldNumber(id);
     store.set(id, n);
     showNumber(id, n);
+    if (id === "sizeLimit") {
+      pruneSkipped = ""; // (a changed limit asks again)
+      sizeSoon();
+    }
     if (id === "target") {
       if (!running) searchTargets = new Map();
       if (!running && distributionUsed() && ownChosen()?.mode === "number") scaleOwnTo(n);
@@ -1577,16 +1598,21 @@ const MORE = {
       ]
         .filter(([id]) => $(id).checked)
         .map(([, word]) => word);
-      return `${name}, ${tags.length ? "tags: " + tags.join(", ") : "no tags"}`;
+      const size = $("sizeLimitOn").checked ? `under ${fmt(sizeLimit())} MB` : "no size limit";
+      return `${name}, ${tags.length ? "tags: " + tags.join(", ") : "no tags"}, ${size}`;
     },
     changed: () =>
       $("mapName").value.trim() !== "" ||
       Object.entries(TAG_OPTIONS).some(([id, d]) => $(id).checked !== d) ||
-      $("tagDate").value !== "year",
+      $("tagDate").value !== "year" ||
+      !$("sizeLimitOn").checked ||
+      sizeLimit() !== SIZE_LIMIT_DEFAULT,
     reset: () => {
       setControl("mapName", "");
       for (const [id, d] of Object.entries(TAG_OPTIONS)) setControl(id, d);
       setControl("tagDate", "year");
+      setControl("sizeLimitOn", true);
+      setControl("sizeLimit", fmt(SIZE_LIMIT_DEFAULT));
     },
   },
 };
@@ -2318,6 +2344,8 @@ function paint(status) {
   $("fill").style.width = goal ? Math.min(100, (100 * results.length) / goal).toFixed(1) + "%" : "0";
   $("count").textContent = fmt(results.length);
   for (const id of ["download", "copy", "clear"]) $(id).disabled = !results.length || running;
+  if (running) showSize();
+  else sizeSoon();
   const t = $("tally");
   t.textContent = "";
   if (!stats.tries) return;
@@ -2594,6 +2622,7 @@ async function startSearch() {
     view: viewSettings(),
   };
   showNote("");
+  forgetPrune();
   historyId = recordSearch();
   showNumber("target", target());
   showNumber("giveUpAfter", giveUpAfter());
@@ -2889,10 +2918,10 @@ $("keepFound").onclick = () => {
 /* ---------- export ---------- */
 /* The results in map-making.app's format: { name, customCoordinates: [{ lat, lng, heading, pitch, zoom,
    panoId, countryCode, extra?: { tags } }] }. The tags follow the options ticked at the time of export. */
-function exportJson() {
+function exportJson(list = results) {
   return JSON.stringify({
     name: mapName(),
-    customCoordinates: results.map(l => {
+    customCoordinates: list.map(l => {
       const o = {
         lat: +l.lat.toFixed(7),
         lng: +l.lng.toFixed(7),
@@ -2924,7 +2953,239 @@ $("copy").onclick = async () => {
   }
   setTimeout(() => ($("copy").textContent = "Copy"), 1500);
 };
+/* ---------- map file size ----------
+   The download button shows the map file's size. Over the size limit ("Keep the map file under", 20 MB by
+   default, agreed with the owner, October 2026: the most some places take in one upload, such as
+   Discord), the page offers to make it smaller once the search has stopped: each country keeps its share
+   of the locations (splitTotal), and within each country either the locations closest to others are
+   dropped, for an even spread (spreadPick), or random ones. The smaller set replaces the results, so the
+   map shows what the file holds; "Undo" brings the full set back until the next search. MB here are
+   1,000,000 bytes, the stricter reading, so a file under the limit also fits where 1 MB is 1,048,576. */
+const MB = 1e6;
+/* The size of the map file for these locations, in bytes (UTF-8, as downloaded). */
+const fileBytes = (list = results) => new Blob([exportJson(list)]).size;
+/* A size as the page writes it: "850 KB", "1.4 MB". */
+const sizeText = bytes =>
+  bytes < MB ? `${fmt(Math.max(1, Math.round(bytes / 1000)))} KB` : `${(bytes / MB).toFixed(1)} MB`;
+/** The last size worked out, and for what (the size only changes with the results, the name and tags).
+ *  @type {{key: string, bytes: number}} */
+let sized = { key: "", bytes: 0 };
+/** The full results before they were made smaller, for "Undo"; null when there is nothing to undo. */
+let unpruned = null;
+/* The offer is not shown again for the same map file once "Download anyway" was chosen. */
+let pruneSkipped = "";
+/* What the map file's size depends on, short: the results (count, first and last), the name, the tags. */
+const sizeKey = () =>
+  [
+    results.length,
+    results[0]?.panoId,
+    results[results.length - 1]?.panoId,
+    mapName(),
+    $("tagDate").value,
+    ...Object.keys(TAG_OPTIONS).map(id => $(id).checked),
+  ].join("|");
+/* The map file's size in bytes, worked out again only when something it depends on changed. */
+function mapFileBytes() {
+  const key = sizeKey();
+  if (sized.key !== key) sized = { key, bytes: results.length ? fileBytes() : 0 };
+  return sized.bytes;
+}
+/* Shows the size on the download button and, over the limit after a search, the offer to make it
+   smaller. Working out the size of a large map takes a moment, so it waits until typing pauses. */
+let sizeTimer = 0;
+function sizeSoon() {
+  clearTimeout(sizeTimer);
+  sizeTimer = setTimeout(showSize, 300);
+}
+function showSize() {
+  if (running || !results.length) {
+    $("download").textContent = "Download map file";
+    $("prune").hidden = true;
+    return;
+  }
+  const bytes = mapFileBytes();
+  $("download").textContent = `Download map file (${sizeText(bytes)})`;
+  const limit = sizeLimit() * MB;
+  const over = $("sizeLimitOn").checked && bytes > limit && pruneSkipped !== sized.key;
+  if (over) {
+    const keep = Math.floor(results.length * (limit / bytes) * 0.995);
+    $("pruneTitle").textContent =
+      `The map file is ${sizeText(bytes)}, over your limit of ${fmt(sizeLimit())} MB.`;
+    $("pruneText").textContent =
+      `Make it smaller by keeping about ${fmt(keep)} of the ${fmt(results.length)} locations. Each country keeps its share.`;
+  }
+  $("prune").hidden = !over;
+}
+/* Picks k of a country's locations spread as evenly as possible: the largest spacing at which there are
+   still k locations, each at least that far from all the others kept, is found by halving the range of
+   spacings; at each spacing, the locations are taken in a random order and kept if no kept one is that
+   close (a grid of cells as large as the spacing finds the near ones quickly). Positions are points in
+   space on the earth's surface, so the grid needs no care at the poles or across 180°. */
+function spreadPick(list, k) {
+  if (k >= list.length) return list.slice();
+  if (k <= 0) return [];
+  const R = 6371008.8; // the earth's mean radius in metres
+  const pts = list.map(l => {
+    const la = toRadians(l.lat),
+      lo = toRadians(l.lng);
+    return [R * Math.cos(la) * Math.cos(lo), R * Math.cos(la) * Math.sin(lo), R * Math.sin(la)];
+  });
+  const order = list.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  // A grid cell's key: a hash of its three numbers, so it stays a safe whole number however small the
+  // cells are. Two cells may share a key; that only means a few more distances are measured.
+  const cellKey3 = (x, y, z) => Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(z, 83492791);
+  // The locations kept at spacing d (metres), in the random order
+  const keptAt = d => {
+    const grid = new Map(),
+      kept = [];
+    const cell = v => Math.floor((v + R) / d);
+    for (const i of order) {
+      const [x, y, z] = pts[i];
+      const cx = cell(x),
+        cy = cell(y),
+        cz = cell(z);
+      let near = false;
+      for (let a = -1; a <= 1 && !near; a++)
+        for (let b = -1; b <= 1 && !near; b++)
+          for (let c = -1; c <= 1 && !near; c++)
+            for (const j of grid.get(cellKey3(cx + a, cy + b, cz + c)) || []) {
+              const [u, v, w] = pts[j];
+              if ((u - x) ** 2 + (v - y) ** 2 + (w - z) ** 2 < d * d) {
+                near = true;
+                break;
+              }
+            }
+      if (near) continue;
+      const key = cellKey3(cx, cy, cz);
+      if (!grid.has(key)) grid.set(key, []);
+      grid.get(key).push(i);
+      kept.push(i);
+    }
+    return kept;
+  };
+  // From 1 m (found locations are at least 100 m apart, but a set from elsewhere may be closer) to
+  // farther than any two can be
+  let lo = 1,
+    hi = 2 * R,
+    best = order;
+  while (hi / lo > 1.01) {
+    const d = Math.sqrt(lo * hi); // halving the range on a log scale: spacings go from metres to 1,000s of km
+    const kept = keptAt(d);
+    if (kept.length >= k) {
+      lo = d;
+      best = kept;
+    } else hi = d;
+  }
+  // (more than k at the largest spacing found: those first in the random order are kept)
+  return best.slice(0, k).map(i => list[i]);
+}
+/* k of the locations at random. */
+function randomPick(list, k) {
+  const copy = list.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, k);
+}
+/* The locations to keep so the map file fits the limit: each country keeps its share of a smaller total;
+   the total starts from the average size of a location and is lowered until the file fits. In the
+   order they were found. */
+function prunedResults(way, limit) {
+  const byCountry = new Map();
+  for (const l of results) {
+    if (!byCountry.has(l.cc)) byCountry.set(l.cc, []);
+    byCountry.get(l.cc).push(l);
+  }
+  const counts = Object.fromEntries([...byCountry].map(([c, list]) => [c, list.length]));
+  let total = Math.floor(results.length * (limit / fileBytes()) * 0.995);
+  for (let round = 0; round < 8 && total > 0; round++) {
+    const keep = new Set();
+    for (const [c, k] of Object.entries(splitTotal(counts, total)))
+      for (const l of (way === "random" ? randomPick : spreadPick)(byCountry.get(c), k)) keep.add(l);
+    const kept = results.filter(l => keep.has(l));
+    const bytes = fileBytes(kept);
+    if (bytes <= limit) return kept;
+    total = Math.floor(total * (limit / bytes) * 0.99);
+  }
+  return [];
+}
+/* Puts a set of locations in place of the results: counts, the duplicate checks and the map follow. */
+function replaceResults(list) {
+  results = list;
+  foundBy = new Map();
+  for (const l of list) foundBy.set(l.cc, (foundBy.get(l.cc) || 0) + 1);
+  cells = new Map();
+  seenPanos = new Set();
+  for (const l of list) remember(l);
+  if (layer) layer.clearLayers();
+  for (const l of list.slice(0, MAX_DRAWN)) drawLocation(l);
+}
+/* "Make it smaller": replaces the results with the smaller set; the full set is kept for "Undo". */
+$("pruneGo").onclick = () => {
+  if (running || !results.length) return;
+  const way =
+      document.querySelector("input[name=pruneWay]:checked")?.value === "random" ? "random" : "spread",
+    before = results.length;
+  $("pruneGo").disabled = true;
+  paint("Making the map file smaller…");
+  // (after the status line is shown: the work takes a moment with many locations)
+  setTimeout(() => {
+    const kept = prunedResults(way, sizeLimit() * MB);
+    $("pruneGo").disabled = false;
+    if (!kept.length) return paint("The map file could not be made small enough.");
+    unpruned = {
+      results,
+      searchTargets: new Map(searchTargets),
+      currentTarget,
+      unfinished: results.length < currentTarget,
+    };
+    hideShortfall();
+    replaceResults(kept);
+    searchTargets = new Map(foundBy);
+    currentTarget = kept.length;
+    clearSavedSearch(); // the smaller set is the result now, not a search to continue
+    $("prunedText").textContent =
+      `Kept ${fmt(kept.length)} of ${fmt(before)} locations, ${way === "random" ? "at random" : "evenly spread"}; each country kept its share.`;
+    $("pruned").hidden = false;
+    paint(`Made smaller: ${fmt(kept.length)} locations. Download the map file when you are ready.`);
+  }, 30);
+};
+/* "Undo": the full results again (the offer to make it smaller comes back). */
+$("pruneUndo").onclick = () => {
+  if (!unpruned || running) return;
+  const u = unpruned;
+  unpruned = null;
+  replaceResults(u.results);
+  searchTargets = u.searchTargets;
+  currentTarget = u.currentTarget;
+  if (u.unfinished) saveSearch(); // it can be continued again
+  $("pruned").hidden = true;
+  pruneSkipped = "";
+  paint(`Back to all ${fmt(results.length)} locations.`);
+};
+$("pruneSkip").onclick = () => {
+  pruneSkipped = sized.key;
+  $("prune").hidden = true;
+  $("download").click();
+};
+/* Forgets what can be undone, as a new search or "Clear" starts afresh. */
+function forgetPrune() {
+  unpruned = null;
+  pruneSkipped = "";
+  $("pruned").hidden = true;
+  $("prune").hidden = true;
+}
+// The name and tags change the size
+$("moreMapFile").addEventListener("input", sizeSoon);
+$("moreMapFile").addEventListener("change", sizeSoon);
+
 $("clear").onclick = () => {
+  forgetPrune();
   hideShortfall();
   clearSavedSearch();
   results = [];
@@ -2980,6 +3241,8 @@ const HISTORY_MAX = 20;
  * @property {number} radius
  * @property {number} giveUpAfter
  * @property {boolean} giveUpOn     false: a country never gives up
+ * @property {boolean} sizeLimitOn  offer to make the map file smaller when it is over sizeLimit
+ * @property {number} sizeLimit     the largest map file, in MB
  * @property {string} mapName       the name typed in step 3, or "" for the suggested one
  * @property {boolean} tagCountry    the tags the map file gets (see TAG_OPTIONS)
  * @property {boolean} tagNoRoadName
@@ -3023,6 +3286,8 @@ function currentSettings() {
     radius: radius(),
     giveUpAfter: giveUpAfter(),
     giveUpOn: $("giveUpOn").checked,
+    sizeLimitOn: $("sizeLimitOn").checked,
+    sizeLimit: sizeLimit(),
     mapName: $("mapName").value.trim().slice(0, 100),
     ...Object.fromEntries(Object.keys(TAG_OPTIONS).map(id => [id, $(id).checked])),
     tagDate: TAG_DATES.includes($("tagDate").value) ? $("tagDate").value : "year",
@@ -3073,6 +3338,9 @@ function cleanSettings(raw) {
     giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
     // (settings from before it was optional give up, as searches did then)
     giveUpOn: r.giveUpOn !== false,
+    // (settings from before the size limit get the default: under 20 MB)
+    sizeLimitOn: r.sizeLimitOn !== false,
+    sizeLimit: wholeNumber(r.sizeLimit, 1, 1000, SIZE_LIMIT_DEFAULT),
     mapName: cleanText(r.mapName, 100).trim(),
     // (entries from before the tags were kept get the defaults)
     ...Object.fromEntries(
@@ -3236,6 +3504,7 @@ function applySettings(s) {
     "noBadCamera",
     "useOlder",
     "giveUpOn",
+    "sizeLimitOn",
     ...Object.keys(TAG_OPTIONS),
   ]) {
     $(id).checked = s[id];
@@ -3250,6 +3519,7 @@ function applySettings(s) {
     "target",
     "radius",
     "giveUpAfter",
+    "sizeLimit",
     "mapName",
   ]) {
     if (NUMBER_FIELDS[id]) showNumber(id, s[id]);
@@ -3266,6 +3536,7 @@ function applySettings(s) {
     $(id).value = String(s[id]);
     store.set(id, s[id]);
   }
+  updateSizeLimit();
   updateGiveUp();
   updateView();
   updateYears();
@@ -3584,6 +3855,7 @@ function hideResume() {
 }
 /* Puts the saved search back: its settings in the form, its locations on the map and in the table. */
 function restoreSearch(s) {
+  forgetPrune();
   applySettings(s.settings);
   $("mapName").value = s.settings.mapName;
   searchTargets = new Map(s.targets);
