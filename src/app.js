@@ -27,8 +27,8 @@
  *      far becomes a Location: counted for its country (`foundBy`), drawn on the map (drawLocation, the
  *      first MAX_DRAWN only) and exported (exportJson). paint() keeps the status line, progress, counters
  *      and the table up to date.
- *   4. A country gives up after giveUpAfter() random spots in a row without a new location (miss). If
- *      countries fell short, showShortfall() offers to fill the gap from the finished countries (fillGap,
+ *   4. A country gives up after giveUpAfter() random spots in a row without a new location (miss), unless
+ *      giving up is switched off (giveUpOn). If countries fell short, showShortfall() offers to fill the gap from the finished countries (fillGap,
  *      which searches on with the same results) or to keep what was found.
  *
  * MAIN SHARED STATE
@@ -45,7 +45,7 @@
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution (a Vali map, "continent", "own" or "preset:<id>"), own (the distribution of one's own being
  *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
+ *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -1015,6 +1015,20 @@ const showNumber = (id, n) => ($(id).value = fmt(n));
 const target = () => fieldNumber("target");
 const radius = () => fieldNumber("radius");
 const giveUpAfter = () => fieldNumber("giveUpAfter");
+// Giving up is optional (agreed with the owner, October 2026): unticked, a country never gives up and the
+// search runs until it is full or the visitor stops it. On by default, as before.
+$("giveUpOn").checked = store.get("giveUpOn", true) !== false;
+/* The spots in a row without a new location after which a country gives up; Infinity if it never does. */
+const giveUpLimit = () => ($("giveUpOn").checked ? giveUpAfter() : Infinity);
+/* The number of spots only applies while giving up is on: greyed out otherwise. */
+function updateGiveUp() {
+  $("giveUpAfter").disabled = !$("giveUpOn").checked;
+}
+$("giveUpOn").addEventListener("change", () => {
+  store.set("giveUpOn", $("giveUpOn").checked);
+  updateGiveUp();
+});
+updateGiveUp();
 for (const [id, f] of Object.entries(NUMBER_FIELDS)) {
   showNumber(id, wholeNumber(store.get(id, f.d), f.lo, f.hi, f.d));
   // On leaving the field: keep the number and show it as it will be used
@@ -1541,11 +1555,13 @@ const MORE = {
     },
   },
   moreSearch: {
-    summary: () => `${fmt(radius())} m around each spot, give up after ${fmt(giveUpAfter())} spots`,
-    changed: () => radius() !== RADIUS_DEFAULT || giveUpAfter() !== GIVE_UP_DEFAULT,
+    summary: () =>
+      `${fmt(radius())} m around each spot, ${$("giveUpOn").checked ? `give up after ${fmt(giveUpAfter())} spots` : "never give up"}`,
+    changed: () => radius() !== RADIUS_DEFAULT || giveUpAfter() !== GIVE_UP_DEFAULT || !$("giveUpOn").checked,
     reset: () => {
       setControl("radius", fmt(RADIUS_DEFAULT));
       setControl("giveUpAfter", fmt(GIVE_UP_DEFAULT));
+      setControl("giveUpOn", true);
     },
   },
   moreMapFile: {
@@ -2573,14 +2589,14 @@ async function startSearch() {
     want: wanted(),
     rad: radius(),
     key,
-    giveUpAfter: giveUpAfter(),
+    giveUpAfter: giveUpLimit(),
     useOlder: useOlder(),
     view: viewSettings(),
   };
   showNote("");
   historyId = recordSearch();
   showNumber("target", target());
-  showNumber("giveUpAfter", searchSettings.giveUpAfter);
+  showNumber("giveUpAfter", giveUpAfter());
   hideShortfall();
   searchTargets = new Map(Object.entries(targets).filter(([, n]) => n > 0));
   currentTarget = [...searchTargets.values()].reduce((a, b) => a + b, 0);
@@ -2772,7 +2788,7 @@ function secondsLeft(now = Date.now()) {
    would need 2.6 million spots for 1,916 locations, but gives up after about 4,600 on average. */
 function spotsStillNeeded(need, chance, giveUp, misses) {
   const first = Math.max(0, giveUp - misses); // spots left in the current run of misses
-  if (chance <= 0) return first;
+  if (chance <= 0) return first; // (Infinity for a country that never gives up and has found nothing yet)
   if (chance >= 1) return need;
   const logMiss = Math.log1p(-chance);
   const missRun = Math.exp(giveUp * logMiss); // chance of giveUp misses in a row
@@ -2790,6 +2806,8 @@ function spotsStillNeeded(need, chance, giveUp, misses) {
 function timeLeftText(now = Date.now()) {
   const left = secondsLeft(now);
   if (left === null) return "estimating time left…";
+  // a country that never gives up and has found nothing yet: no end can be foreseen
+  if (!Number.isFinite(left)) return "time left unknown: nothing found yet in some countries";
   const finish = now + left * 1000;
   pace.finishAt = pace.finishAt ? pace.finishAt + (finish - pace.finishAt) * PACE_SMOOTH : finish;
   return describeTimeLeft(Math.max(0, (pace.finishAt - now) / 1000));
@@ -2961,6 +2979,7 @@ const HISTORY_MAX = 20;
  * @property {number} target
  * @property {number} radius
  * @property {number} giveUpAfter
+ * @property {boolean} giveUpOn     false: a country never gives up
  * @property {string} mapName       the name typed in step 3, or "" for the suggested one
  * @property {boolean} tagCountry    the tags the map file gets (see TAG_OPTIONS)
  * @property {boolean} tagNoRoadName
@@ -3003,6 +3022,7 @@ function currentSettings() {
     target: target(),
     radius: radius(),
     giveUpAfter: giveUpAfter(),
+    giveUpOn: $("giveUpOn").checked,
     mapName: $("mapName").value.trim().slice(0, 100),
     ...Object.fromEntries(Object.keys(TAG_OPTIONS).map(id => [id, $(id).checked])),
     tagDate: TAG_DATES.includes($("tagDate").value) ? $("tagDate").value : "year",
@@ -3051,6 +3071,8 @@ function cleanSettings(raw) {
     target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
     radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
     giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
+    // (settings from before it was optional give up, as searches did then)
+    giveUpOn: r.giveUpOn !== false,
     mapName: cleanText(r.mapName, 100).trim(),
     // (entries from before the tags were kept get the defaults)
     ...Object.fromEntries(
@@ -3145,6 +3167,7 @@ function historyDetails(s) {
   const view = { ...s, direction: s.viewDirection };
   if (!viewIsDefault(view)) bits.push("camera " + viewSummary(view).replace(/^./, c => c.toLowerCase()));
   bits.push(`${fmt(s.target)} ${s.target === 1 ? "location" : "locations"}`, `${fmt(s.radius)} m`);
+  if (!s.giveUpOn) bits.push("never give up");
   return bits.join(" · ");
 }
 /* "Today, 14:03", "12 Oct, 09:41", or with the year when it is not this year. */
@@ -3212,6 +3235,7 @@ function applySettings(s) {
     ...Object.keys(CAMERA_BOXES),
     "noBadCamera",
     "useOlder",
+    "giveUpOn",
     ...Object.keys(TAG_OPTIONS),
   ]) {
     $(id).checked = s[id];
@@ -3242,6 +3266,7 @@ function applySettings(s) {
     $(id).value = String(s[id]);
     store.set(id, s[id]);
   }
+  updateGiveUp();
   updateView();
   updateYears();
   updateOlder();
@@ -3606,7 +3631,7 @@ async function continueSearch() {
     want: wanted(),
     rad: radius(),
     key,
-    giveUpAfter: giveUpAfter(),
+    giveUpAfter: giveUpLimit(),
     useOlder: useOlder(),
     view: viewSettings(),
   };

@@ -361,6 +361,11 @@
         The number of random spots in a row that bring no new location for a country. Where matching locations
         are rare, the search then moves on; at the end you can fill the gap from the other countries.
       </p>
+      <p>
+        Untick it to never give up: the search then keeps trying in every country until it has all the
+        locations or you stop it, however long that takes. Where there are hardly any matching locations, it
+        may not end on its own.
+      </p>
     </template>
     <template id="help-tags">
       <h2>Tags in the map file</h2>
@@ -856,19 +861,24 @@
                 </div>
               </div>
               <div class="field">
-                <div class="labelrow">
-                  <label for="giveUpAfter">Give up on a country after</label>
+                <div class="checkrow">
+                  <label class="check"
+                    ><input type="checkbox" id="giveUpOn" checked /><span
+                      >Give up on a country after</span
+                    ></label
+                  >
                   <button type="button" class="help" data-help="giveUpAfter" aria-label="Help: giving up">
                     ?
                   </button>
                 </div>
-                <div class="unit">
+                <div class="unit give-up-field">
                   <input
                     type="text"
                     inputmode="numeric"
                     autocomplete="off"
                     id="giveUpAfter"
                     value="2,000"
+                    aria-label="Give up on a country after this many spots"
                   /><span>spots</span>
                 </div>
               </div>

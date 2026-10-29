@@ -67,6 +67,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 25. **Country tags from the owner's list** (done, 28 October 2026, at the owner's request): with the country tag on, each location gets the tag from the owner's list of 198 countries, kept in `src/data/country-tags.json` and built into the page. Most tags are the usual English name; "USA" and "UAE" are shortened. Before, the tag was the browser's English name for the country, which differed between browsers and read "Hong Kong SAR China", "Türkiye" or "Bosnia & Herzegovina". Territories not on the list (Gibraltar, Puerto Rico, Réunion and others) keep their English name.
 
+26. **Giving up is optional** (done, 29 October 2026, at the owner's request): "Give up on a country after" is a tick box, on by default as before. Unticked, no country gives up: the search keeps trying until it has every location or the visitor stops it. The number of spots is greyed out then, the Search section's summary says "never give up", the history too, and the time left reads "unknown" while a country has found nothing yet. Kept with the settings (`giveUpOn`); settings from before give up as they did.
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits
