@@ -73,6 +73,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 28. **Territories tagged with their country too** (done, 29 October 2026, at the owner's request, copied from Lookout): with the country tag on, a territory gets its own name and its country's tag ("Puerto Rico" and "USA") by default; "Tag territories with" in "Map file" can choose only its own name or only its country. The territories with coverage and their countries (`TERRITORY_OF`) come from Lookout; Hong Kong keeps its own tag only, as there. Greyed out while countries are not tagged; kept with the settings (`territoryTag`).
 
+29. **Continuing a stopped search** (done, 30 October 2026, at the owner's request): after "Stop", "Continue the search" runs it on from where it stopped, as long as the settings are those it ran with; "Start a new search" starts afresh. With changed settings, only a new search is possible, and a warning says it starts from scratch and replaces what was found; changing them back brings "Continue" back. The map name, tags and size limit do not count, as they do not change which locations are found. Also after "Download what was found" for a search kept from an earlier visit.
+
 Later, to be discussed when they come up: more tag options.
 
 ## Known limits

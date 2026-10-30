@@ -128,6 +128,11 @@ const COVERAGE = (
   "TN TR TW UA UG US UY VI VN XK ZA"
 ).split(" ");
 const TARGET_MAX = 130000; // most locations one search may ask for
+/* The settings of the running or last search, as compared for continuing it (see "continuing a stopped
+   search"); stoppedKey is set while a stopped search can be continued, "" otherwise. Here at the top, as
+   the summaries (updateMore) look at them from the start. */
+let runKey = "",
+  stoppedKey = "";
 const TARGET_DEFAULT = 300;
 const RADIUS_MIN = 50,
   RADIUS_MAX = 10000,
@@ -1663,6 +1668,7 @@ function setControl(id, value) {
 /* Updates the summary line and the "changed" mark of every section, and the line under step 2 that says
    what is looked for. */
 function updateMore() {
+  updateContinue();
   const w = wanted();
   $("whatSummary").textContent =
     w.noRoadName || w.arrows !== "any" || w.years || w.cameras || w.noBadCamera
@@ -2426,6 +2432,11 @@ function setRunning(on) {
   $("go").hidden = on;
   $("stop").hidden = !on;
   $("stop").disabled = false;
+  if (on) {
+    $("continueGo").hidden = true;
+    $("continueNote").hidden = true;
+    $("go").classList.remove("second");
+  }
 }
 let currentTarget = 0,
   lastPaint = 0;
@@ -2659,6 +2670,8 @@ async function startSearch() {
   };
   showNote("");
   forgetPrune();
+  runKey = searchKey(currentSettings());
+  stoppedKey = "";
   historyId = recordSearch();
   showNumber("target", target());
   showNumber("giveUpAfter", giveUpAfter());
@@ -2764,6 +2777,9 @@ async function runSearch() {
   if (results.length >= currentTarget) clearSavedSearch();
   else saveSearch();
   if (!stopRequested && !fatal) showShortfall();
+  // Stopped by hand before it was done: it can be continued
+  stoppedKey = stopRequested && !fatal && results.length < currentTarget ? runKey : "";
+  updateContinue();
 }
 /** The settings of the current search, kept for going on after "Fill the gap".
  *  @type {{want: object, rad: number, key: string, giveUpAfter: number, useOlder: boolean, view: object}} */
@@ -2794,6 +2810,78 @@ $("stop").onclick = () => {
   stopRequested = true;
   $("stop").disabled = true;
   paint("Stopping after the lookups that are under way…");
+};
+
+/* ---------- continuing a stopped search ----------
+   After the visitor stopped a search before it was done, it can be continued from where it stopped, as
+   long as the settings are those it ran with (agreed with the owner, October 2026); "Start a new search"
+   starts afresh instead. With changed settings, only a new search is possible, and a warning says that
+   it starts from scratch and replaces what was found. Settings that only shape the map file (name, tags,
+   size limit) can change freely: they do not change which locations are found. Across a closed tab, the
+   unfinished search is offered at the top of the page instead (see "unfinished search"). */
+const MAP_FILE_SETTINGS = [
+  "mapName",
+  ...Object.keys(TAG_OPTIONS),
+  "tagDate",
+  "territoryTag",
+  "sizeLimitOn",
+  "sizeLimit",
+];
+/* The settings that decide which locations are found, as text to compare. */
+function searchKey(s) {
+  return JSON.stringify(
+    Object.fromEntries(Object.entries(cleanSettings(s)).filter(([k]) => !MAP_FILE_SETTINGS.includes(k))),
+  );
+}
+/* True while a stopped search could be continued (with these settings or the ones it ran with).
+   (A function declaration, as the summaries ask before this part of the file has run.) */
+function stoppedSearch() {
+  return !!stoppedKey && !running && results.length > 0 && results.length < currentTarget;
+}
+/* Shows "Continue the search" while the settings are unchanged, and says what "Start a new search" does. */
+function updateContinue() {
+  // (stoppedSearch looks at stoppedKey first, so this also works while the page is starting up)
+  const can = stoppedSearch(),
+    same = can && searchKey(currentSettings()) === stoppedKey;
+  $("continueGo").hidden = !same;
+  $("go").textContent = can ? "Start a new search" : "Find locations";
+  $("go").classList.toggle("second", same);
+  $("continueNote").hidden = !can;
+  $("continueNote").className = "msg " + (same ? "note" : "error");
+  if (can)
+    $("continueNote").textContent = same
+      ? `You stopped the search at ${fmt(results.length)} of ${fmt(currentTarget)} locations. Continue it, or start a new search, which replaces them.`
+      : `You changed the settings, so a new search starts from scratch: it replaces the ${fmt(results.length)} locations found. Change them back to continue the stopped search instead.`;
+}
+/* "Continue the search": runs the stopped search on, with the same results and plan. */
+$("continueGo").onclick = async () => {
+  if (!stoppedSearch() || searchKey(currentSettings()) !== stoppedKey) return;
+  showError("");
+  const key = GOOGLE_API_KEY || $("apiKey").value.trim();
+  if (!key) {
+    showError("Enter your Google API key in step 3 first.");
+    $("apiKey").focus();
+    return;
+  }
+  if (!GOOGLE_API_KEY) keyStore.set(key);
+  searchSettings = {
+    want: wanted(),
+    rad: radius(),
+    key,
+    giveUpAfter: giveUpLimit(),
+    useOlder: useOlder(),
+    view: viewSettings(),
+  };
+  stoppedKey = "";
+  forgetPrune();
+  hideShortfall();
+  updateContinue();
+  if (!(await googleReady(key))) {
+    stoppedKey = runKey; // (still there, for another try)
+    updateContinue();
+    return;
+  }
+  await runSearch();
 };
 
 /* ---------- time left ----------
@@ -3180,7 +3268,9 @@ $("pruneGo").onclick = () => {
       searchTargets: new Map(searchTargets),
       currentTarget,
       unfinished: results.length < currentTarget,
+      stoppedKey,
     };
+    stoppedKey = ""; // the smaller set is the result: no continuing it
     hideShortfall();
     replaceResults(kept);
     searchTargets = new Map(foundBy);
@@ -3190,6 +3280,7 @@ $("pruneGo").onclick = () => {
       `Kept ${fmt(kept.length)} of ${fmt(before)} locations, ${way === "random" ? "at random" : "evenly spread"}; each country kept its share.`;
     $("pruned").hidden = false;
     paint(`Made smaller: ${fmt(kept.length)} locations. Download the map file when you are ready.`);
+    updateContinue();
   }, 30);
 };
 /* "Undo": the full results again (the offer to make it smaller comes back). */
@@ -3201,9 +3292,11 @@ $("pruneUndo").onclick = () => {
   searchTargets = u.searchTargets;
   currentTarget = u.currentTarget;
   if (u.unfinished) saveSearch(); // it can be continued again
+  stoppedKey = u.stoppedKey;
   $("pruned").hidden = true;
   pruneSkipped = "";
   paint(`Back to all ${fmt(results.length)} locations.`);
+  updateContinue();
 };
 $("pruneSkip").onclick = () => {
   pruneSkipped = sized.key;
@@ -3222,6 +3315,7 @@ $("moreMapFile").addEventListener("input", sizeSoon);
 $("moreMapFile").addEventListener("change", sizeSoon);
 
 $("clear").onclick = () => {
+  stoppedKey = "";
   forgetPrune();
   hideShortfall();
   clearSavedSearch();
@@ -3231,6 +3325,7 @@ $("clear").onclick = () => {
   foundBy = new Map();
   if (layer) layer.clearLayers();
   paint("Ready.");
+  updateContinue();
 };
 paint();
 
@@ -3899,6 +3994,7 @@ function hideResume() {
 function restoreSearch(s) {
   forgetPrune();
   applySettings(s.settings);
+  runKey = searchKey(s.settings);
   $("mapName").value = s.settings.mapName;
   searchTargets = new Map(s.targets);
   foundBy = new Map();
@@ -3961,7 +4057,11 @@ $("resumeShow").onclick = () => {
   hideResume();
   showError("");
   restoreSearch(savedSearch);
-  paint(`${fmt(results.length)} locations from your unfinished search. Download them, or search again.`);
+  stoppedKey = runKey; // it can be continued from here too
+  paint(
+    `${fmt(results.length)} locations from your unfinished search. Download them, or continue the search.`,
+  );
+  updateContinue();
 };
 $("resumeDrop").onclick = () => {
   hideResume();
