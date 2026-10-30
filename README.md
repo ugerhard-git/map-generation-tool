@@ -14,7 +14,7 @@ Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random o
 
 While a search runs, the status line shows a forecast of the time left, learnt from how fast it finds locations in each country. The counters below it show how long the search has been running.
 
-A long search is saved in your browser as it runs: if you close the tab, you can continue it, or download what it found, the next time you open the page.
+A search you stop can be continued from where it stopped, as long as its settings stay the same (the map name, tags and size limit may change); with changed settings, a new search starts from scratch, and the page says so. A long search is also saved in your browser as it runs: if you close the tab, you can continue it, or download what it found, the next time you open the page.
 
 Your last 20 searches are kept in your browser (only their settings, never the key), so you can run one again or reuse its settings under "History".
 

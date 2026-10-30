@@ -549,6 +549,16 @@ a:focus-visible {
 .go:hover {
   background: var(--blue-dark);
 }
+/* "Start a new search" under "Continue the search": the second choice */
+.go.second {
+  margin-top: 10px;
+  background: #fff;
+  color: var(--blue-dark);
+  border: 2px solid var(--blue);
+}
+.go.second:hover {
+  background: var(--blue-soft, #eef3fc);
+}
 .btn.stop {
   width: 100%;
   margin-top: 10px;

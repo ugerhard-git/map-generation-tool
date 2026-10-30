@@ -99,8 +99,9 @@
         <div class="welcome-warn">
           <b>Large searches take a long time.</b>
           Every location is found by trying random spots until one matches. Dead ends are rare, so thousands
-          of them can take hours. You can stop at any time and keep what was found. If you close the tab, the
-          search is kept: you can continue it next time.
+          of them can take hours. You can stop at any time and keep what was found, then continue the search
+          later, as long as you keep its settings. If you close the tab, the search is kept: you can continue
+          it next time.
         </div>
         <button type="button" class="btn primary" id="welcomeOk">Start</button>
       </div>
@@ -1028,7 +1029,11 @@
         </details>
 
         <!-- Search and stop buttons, messages (app.js: run) -->
+        <!-- After a search was stopped: continue it while the settings are unchanged, or start a new one
+             (app.js: continuing a stopped search) -->
+        <button class="go" id="continueGo" type="button" hidden>Continue the search</button>
         <button class="go" id="go" type="submit">Find locations</button>
+        <div class="msg note" id="continueNote" hidden role="status"></div>
         <button class="btn stop" id="stop" type="button" hidden>Stop and keep what was found</button>
         <div class="msg error" id="error" hidden role="alert"></div>
         <div class="msg note" id="note" hidden role="status"></div>

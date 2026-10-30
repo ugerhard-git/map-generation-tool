@@ -132,6 +132,10 @@ const { openPage, search, searchEnded } = require("./helpers.js");
     JSON.parse(await p.evaluate(() => exportJson())).customCoordinates.length === stoppedAt,
     "and the map file has them all",
   );
+  ok(
+    (await p.isVisible("#continueGo")) && (await p.textContent("#go")) === "Start a new search",
+    "and it can be continued from there too",
+  );
   await reopen(p);
   ok(await p.isVisible("#resume"), "still offered next time, until it is continued or discarded");
 
