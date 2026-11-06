@@ -34,5 +34,4 @@ const ERROR_WAIT = 3000; // ms to wait after a failed lookup, before trying agai
 const MAX_DRAWN = 20000;
 const SIZE_LIMIT_DEFAULT = 20; // MB: the largest map file before the page offers to make it smaller
 const GIVE_UP_MIN = 50,
-  GIVE_UP_MAX = 100000,
-  GIVE_UP_DEFAULT = 2000; // random spots in a row without a new location before a country gives up
+  GIVE_UP_MAX = 100000; // random spots in a row without a new location before a country gives up (default: GIVE_UP_DEFAULT)

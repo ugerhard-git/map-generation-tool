@@ -116,8 +116,8 @@
       <h2>What each location has</h2>
       <p>
         Every location is unofficial coverage: a photo Google shows that Google did not take itself. Open the
-        sections below to choose more: the period, whole 360° photos and the image size under "Photos", and
-        whose photos under "Uploaders". With several chosen, a location must have all of them.
+        sections below to choose more: the period, whole 360° photos, the image size and arrows under
+        "Photos", and whose photos under "Uploaders". With several chosen, a location must have all of them.
       </p>
       <p>
         "Camera view" sets where the camera faces at each location, how far it tilts and how far it is zoomed
@@ -163,6 +163,17 @@
         Leaves out small photos, to skip blurry ones. Phones make photospheres of about 2,000 to 4,000 pixels
         high; cameras made for 360° photos, and cars with such cameras, more. Google's own cars take 8,192.
       </p>
+    </template>
+    <template id="help-arrows">
+      <h2>Arrows</h2>
+      <p>The arrows Street View shows in a photo, to move on to the next one.</p>
+      <ul>
+        <li>
+          <b>With arrows:</b> photos connected to others, such as road coverage taken with another camera or a
+          walk someone uploaded as a series.
+        </li>
+        <li><b>Without arrows:</b> a photo on its own, such as a single photosphere: you cannot move.</li>
+      </ul>
     </template>
     <template id="help-uploaders">
       <h2>Uploaders</h2>
@@ -210,7 +221,8 @@
         The country tag is the country's usual English name, in a few cases shortened, such as "USA". A
         territory, such as Puerto Rico or Gibraltar, gets its own name and its country's tag ("Puerto Rico"
         and "USA") by default; "Tag territories with" can choose only one of the two. The uploader tag is the
-        name of whoever took the photo.
+        name of whoever took the photo. With the arrows tag, every location gets "Arrows" (connected to other
+        photos) or "No arrows" (a photo on its own).
       </p>
     </template>
     <!-- The app: settings panel on the left, map on the right (stacked on phones) -->
@@ -304,6 +316,24 @@
                   </button>
                 </div>
                 <select id="minHeight"></select>
+              </div>
+              <!-- Arrows: one choice, as "with" and "without" exclude each other -->
+              <div class="field" role="radiogroup" aria-labelledby="arrowsTitle">
+                <div class="labelrow">
+                  <div class="label" id="arrowsTitle">Arrows</div>
+                  <button type="button" class="help" data-help="arrows" aria-label="Help: arrows">?</button>
+                </div>
+                <label class="radio"
+                  ><input type="radio" name="arrows" id="arrowsAny" value="any" checked />Any</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="arrows" id="arrowsWith" value="with" />With arrows (connected to
+                  other photos)</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="arrows" id="arrowsWithout" value="without" />Without arrows (a
+                  photo on its own)</label
+                >
               </div>
               <button type="button" class="linkbtn reset" data-reset="morePhotos">Reset to defaults</button>
             </details>
@@ -554,6 +584,9 @@
                 </div>
                 <label class="check"
                   ><input type="checkbox" id="tagUploader" /><span>The uploader's name</span></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagArrows" /><span>"Arrows" or "No arrows"</span></label
                 >
                 <label class="check"
                   ><input type="checkbox" id="tagYear" /><span

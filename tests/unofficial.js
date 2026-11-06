@@ -110,6 +110,9 @@ const path = require("path");
     "the page has the security policy, no inline event handlers and no placeholders left",
   );
 
+  // Giving up: after 5,000 spots in Unofficial (2,000 in the Map Generation Tool, see section 6)
+  ok((await p.inputValue("#giveUpAfter")) === "5,000", "gives up after 5,000 spots by default");
+
   // 2. Distributions: by land area, Russia gets far more than Malta; equal shares are equal
   await p.evaluate(() => {
     chosenCountries = ["RU", "MT"];
@@ -228,6 +231,44 @@ const path = require("path");
   await p.check("#uploadersAny");
   ok(await p.isDisabled("#uploaderNames"), "the names are greyed out for anyone's photos");
 
+  // 4b. Arrows: with arrows (connected to other photos), without (a photo on its own); the tag gives
+  // every location "Arrows" or "No arrows"
+  await p.check("#uploadersAny");
+  await answer(p, { extra: { links: [] } });
+  await p.check("#arrowsWith");
+  await searchIn(p, ["Malta"], 3);
+  await searchEnded(p);
+  ok((await p.evaluate(() => results.length)) === 0, "with arrows leaves out a photo on its own");
+  ok(/with arrows/.test(await p.textContent("#sumPhotos")), "the Photos section says so");
+  await p.check("#arrowsWithout");
+  await searchIn(p, ["Malta"], 3);
+  await searchEnded(p);
+  ok((await p.evaluate(() => results.length)) === 3, "without arrows keeps a photo on its own");
+  await p.check("#tagArrows");
+  r = await exported(p);
+  ok(
+    r.customCoordinates.every(c => c.extra.tags.includes("No arrows")),
+    'tags it "No arrows"',
+  );
+  await answer(p, { extra: { links: [{ heading: 90, description: "", pano: "CAoSLEFGMVFpcEnext" }] } });
+  await searchIn(p, ["Malta"], 3);
+  await searchEnded(p);
+  ok((await p.evaluate(() => results.length)) === 0, "without arrows leaves out a photo with arrows");
+  await p.check("#arrowsWith");
+  await searchIn(p, ["Malta"], 3);
+  await searchEnded(p);
+  r = await exported(p);
+  ok(
+    r.customCoordinates.length === 3 &&
+      r.customCoordinates.every(c => c.extra.tags.includes("Arrows") && !c.extra.tags.includes("No arrows")),
+    'with arrows keeps a photo with arrows, tagged "Arrows"',
+  );
+  ok(
+    (await p.evaluate(() => JSON.parse(settingsFileText()).settings.arrows)) === "with",
+    "the arrows choice is in the settings file",
+  );
+  await p.check("#arrowsAny");
+
   // 5. Its own saved settings, history and settings file
   // (tests/pw.js puts mapgen.welcomed and mapgen.openSections there for both tools)
   const saved = (await p.evaluate(() => Object.keys(localStorage).sort())).filter(
@@ -273,6 +314,7 @@ const path = require("path");
 
   // 6. The Map Generation Tool links here
   const m = (await openPage(b)).page;
+  ok((await m.inputValue("#giveUpAfter")) === "2,000", "the Map Generation Tool still gives up after 2,000");
   ok((await m.getAttribute(".other-tool a", "href")) === "unofficial/", "the Map Generation Tool links here");
   const mapgenOther = await m.evaluate(() =>
     readSettingsFile(JSON.stringify({ format: "unofficial settings", version: 1, settings: {} })),

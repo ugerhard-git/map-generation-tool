@@ -35,8 +35,9 @@ The second tool builds map-making.app maps of random **unofficial** Street View 
 - **Every country and territory** can be chosen, Antarctica too, not only those with official coverage. The continents are the UN regions.
 - **Distributions:** by land area (the default), population, population density (people per km² of land) or in equal shares, besides your own. The whole world leaves out Antarctica unless you choose it. With population density, small crowded places such as Singapore and Monaco get the most, so it suits a few countries better than the whole world.
 - **The lookup:** Google can be asked for its own coverage only, but not for unofficial coverage only. So each random spot asks for the nearest photo of any kind, and keeps it only if it is not Google's own. Where Google's own coverage is nearer, it hides any unofficial photo next to it, so most locations are found away from Google's roads, and a search takes far longer. Indoor photos are found too: Google does not say which photospheres are indoors.
-- **Filters:** the photo period, whole 360° photos only, the image size, and uploaders to leave out or to keep only. No road names, arrows or cameras.
-- **Tags:** the country, the uploader's name and the date.
+- **Filters:** the photo period, whole 360° photos only, the image size, with or without arrows (connected to other photos, or a photo on its own), and uploaders to leave out or to keep only. No road names or cameras.
+- **Tags:** the country, the uploader's name, "Arrows" or "No arrows", and the date.
+- **Giving up:** a country gives up after 5,000 random spots in a row without a new location (2,000 in the Map Generation Tool), as unofficial coverage is rarer.
 - **Camera view:** "As the photo faces" instead of "Along the road", and angles are measured from the middle of the photo instead of the car.
 
 Its settings are saved in your browser apart from the Map Generation Tool's, and each tool has its own history and settings files.
