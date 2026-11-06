@@ -194,6 +194,25 @@
       </p>
       <p>It is greyed out unless cameras are ticked or "No bad camera" is.</p>
     </template>
+    <template id="help-indoor">
+      <h2>Indoor locations</h2>
+      <p>
+        Google's own photos inside buildings, such as museums, stations and stadiums. Photos others uploaded
+        are never included: they are not official coverage.
+      </p>
+      <ul>
+        <li><b>None</b> (the default): outdoor locations only.</li>
+        <li><b>Both</b>: indoor and outdoor locations, as they come.</li>
+        <li>
+          <b>Only indoor</b>: indoor locations only. They are rare, so a search takes much longer, and many
+          countries have none.
+        </li>
+      </ul>
+      <p>
+        Whether a photo is indoors is checked with one more question to Google for each location that matches
+        everything else. An "Indoor" tag can be added under "Map file".
+      </p>
+    </template>
     <template id="help-direction">
       <h2>Direction</h2>
       <ul>
@@ -334,6 +353,26 @@
                 <button type="button" class="help" data-help="useOlder" aria-label="Help: older photos">
                   ?
                 </button>
+              </div>
+              <!-- Google's own indoor photos (a museum, say): left out, as before, or also, or only them -->
+              <div class="field" role="radiogroup" aria-labelledby="indoorTitle">
+                <div class="labelrow">
+                  <div class="label" id="indoorTitle">Indoor locations</div>
+                  <button type="button" class="help" data-help="indoor" aria-label="Help: indoor locations">
+                    ?
+                  </button>
+                </div>
+                <label class="radio"
+                  ><input type="radio" name="indoor" id="indoorNone" value="none" checked />None, outdoor
+                  only</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="indoor" id="indoorBoth" value="both" />Both, indoor and
+                  outdoor</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="indoor" id="indoorOnly" value="only" />Only indoor</label
+                >
               </div>
               <button type="button" class="linkbtn reset" data-reset="morePhotos">Reset to defaults</button>
             </details>
@@ -600,6 +639,9 @@
                   ><input type="checkbox" id="tagCamera" /><span
                     >The camera (Gen 4, Gen 2/3, Bad camera)</span
                   ></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagIndoor" /><span>"Indoor", where it applies</span></label
                 >
               </div>
               <!--SHARED size-limit.html-->
