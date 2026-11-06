@@ -51,8 +51,8 @@
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution (a Vali map, "continent", "own" or "preset:<id>"), own (the distribution of one's own being
- *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, sizeLimitOn, sizeLimit (the largest map file), territoryTag (how territories are tagged: "both", "own" or "parent"), tagCamera (which tags the export
+ *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, indoor ("none", "both" or "only"), target,
+ *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, sizeLimitOn, sizeLimit (the largest map file), territoryTag (how territories are tagged: "both", "own" or "parent"), tagCamera, tagIndoor (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -86,6 +86,7 @@
  * @property {boolean} deadEnd   only one arrow: the coverage ends here
  * @property {boolean} [intersection] three or more arrows
  * @property {string} [camera]   "gen4", "gen23", "badcam", or "" when not known (see cameraOf)
+ * @property {boolean} [indoor]  one of Google's own indoor panoramas (only with indoor locations allowed)
  */
 /**
  * One arrow of a panorama: the direction to a neighbouring panorama and the road name shown on it.
@@ -316,14 +317,29 @@ const arrows = () => document.querySelector("input[name=arrows]:checked")?.value
       updateMapName();
     };
 }
-/* What each location must have: { noRoadName, arrows, years: {from, to} | null, cameras, noBadCamera }.
-   "No bad camera" does not apply when cameras are chosen: the choice already says. */
+/* Google's own indoor locations (agreed with the owner, November 2026): "none" (outdoor only, the
+   default, as before), "both" (indoor and outdoor) or "only" (indoor only). One choice, as the three
+   exclude each other. */
+const INDOOR = ["none", "both", "only"];
+const indoor = () => document.querySelector("input[name=indoor]:checked")?.value || "none";
+{
+  const saved = store.get("indoor", "none");
+  setRadio("indoor", INDOOR.includes(saved) ? saved : "none");
+  for (const r of document.querySelectorAll("input[name=indoor]"))
+    r.onchange = () => {
+      store.set("indoor", indoor());
+      updateMapName();
+    };
+}
+/* What each location must have: { noRoadName, arrows, years: {from, to} | null, cameras, noBadCamera,
+   indoor }. "No bad camera" does not apply when cameras are chosen: the choice already says. */
 const wanted = () => ({
   noRoadName: $("noRoadName").checked,
   arrows: arrows(),
   years: years(),
   cameras: cameras(),
   noBadCamera: $("noBadCamera").checked && !cameras(),
+  indoor: indoor(),
 });
 for (const id of ["noRoadName", "noBadCamera", ...Object.keys(CAMERA_BOXES)]) {
   $(id).checked = store.get(id, false) === true;
@@ -358,6 +374,8 @@ function wantedLabel(w) {
   if (w.years) parts.push(periodLabel(w.years, " – "));
   if (w.cameras) parts.push(w.cameras.map(c => CAMERAS[c]).join(" and "));
   else if (w.noBadCamera) parts.push("no bad camera");
+  if (w.indoor === "only") parts.push("indoor");
+  if (w.indoor === "both") parts.push("indoor and outdoor");
   const text = parts.join(", ") || "official coverage";
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -374,6 +392,7 @@ const TAG_OPTIONS = {
   tagIntersection: false,
   tagYear: false,
   tagCamera: false,
+  tagIndoor: false,
 };
 // "No road name" and "Dead end" used to be one option, tagFeatures: its saved choice becomes both.
 const oldFeatures = store.get("tagFeatures", null);
@@ -391,6 +410,7 @@ function tagsFor(l) {
   if ($("tagIntersection").checked && l.intersection) tags.push("Intersection");
   if ($("tagYear").checked && l.date) tags.push(dateTagOf(l));
   if ($("tagCamera").checked && l.camera) tags.push(CAMERAS[l.camera]);
+  if ($("tagIndoor").checked && l.indoor) tags.push("Indoor");
   return tags;
 } /* This tool's tag options in words, for the summary of "Map file" (the country and date are shared). */
 const TAG_WORDS = {
@@ -398,6 +418,7 @@ const TAG_WORDS = {
   tagDeadEnd: "dead end",
   tagIntersection: "intersection",
   tagCamera: "camera",
+  tagIndoor: "indoor",
 };
 
 /*SHARED tags.js*/
@@ -408,7 +429,8 @@ const TAG_WORDS = {
    This tool's "More options" sections for its filters (see src/shared/more-options.js), and the line
    under step 2 that says what is looked for. */
 /* True when anything is asked of a location, besides official coverage. */
-const anythingWanted = w => w.noRoadName || w.arrows !== "any" || !!w.years || !!w.cameras || w.noBadCamera;
+const anythingWanted = w =>
+  w.noRoadName || w.arrows !== "any" || !!w.years || !!w.cameras || w.noBadCamera || w.indoor !== "none";
 /* The line under step 2 when nothing is asked. */
 const ANY_LOCATION_WORDS = "Any official location. Choose more in the sections below.";
 /** @type {Record<string, {summary: () => string, changed: () => boolean, reset: () => void}>} */
@@ -443,6 +465,8 @@ const MORE_TOOL = {
             older,
         );
       else if ($("noBadCamera").checked) bits.push("no bad camera" + older);
+      if (indoor() === "both") bits.push("indoor too");
+      if (indoor() === "only") bits.push("indoor only");
       return bits.join(", ");
     },
     changed: () =>
@@ -453,7 +477,8 @@ const MORE_TOOL = {
       +$("monthTo").value !== 12 ||
       $("noBadCamera").checked ||
       !!cameras() ||
-      $("useOlder").checked,
+      $("useOlder").checked ||
+      indoor() !== "none",
     reset: () => {
       setControl("yearFrom", String(YEAR_FIRST));
       setControl("monthFrom", "1");
@@ -463,6 +488,9 @@ const MORE_TOOL = {
       for (const id of Object.keys(CAMERA_BOXES)) setControl(id, false);
       setControl("noBadCamera", false);
       setControl("useOlder", false);
+      setRadio("indoor", "none");
+      store.set("indoor", "none");
+      updateMapName();
     },
   },
 };
@@ -486,6 +514,8 @@ const TOOL_STATS = {
   otherCamera: 0, // left out as not one of the chosen cameras
   olderLookups: 0, // older photos looked up instead of bad camera
   olderUsed: 0, // locations that are an older photo used instead of bad camera
+  indoorChecks: 0, // questions to Google whether a panorama is indoors (with indoor locations allowed)
+  notIndoor: 0, // left out as outdoors, with "Only indoor"
 };
 /* The counter of random spots with nothing found nearby, in the counters under the progress bar. */
 const EMPTY_WORDS = "without official Street View nearby";
@@ -495,11 +525,25 @@ function toolTally(add) {
   if (stats.otherCamera) add(stats.otherCamera, "other cameras");
   if (stats.gen1) add(stats.gen1, "Gen 1");
   if (stats.olderUsed) add(stats.olderUsed, "older photos used instead");
+  if (stats.notIndoor) add(stats.notIndoor, "outdoor, not indoor");
 }
 /* This tool's settings for a search, besides the shared ones (see searchSettingsNow). */
 const toolSearchSettings = () => ({ useOlder: useOlder() });
-/* Google's sources for a lookup: always official outdoor coverage here. */
-const lookupSources = () => LOOKUP_SOURCES;
+/* Google's sources for a lookup: official outdoor coverage, unless indoor locations are allowed: then all
+   of Google's own coverage, indoors too. */
+const lookupSources = want => (want.indoor === "none" ? LOOKUP_SOURCES : ["google"]);
+/* Whether a panorama of Google's own is indoors. Google's answer does not say, so it is asked once more:
+   for the nearest outdoor panorama at exactly that spot. An outdoor panorama is its own nearest; for an
+   indoor one, Google finds another one or none. Resolves to true, false, or null when Google did not
+   answer (the panorama is then left out, as it cannot be told). */
+const INDOOR_CHECK_RADIUS = 10; // metres: an outdoor panorama is found at its own spot
+async function isIndoor(r, key) {
+  stats.indoorChecks++;
+  const outdoor = await lookup({ lat: r.lat, lng: r.lng }, INDOOR_CHECK_RADIUS, key, LOOKUP_SOURCES);
+  if (outdoor.status === "ZERO_RESULTS") return true;
+  if (outdoor.status !== "OK") return null;
+  return outdoor.panoId !== r.panoId;
+}
 /* One panorama by its id, with its arrows; used for older photos at a spot. @returns {Promise<PanoAnswer>} */
 async function lookupPano(panoId, key) {
   const sv = await loadGoogleScript(key);
@@ -571,6 +615,7 @@ async function olderPhoto(r, code, key, want) {
 async function panoramaWanted(r, code, key, want) {
   let facts = arrowFacts(r.links);
   let fromOlder = false;
+  const newest = r; // the panorama Google found at the spot, before any older photo there
   if (
     searchSettings.useOlder &&
     isOfficial(r.copyright) &&
@@ -596,6 +641,20 @@ async function panoramaWanted(r, code, key, want) {
     (want.years && !inYears(r.date, want.years))
   )
     return null;
+  // Indoors or out: only with indoor locations allowed (otherwise Google gave outdoor coverage only), and
+  // only for a panorama that the later checks keep, as asking costs a lookup. An older photo is indoors
+  // just as the newest at its spot is, which is the one Google finds there.
+  facts = { ...facts, indoor: false };
+  if (want.indoor !== "none" && countryAt(r.lat, r.lng) === code && cameraWanted(r, code, want)) {
+    const inside = await isIndoor(newest, key);
+    if (keyRefused) {
+      fatal = "Google refused the API key. Check that it is right and has the Maps JavaScript API enabled.";
+      return null;
+    }
+    if (inside === null) return "failed";
+    if (want.indoor === "only" && !inside) return "notIndoor";
+    facts.indoor = inside;
+  }
   return { pano: r, facts, fromOlder };
 }
 /* The checks after the one that the panorama lies in the country: never Gen 1, and the camera asked for.
@@ -618,12 +677,16 @@ const locationFields = (r, code, facts) => ({
   deadEnd: facts.deadEnd,
   intersection: facts.intersection,
   camera: cameraOf(r, code),
+  indoor: facts.indoor === true,
 });
 /* What a location has, in words, for its popup on the map. */
 const locationFacts = l =>
-  [l.noRoadName && "No road name", l.deadEnd && "End of coverage", l.intersection && "Intersection"].filter(
-    Boolean,
-  );
+  [
+    l.noRoadName && "No road name",
+    l.deadEnd && "End of coverage",
+    l.intersection && "Intersection",
+    l.indoor && "Indoor",
+  ].filter(Boolean);
 /* Where the camera faces with "Along the road" (see locationView). */
 const roadHeading = (r, facts) => cameraHeading(r.links, facts);
 /* Where the camera faces along the road. At the end of the coverage: away from the one arrow, towards
@@ -656,6 +719,7 @@ const toolSettings = () => ({
   ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, $(id).checked])),
   noBadCamera: $("noBadCamera").checked,
   useOlder: $("useOlder").checked,
+  indoor: indoor(),
 });
 /* This tool's filter settings read back from outside, checked (see cleanSettings). */
 const cleanToolSettings = r => ({
@@ -665,6 +729,8 @@ const cleanToolSettings = r => ({
   ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, r[id] === true])),
   noBadCamera: r.noBadCamera === true,
   useOlder: r.useOlder === true,
+  // (settings from before indoor locations could be chosen: none, as searches were then)
+  indoor: INDOOR.includes(r.indoor) ? r.indoor : "none",
 });
 /* Puts this tool's filter settings into the form and saves them (see applySettings). */
 function applyToolSettings(s) {
@@ -674,6 +740,8 @@ function applyToolSettings(s) {
     $(id).checked = s[id];
     store.set(id, s[id]);
   }
+  setRadio("indoor", s.indoor);
+  store.set("indoor", s.indoor);
   updateOlder();
 }
 /* A distribution read back from outside that is not one of your own: one of Vali's maps, or a continent's
@@ -698,6 +766,7 @@ const wantedOf = s => ({
         .map(([, cam]) => cam)
     : null,
   noBadCamera: s.noBadCamera && !Object.keys(CAMERA_BOXES).some(id => s[id]),
+  indoor: s.indoor,
 });
 /* More about settings in words, for the history, after what each location must have. */
 const toolDetails = s =>
@@ -710,6 +779,7 @@ const cleanLocationFields = l => ({
   deadEnd: l.deadEnd === true,
   intersection: l.intersection === true,
   camera: typeof l.camera === "string" && Object.hasOwn(CAMERAS, l.camera) ? l.camera : "",
+  indoor: l.indoor === true,
 });
 
 /*SHARED history.js*/
