@@ -1,5 +1,6 @@
 // Builds the published page, dist/index.html, from the files in src/. It fills the placeholders in
-// page.html (such as /*APP_JS*/) with the styles, the app code, the Vali data, Leaflet, country-coder,
+// page.html (such as /*APP_JS*/) with the styles, the app code (app.js with the shared code from
+// src/shared/ put in, see src/assemble.js), the Vali data, Leaflet, country-coder,
 // the land map, the font and the icon, then fingerprints the scripts for the Content Security Policy. The Google key comes from the
 // GOOGLE_API_KEY environment variable; dist/index.nokey.html is the same page without it, for the
 // tests. Run with `npm run build`.
@@ -21,7 +22,7 @@ const put = (mark, text) => {
 // The page is published as one file: the app's styles and code are written into it.
 const src = name => fs.readFileSync(path.join(__dirname, name), "utf8").replace(/\n$/, "");
 const appCss = src("style.css"),
-  appJs = src("app.js");
+  appJs = require("./assemble.js").assemble(path.join(__dirname, "app.js")).code;
 if (/<\/style/i.test(appCss)) throw new Error("style.css contains a closing style tag");
 if (/<\/script/i.test(appJs)) throw new Error("app.js contains a closing script tag");
 if (

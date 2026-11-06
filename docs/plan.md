@@ -1,6 +1,6 @@
 # Plan
 
-The plan agreed with the owner on 22 October 2026, extended on 25 October 2026 (steps 11–17). Each step is one pull request. Update this file when a step is done or the plan changes.
+The plan agreed with the owner on 22 October 2026, extended on 25 October 2026 (steps 11–17) and on 6 November 2026 (a second tool, Unofficial; see the end). Each step is one pull request. Update this file when a step is done or the plan changes.
 
 The interface must stay simple as settings are added: see "A simple interface" in [CONTRIBUTING.md](../CONTRIBUTING.md). Every step below follows it.
 
@@ -76,6 +76,39 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 29. **Continuing a stopped search** (done, 30 October 2026, at the owner's request): after "Stop", "Continue the search" runs it on from where it stopped, as long as the settings are those it ran with; "Start a new search" starts afresh. With changed settings, only a new search is possible, and a warning says it starts from scratch and replaces what was found; changing them back brings "Continue" back. The map name, tags and size limit do not count, as they do not change which locations are found. Also after "Download what was found" for a search kept from an earlier visit.
 
 Later, to be discussed when they come up: more tag options.
+
+## A second tool: Unofficial
+
+Agreed with the owner on 6 November 2026. A second page in this repository, **Unofficial**, finds random **unofficial** Street View coverage: everything Google shows that Google did not take itself, such as photospheres, drone shots and road coverage taken with other cameras (Ari, for example). It shares most of its code with the Map Generation Tool.
+
+- **Address:** `…/map-generation-tool/unofficial/`; the Map Generation Tool stays at the site's main address. The header of each tool links to the other.
+- **Saved settings** start with `unofficial.…`, so the two tools never share or overwrite each other's settings and history. The `mapgen.…` names stay as they are.
+- **Code:** sections both tools use live in `src/shared/` and are put into each page by the build (`src/assemble.js`); each tool keeps its own `app.js`, markup and styles for what differs. A section moves to `src/shared/` when the second tool needs it, not before.
+
+**How it finds unofficial coverage.** Google's script can be asked for official coverage only, but not for unofficial coverage only. Unofficial asks for the nearest outdoor panorama of any kind and keeps it only when it is not Google's own (its copyright does not name Google; `isOfficial`). Known limit: where official coverage is nearby, Google answers with that, and unofficial coverage next to it stays hidden. Unofficial therefore finds most where official coverage is thin, and needs more random spots per location; the radius is smaller by default.
+
+**Where.** Every country and territory, including Antarctica, not only those with official coverage. The continents come from the regions built into country-coder (Africa, Americas, Asia, Europe, Oceania, Antarctica), not from Vali.
+
+**Distributions.** No Vali maps. Built-in distributions for the whole world, a continent or chosen countries:
+
+- **Land area** (the default): each country's share of the land, worked out from the built-in borders and the land map. Antarctica is left out unless chosen on its own or as a country. Countries with little coverage give up, and "Fill the gap" shares their locations out.
+- **Population:** each country's share of the people, from Natural Earth's country table (public domain, the same source as the land map), imported by a script into `src/data/population.json`, like the Vali data.
+- **Population density:** people per km² of land. Tiny dense places (Monaco, Singapore, Macau) would take most of a world map, so the help says so and suggests it for smaller areas.
+- **Equal shares** and **your own** distributions and presets, as in the Map Generation Tool.
+
+**Filters.**
+
+- Removed: no road name, arrows (end of coverage, intersection), cameras and bad camera, older photos.
+- Kept: where, how many, radius, give up after, spacing, photo period (the date the photo was taken), camera view without "relative to the car" (a fixed or random direction, tilt and zoom), tags, map file size limit, history, settings file, resuming, continuing a stopped search.
+- Land only becomes a setting, on by default, as some photos are taken from boats or over water.
+- New: **full 360° only** (partial panoramas, from the image size), **minimum quality** (image height), **indoors allowed** (off by default), **uploaders** to leave out or to keep only, and the uploader's name as a tag.
+- Not now, at the owner's choice: telling photospheres, drone shots and road coverage apart.
+
+**Steps.**
+
+1. **Shared code** (this pull request): the sections that are already the same for both tools (random spots, time left, shortfalls, export, map file size) move to `src/shared/`; the build, the linter and the tests put them back into the page. The Map Generation Tool does not change.
+2. **Unofficial, first version:** the second page, its address, the links between the tools, the lookup and the filters above, with land area and equal shares. The sections it needs move to `src/shared/` as it needs them.
+3. **Population and population density** distributions, with the population import.
 
 ## Known limits
 

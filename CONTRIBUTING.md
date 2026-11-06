@@ -41,7 +41,7 @@ The code is read by the owner and by developers who don't know the project. Writ
 - **Clear before clever.** Choose the plain version over the shortest or fastest one, unless the speed matters and a comment says why.
 - **Every file explains itself.** Start with a short comment on what the file does. In `src/app.js`, the overview at the top covers how the app works, the shared state and what is saved in the browser.
 - **Comments say why, not what.** Explain decisions, limits and edge cases; the code already shows what it does.
-- **Keep to the sections.** `app.js` is one file, split into sections with the same names as in `page.html` and `style.css`. Put new code in the section it belongs to. Functions that only compute (such as `cleanPano`, `distance`, `exportJson`) don't touch the page, so they can be tested on their own.
+- **Keep to the sections.** `app.js` is split into sections with the same names as in `page.html` and `style.css`. Sections that both tools in this repository use are in `src/shared/`, and the build puts each where `app.js` says `/*SHARED <file>*/`; a change there changes both tools. Put new code in the section it belongs to. Functions that only compute (such as `cleanPano`, `distance`, `exportJson`) don't touch the page, so they can be tested on their own.
 - **Names a reader understands:** whole words, matching the interface where possible, no private abbreviations.
 - **Type notes (JSDoc)** on shared data shapes and central functions, so editors can help.
 - **Follow the existing patterns.** Reuse the helpers (`$`, `store`, `esc`, `cleanText`) before writing new ones.
