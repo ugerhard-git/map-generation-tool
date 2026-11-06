@@ -19,7 +19,7 @@ For a bigger change or a new feature, open an issue first so we can agree on the
 
 1. Fork the repository and create a branch.
 2. `npm install`, then `npm run build` and `npm test`. See the README.
-3. Make your change in `src/`. Never edit `dist/` or `src/data/vali.json`; they are generated (`tools/vali.js` makes the Vali data). [How the code works](docs/how-the-code-works.md) explains where things are.
+3. Make your change in `src/`: the Map Generation Tool's own parts are in `src/`, Unofficial's in `src/unofficial/`, and what both use in `src/shared/` (see "Two tools, one code" in [How the code works](docs/how-the-code-works.md)). Never edit `dist/` or `src/data/vali.json`; they are generated (`tools/vali.js` makes the Vali data). [How the code works](docs/how-the-code-works.md) explains where things are.
 4. Add or update a test in `tests/` for what you changed. The tests simulate Google and the map tiles, so they run offline.
 5. Run the checks:
 
@@ -39,7 +39,7 @@ The formatting check, the linter and the tests run automatically on every pull r
 The code is read by the owner and by developers who don't know the project. Write it so they can follow it without help.
 
 - **Clear before clever.** Choose the plain version over the shortest or fastest one, unless the speed matters and a comment says why.
-- **Every file explains itself.** Start with a short comment on what the file does. In `src/app.js`, the overview at the top covers how the app works, the shared state and what is saved in the browser.
+- **Every file explains itself.** Start with a short comment on what the file does. In each tool's `app.js`, the overview at the top covers how the app works, the shared state and what is saved in the browser.
 - **Comments say why, not what.** Explain decisions, limits and edge cases; the code already shows what it does.
 - **Keep to the sections.** `app.js` is split into sections with the same names as in `page.html` and `style.css`. Sections that both tools in this repository use are in `src/shared/`, and the build puts each where `app.js` says `/*SHARED <file>*/`; a change there changes both tools. Put new code in the section it belongs to. Functions that only compute (such as `cleanPano`, `distance`, `exportJson`) don't touch the page, so they can be tested on their own.
 - **Names a reader understands:** whole words, matching the interface where possible, no private abbreviations.
@@ -64,7 +64,7 @@ The tool should feel easy on first sight, also as settings are added. Every chan
 
 ## Things that must not break
 
-- **Saved settings.** The names saved in the browser (`mapgen.…`, listed at the top of `src/app.js`) stay as they are, so visitors keep their choices. When an option is removed, clear its saved value when the page loads. When a saved setting changes shape, move the old one over on load.
+- **Saved settings.** The names saved in the browser (`mapgen.…` for the Map Generation Tool, `unofficial.…` for Unofficial, listed at the top of each tool's `app.js`) stay as they are, so visitors keep their choices. When an option is removed, clear its saved value when the page loads. When a saved setting changes shape, move the old one over on load.
 - **Shared links.** Once the app has shareable links, links people have already sent must keep opening, including links with parameters that no longer exist (they are ignored). Everything read from a link is checked before use.
 - **The security policy.** Only the page's own scripts may run. The build fingerprints them, so inline event handlers (`onclick="…"`) and new outside scripts will not run; wire events up in `app.js`. Do not loosen the policy to make a change work. A feature that needs a new service adds just that host to `connect-src` in `src/build.js`. `tests/security.js` checks the policy, and [SECURITY.md](SECURITY.md) lists the protections.
 - **Untrusted input.** Treat everything from outside (Google, uploaded files, shared links, saved settings) as untrusted: check it, and put it on the page as text, never as HTML.

@@ -8,13 +8,15 @@ import path from "node:path";
 
 const { assemble, SHARED_DIR } = createRequire(import.meta.url)("./src/assemble.js");
 
-// Names the page itself defines: the build adds Leaflet (L), the Vali data (VALI), the country tags (COUNTRY_TAGS), the land map (LAND) and the framing check (FRAMED) before
-// app.js, and Google's script adds `google` when it loads.
+// Names the page itself defines: the build adds Leaflet (L), the Vali data (VALI, Map Generation Tool), the
+// country facts (COUNTRY_FACTS, Unofficial), the country tags (COUNTRY_TAGS), the land map (LAND) and the
+// framing check (FRAMED) before app.js, and Google's script adds `google` when it loads.
 const pageGlobals = {
   L: "readonly",
   google: "readonly",
   FRAMED: "readonly",
   VALI: "readonly",
+  COUNTRY_FACTS: "readonly",
   COUNTRY_TAGS: "readonly",
   LAND: "readonly",
 };
@@ -56,10 +58,13 @@ const withSharedCode = {
   supportsAutofix: false,
 };
 
-// The tests run some code inside the page (page.evaluate), where it uses app.js's top-level names.
-// Read those names from app.js and the shared code, so this list never goes out of date.
+// The two pages' app code: the Map Generation Tool's and Unofficial's.
+const APPS = ["src/app.js", "src/unofficial/app.js"];
+
+// The tests run some code inside the pages (page.evaluate), where it uses app.js's top-level names.
+// Read those names from both pages' app code with the shared code, so this list never goes out of date.
 const appNames = {};
-for (const node of espree.parse(assemble("src/app.js").code, { ecmaVersion: "latest" }).body) {
+for (const node of APPS.flatMap(f => espree.parse(assemble(f).code, { ecmaVersion: "latest" }).body)) {
   if (node.type === "VariableDeclaration")
     for (const d of node.declarations) if (d.id.type === "Identifier") appNames[d.id.name] = "writable";
   if ((node.type === "FunctionDeclaration" || node.type === "ClassDeclaration") && node.id)
@@ -76,16 +81,23 @@ export default [
     },
   },
   {
-    files: ["src/app.js"],
+    files: APPS,
     processor: withSharedCode,
   },
   {
     // The app code with the shared code put in, which ESLint names src/app.js/0_app.js.
-    files: ["src/app.js/*.js"],
+    files: APPS.map(f => f + "/*.js"),
     languageOptions: { sourceType: "script", globals: { ...globals.browser, ...pageGlobals } },
   },
   {
-    files: ["src/build.js", "src/land.js", "src/assemble.js", "tests/**/*.js", "tools/**/*.js"],
+    files: [
+      "src/build.js",
+      "src/land.js",
+      "src/assemble.js",
+      "src/countries.js",
+      "tests/**/*.js",
+      "tools/**/*.js",
+    ],
     languageOptions: { sourceType: "commonjs", globals: { ...globals.node } },
   },
   {

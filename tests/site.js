@@ -6,6 +6,8 @@ const path = require("path");
 
 const SITE = "https://mapgen.test/";
 const PAGE = SITE + "index.nokey.html";
+// The second tool, Unofficial, at unofficial/ (src/unofficial/).
+const UNOFFICIAL = SITE + "unofficial/index.nokey.html";
 const dist = path.resolve(__dirname, "../dist");
 
 /** True for requests to the made-up address that serves dist/. */
@@ -18,4 +20,4 @@ function serveSite(route) {
   return route.fulfill({ path: file });
 }
 
-module.exports = { SITE, PAGE, isSite, serveSite };
+module.exports = { SITE, PAGE, UNOFFICIAL, isSite, serveSite };

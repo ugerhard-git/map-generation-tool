@@ -20,6 +20,10 @@ npm run format && npm run lint && npm run build && npm test
 
 Lint must be clean and all test files must pass. Add a test file or cases in `tests/` for new behaviour; how to write one is in `docs/how-the-code-works.md` under "Tests".
 
+## Two tools in this repository
+
+The Map Generation Tool (`src/`) and Unofficial (`src/unofficial/`) share most of their code, markup and styles through `src/shared/` (see "Two tools, one code" in `docs/how-the-code-works.md`). A change in `src/shared/` changes both: check both pages, and keep the shared code free of either tool's specifics (those go into each tool's `app.js`, through the names listed there).
+
 ## Code shared with Lookout
 
 Much of this app is copied from Lookout, [ugerhard-git/osm-tool](https://github.com/ugerhard-git/osm-tool). The two repositories keep separate copies on purpose; there is no shared package.
@@ -30,7 +34,7 @@ Much of this app is copied from Lookout, [ugerhard-git/osm-tool](https://github.
 
 ## Never break (details in CONTRIBUTING.md)
 
-- Saved settings (`mapgen.…`): keep the names; clear the saved value of a removed option; move an old shape over on load (one `country` → `countries`).
+- Saved settings (`mapgen.…`, and `unofficial.…` for Unofficial): keep the names; clear the saved value of a removed option; move an old shape over on load (one `country` → `countries`).
 - `src/data/vali.json` is made by `tools/vali.js`; never edit it by hand. The monthly workflow (`.github/workflows/vali.yml`) updates it through a pull request.
 - Once shared links exist, links people have already sent keep opening.
 - The security policy: no inline event handlers, no new outside scripts, never loosened.

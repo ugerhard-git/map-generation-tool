@@ -2,6 +2,8 @@
 
 Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random official Google Street View locations in one or more countries, a continent or the whole world, optionally only where Street View shows no road name, where the coverage ends (one arrow) or at intersections (three or more arrows), where the photos are from a certain period (month and year), from certain camera generations (Gen 4, Gen 2/3 or the low-quality "bad camera") or without bad camera (using an older photo at the spot instead, where there is one), or any mix of these. The first camera generation (Gen 1) is always left out.
 
+A second tool lives in this repository too: **[Unofficial](#unofficial)** finds random _unofficial_ Street View coverage instead, such as photospheres, drone shots and road coverage that Google did not take itself.
+
 **Work in progress.** See [the plan](docs/plan.md) for what comes next.
 
 ## How it works
@@ -24,9 +26,24 @@ It runs entirely in the browser as a single HTML page. There is no server of its
 
 **Use it here: [ugerhard-git.github.io/map-generation-tool](https://ugerhard-git.github.io/map-generation-tool/)**
 
+## Unofficial
+
+**Use it here: [ugerhard-git.github.io/map-generation-tool/unofficial](https://ugerhard-git.github.io/map-generation-tool/unofficial/)**
+
+The second tool builds map-making.app maps of random **unofficial** Street View locations: everything Google shows that Google did not take itself. It works like the Map Generation Tool and shares most of its code, with these differences:
+
+- **Every country and territory** can be chosen, Antarctica too, not only those with official coverage. The continents are the UN regions.
+- **Distributions:** by land area (the default) or in equal shares, besides your own. The whole world leaves out Antarctica unless you choose it.
+- **The lookup:** Google can be asked for its own coverage only, but not for unofficial coverage only. So each random spot asks for the nearest photo of any kind, and keeps it only if it is not Google's own. Where Google's own coverage is nearer, it hides any unofficial photo next to it, so most locations are found away from Google's roads, and a search takes far longer. Indoor photos are found too: Google does not say which photospheres are indoors.
+- **Filters:** the photo period, whole 360° photos only, the image size, and uploaders to leave out or to keep only. No road names, arrows or cameras.
+- **Tags:** the country, the uploader's name and the date.
+- **Camera view:** "As the photo faces" instead of "Along the road", and angles are measured from the middle of the photo instead of the car.
+
+Its settings are saved in your browser apart from the Map Generation Tool's, and each tool has its own history and settings files.
+
 ## Using it
 
-Open the published page, or build it yourself (below) and open `dist/index.html` in a browser.
+Open the published page, or build it yourself (below) and open `dist/index.html` (Unofficial: `dist/unofficial/index.html`) in a browser.
 
 A Google API key with the **Maps JavaScript API** enabled is needed for the Street View lookups. Either the site has one built in, or visitors enter their own. A large search makes many requests, so set a daily quota on the key.
 
@@ -36,11 +53,11 @@ Requires Node.js 20 or newer.
 
 ```sh
 npm install
-npm run build                          # dist/index.html without a key
-GOOGLE_API_KEY=your-key npm run build  # dist/index.html with your key built in
+npm run build                          # both pages without a key
+GOOGLE_API_KEY=your-key npm run build  # both pages with your key built in
 ```
 
-The build writes one self-contained file, `dist/index.html`. It embeds the Leaflet map library, the country-coder country lookup, a land map made from Natural Earth and the Overpass font, and it adds a Content Security Policy that only allows the page's own scripts to run.
+The build writes one self-contained file for each tool, `dist/index.html` and `dist/unofficial/index.html`. Each embeds the Leaflet map library, the country-coder country lookup, a land map made from Natural Earth and the Overpass font, and it adds a Content Security Policy that only allows the page's own scripts to run.
 
 Never commit a key. The key is inserted by the build from the `GOOGLE_API_KEY` environment variable; the published site gets it from a GitHub secret.
 
@@ -59,14 +76,16 @@ The tests drive the page in a headless browser. Google's script and the map tile
 
 | Path                         | What it is                                                       |
 | ---------------------------- | ---------------------------------------------------------------- |
-| `src/page.html`              | The page's markup and site owner settings                        |
-| `src/style.css`              | The page's styles                                                |
+| `src/page.html`              | The Map Generation Tool's markup and site owner settings         |
+| `src/style.css`              | The Map Generation Tool's styles                                 |
 | `src/icon.svg`               | The page icon; `npm run icons` makes the PNG versions next to it |
-| `src/app.js`                 | The app code                                                     |
-| `src/shared/`                | App code both tools use; the build puts it into `app.js`         |
-| `src/assemble.js`            | Puts `app.js` and the shared code together                       |
-| `src/build.js`               | Builds `dist/index.html`                                         |
-| `src/land.js`                | Makes the land map for the page, during the build                |
+| `src/app.js`                 | The Map Generation Tool's own app code                           |
+| `src/unofficial/`            | Unofficial's markup, styles and own app code                     |
+| `src/shared/`                | Code, markup and styles both tools use                           |
+| `src/assemble.js`            | Puts a page's files and the shared parts together                |
+| `src/build.js`               | Builds both pages into `dist/`                                   |
+| `src/land.js`                | Makes the land map for the pages, during the build               |
+| `src/countries.js`           | Unofficial's land area, continent and country per place (build)  |
 | `src/data/vali.json`         | Country distributions and continents from Vali (generated)       |
 | `tools/vali.js`              | Updates `src/data/vali.json` from Vali; runs monthly on GitHub   |
 | `src/data/country-tags.json` | The tag each country gets in the map file (edited by hand)       |
@@ -77,7 +96,7 @@ The tests drive the page in a headless browser. Google's script and the map tile
 
 ## Credits
 
-The country distributions of well-known GeoGuessr maps and the continent lists come from [Vali](https://github.com/slashP/Vali) by slashP (GPL-3.0). Country borders come from [country-coder](https://github.com/rapideditor/country-coder), the land map from [Natural Earth](https://www.naturalearthdata.com) (public domain) through [world-atlas](https://github.com/topojson/world-atlas) (ISC), the map from [Leaflet](https://leafletjs.com) and [OpenStreetMap](https://www.openstreetmap.org/copyright).
+The country distributions of well-known GeoGuessr maps and the continent lists come from [Vali](https://github.com/slashP/Vali) by slashP (GPL-3.0). Country borders, and Unofficial's continents and territories, come from [country-coder](https://github.com/rapideditor/country-coder), the land map from [Natural Earth](https://www.naturalearthdata.com) (public domain) through [world-atlas](https://github.com/topojson/world-atlas) (ISC), the map from [Leaflet](https://leafletjs.com) and [OpenStreetMap](https://www.openstreetmap.org/copyright).
 
 ## Licence
 

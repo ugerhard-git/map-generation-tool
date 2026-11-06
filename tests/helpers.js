@@ -21,7 +21,8 @@ const googleScript = mode =>
             const d = { location: { pano: a.id, latLng: { lat: () => a.lat, lng: () => a.lng } },
               copyright: a.copyright || "© 2024 Google", imageDate: a.date ?? "2023-04" };
             if (a.links !== undefined) d.links = a.links;
-            if (a.height) d.tiles = { worldSize: { width: a.height * 2, height: a.height } };
+            // (a.width: a photo that is not a whole 360°, which is twice as wide as high)
+            if (a.height) d.tiles = { worldSize: { width: a.width || a.height * 2, height: a.height } };
             // the direction the car faced (Google's tiles.centerHeading)
             if (a.carHeading !== undefined) d.tiles = { ...d.tiles, centerHeading: a.carHeading };
             // the other photos at the spot, shaped like Google's undocumented "time" list: the date is a
@@ -38,10 +39,11 @@ const googleScript = mode =>
       window.__mapgenReady();`;
 
 /** Opens the page in a new context. `google` is the mode of the simulated script ("ok", "denied" or
- *  "unreachable"), `context` an existing browser context for a second tab. Waits shorter than 10 s are
- *  cut to 20 ms, so retries do not slow the tests down.
+ *  "unreachable"), `context` an existing browser context for a second tab, `url` the page (the Map
+ *  Generation Tool unless UNOFFICIAL is given). Waits shorter than 10 s are cut to 20 ms, so retries do
+ *  not slow the tests down.
  *  Returns { page, errors }. */
-async function openPage(browser, google = "ok", context = null) {
+async function openPage(browser, google = "ok", context = null, url = PAGE) {
   // With `context`, the page opens as another tab of the same browser: it shares what is saved in the
   // browser (localStorage, IndexedDB) but not what is kept for one tab only (sessionStorage).
   const ctx = context || (await browser.newContext({ viewport: { width: 1360, height: 860 } }));
@@ -64,7 +66,7 @@ async function openPage(browser, google = "ok", context = null) {
         : r.fulfill({ contentType: "text/javascript", body: googleScript(google) });
     return r.fulfill({ status: 204, body: "" }); // map tiles
   });
-  await page.goto(PAGE);
+  await page.goto(url);
   await page.waitForFunction(() => map !== null);
   return { page, errors };
 }

@@ -3,21 +3,18 @@
 const pw = require("playwright");
 // The "More options" sections are opened too, so the suites can reach every setting; tests/more.js
 // checks the page as a first visitor sees it.
+// Both tools: the Map Generation Tool ("mapgen.…") and Unofficial ("unofficial.…").
 const seen = () => {
+  const sections = {
+    mapgen: ["moreDistribution", "moreRoads", "morePhotos", "moreView", "moreSearch", "moreMapFile"],
+    unofficial: ["moreDistribution", "morePhotos", "moreUploaders", "moreView", "moreSearch", "moreMapFile"],
+  };
   try {
-    localStorage.setItem("mapgen.welcomed", "true");
-    if (localStorage.getItem("mapgen.openSections") === null)
-      localStorage.setItem(
-        "mapgen.openSections",
-        JSON.stringify([
-          "moreDistribution",
-          "moreRoads",
-          "morePhotos",
-          "moreView",
-          "moreSearch",
-          "moreMapFile",
-        ]),
-      );
+    for (const [tool, open] of Object.entries(sections)) {
+      localStorage.setItem(tool + ".welcomed", "true");
+      if (localStorage.getItem(tool + ".openSections") === null)
+        localStorage.setItem(tool + ".openSections", JSON.stringify(open));
+    }
   } catch {}
 };
 const launch = pw.chromium.launch.bind(pw.chromium);

@@ -1,0 +1,1182 @@
+/* Shared styles: the styles of both tools in this repository. The build puts them into a page where its
+   style.css says SHARED style.css in a comment line (see src/assemble.js). Sections follow the page from
+   top to bottom and use the same names as the markup and the app code. Order matters in a few places,
+   as later rules win over earlier ones of the same strength. Copied from Lookout (osm-tool) and trimmed
+   to what the pages use. */
+
+/* ---------- colours ----------
+   ink: text and dark accents; muted: secondary text; paper: page background; panel: settings panel;
+   line: borders; blue: links and main buttons; amber: found locations and warnings; red: errors. */
+:root {
+  --ink: #14213d;
+  --muted: #586583;
+  --paper: #eef1f6;
+  --panel: #ffffff;
+  --line: #d3dae6;
+  --blue: #1d5fd1;
+  --blue-dark: #164aa6;
+  --amber: #f2a900;
+  --amber-soft: #fff4d6;
+  --red: #b3261e;
+  --red-soft: #fdecea;
+}
+
+/* ---------- page layout ---------- */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family:
+    "Overpass",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  font-size: 16px;
+  line-height: 1.45;
+}
+.app {
+  display: grid;
+  grid-template-columns: minmax(340px, 420px) 1fr;
+  height: 100vh;
+}
+.panel {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 28px 28px 40px;
+}
+.stage {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* Small enough to keep "Map Generation Tool" on one line in the narrowest panel (284 px wide). */
+h1 {
+  font-size: 1.85rem;
+  line-height: 1;
+  font-weight: 800;
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+}
+.lede {
+  margin: 0 0 26px;
+  color: var(--muted);
+  max-width: 34ch;
+}
+/* The link to the other tool in this repository, under the line that says what the page does. */
+.other-tool {
+  margin: -16px 0 26px;
+  color: var(--muted);
+  font-size: 0.92em;
+}
+.other-tool a {
+  color: var(--blue-dark);
+  font-weight: 600;
+}
+/* The settings are greyed out and locked while a search runs. */
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  transition: opacity 0.2s;
+}
+fieldset:disabled {
+  opacity: 0.5;
+}
+
+/* ---------- shown inside another site's frame ---------- */
+.framed {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+.framed p {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+/* ---------- "How it works", "History" and the dialogs (first-visit welcome, history) ---------- */
+.howbtn {
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--blue-dark);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+.toplinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: -16px 0 26px;
+}
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(20, 33, 61, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.dialog-box {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  max-width: 580px;
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 28px 30px 26px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.dialog-box:focus {
+  outline: none;
+}
+.dialog-box h2 {
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 34px 12px 0;
+  letter-spacing: -0.01em;
+}
+.dialog-box p {
+  margin: 0 0 12px;
+}
+.dialog-box ol {
+  margin: 0 0 16px;
+  padding-left: 1.3em;
+}
+.dialog-box li {
+  margin-bottom: 6px;
+}
+.welcome-warn {
+  background: var(--amber-soft);
+  border: 1.5px solid #f0d58a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 0 0 12px;
+}
+.welcome-warn b {
+  display: block;
+  margin-bottom: 2px;
+}
+.dialog-x {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.dialog-x:hover {
+  background: var(--line);
+}
+/* A button that looks like a link ("Remove", "Clear history"); copied from Lookout */
+.linkbtn {
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--blue-dark);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.linkbtn.rm {
+  color: var(--red);
+}
+/* Greyed out when it cannot be used yet ("Make your own from this map" with one country, say) */
+.linkbtn:disabled {
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0.6;
+  cursor: default;
+}
+/* Inactive elements clearly look inactive (CONTRIBUTING.md, "A simple interface"): every disabled field,
+   list and slider is faded, and a tick box or radio button with its text, not only the box itself */
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.check:has(input:disabled),
+.radio:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+.check input:disabled,
+.radio input:disabled {
+  opacity: 1; /* (faded once, with its text) */
+}
+/* The list in the History dialog */
+.history-list {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+}
+.history-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.history-list li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.history-list .hint {
+  margin: 0;
+}
+.hist-acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 6px;
+}
+.hist-acts .btn {
+  padding: 6px 12px;
+}
+.hist-acts .rm {
+  margin-left: auto;
+}
+.dialog-box > .btn.primary {
+  margin-top: 14px;
+  padding: 11px 26px;
+  font-size: 1.05rem;
+}
+
+/* ---------- steps and form fields ---------- */
+.step {
+  border-top: 2px solid var(--ink);
+  padding: 16px 0 22px;
+}
+.step h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0 0 12px;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.step h2 .n {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.8rem;
+  flex: none;
+  transform: translateY(-1px);
+}
+label,
+.label {
+  display: block;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+/* The ticks under "Tags in the map file" sit closer together than elsewhere. */
+.label + .check,
+.label ~ .check,
+.labelrow + .check,
+.labelrow ~ .check {
+  margin-top: 6px;
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 6px 0 0;
+}
+select,
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+select:focus-visible,
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+.field {
+  margin-top: 14px;
+}
+.unit {
+  position: relative;
+}
+.unit input {
+  padding-right: 3.2em;
+}
+.unit span {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 400;
+  margin-top: 14px;
+  cursor: pointer;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--blue);
+  flex: none;
+}
+/* Options that belong to the tick box above them (how the year tag writes the date) */
+.indent {
+  margin-left: 28px;
+}
+.indent .check {
+  margin-top: 8px;
+}
+/* "From [month] [year] to [month] [year]", indented under its tick box */
+.period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 8px 0 0 28px;
+}
+.period-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.period-word {
+  min-width: 2.6em;
+}
+.period select,
+.tagdate select {
+  width: auto;
+  padding: 6px 10px;
+}
+.tagdate {
+  margin-top: 6px;
+}
+/* "Tag territories with" and its list, on one line where there is room */
+.territory-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.territory-row label {
+  font-weight: 400;
+  margin: 0;
+}
+.territory-row:has(select:disabled) label {
+  opacity: 0.5;
+}
+
+/* ---------- step 1: where ---------- */
+/* Chosen countries, a continent or the whole world */
+.radio {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 400;
+  margin: 0 0 8px;
+  cursor: pointer;
+}
+.radio input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--blue);
+  flex: none;
+}
+/* The chosen countries as chips; a click removes one (copied from Lookout) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.chip {
+  font: inherit;
+  font-size: 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 10px 3px;
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+}
+.chip::after {
+  content: "×";
+  margin-left: 6px;
+  opacity: 0.7;
+}
+/* The country field with its list of suggestions (copied from Lookout's kind picker) */
+.combo {
+  position: relative;
+}
+.suggest {
+  position: absolute;
+  z-index: 1200;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 10px 24px rgba(20, 33, 61, 0.18);
+}
+.suggest li {
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.suggest li[aria-selected="true"] {
+  background: var(--amber-soft);
+}
+.suggest li.none {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* ---------- locations per country ---------- */
+.shares {
+  border-top: 2px solid var(--ink);
+  padding: 14px 0 18px;
+}
+.shares summary {
+  font-weight: 800;
+  cursor: pointer;
+}
+.shares table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.92rem;
+}
+.shares th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1.5px solid var(--line);
+  padding: 4px 6px 4px 0;
+}
+.shares td {
+  padding: 4px 6px 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shares th:not(:first-child),
+.shares td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.shares tr.done td:last-child {
+  color: #1b7a3a;
+  font-weight: 600;
+}
+.shares tr.none td {
+  color: var(--muted);
+}
+/* A country that gave up */
+.shares tr.short td {
+  color: #8a5a00;
+}
+.shares tbody {
+  display: block;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.shares thead,
+.shares tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+.shares th:first-child,
+.shares td:first-child {
+  width: 55%;
+}
+
+/* ---------- search and stop buttons, messages ---------- */
+.go {
+  width: 100%;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.1rem;
+  border: 0;
+  border-radius: 10px;
+  padding: 15px;
+  background: var(--blue);
+  color: #fff;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.go:hover {
+  background: var(--blue-dark);
+}
+/* "Start a new search" under "Continue the search": the second choice */
+.go.second {
+  margin-top: 10px;
+  background: #fff;
+  color: var(--blue-dark);
+  border: 2px solid var(--blue);
+}
+.go.second:hover {
+  background: var(--blue-soft, #eef3fc);
+}
+.btn.stop {
+  width: 100%;
+  margin-top: 10px;
+}
+.msg {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.msg.error {
+  background: var(--red-soft);
+  color: var(--red);
+  border: 1.5px solid #f3c4bf;
+}
+/* The unfinished search, at the top of the panel */
+#resume {
+  margin: -8px 0 22px;
+}
+/* The offer at the end of a search where countries fell short */
+.msg.note {
+  background: var(--amber-soft);
+  border: 1.5px solid #f0d58a;
+}
+.msg b {
+  display: block;
+}
+.msg p {
+  margin: 4px 0 0;
+}
+.msg .acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.msg .acts .btn {
+  padding: 7px 12px;
+}
+
+/* ---------- map ---------- */
+.mapwrap {
+  flex: 1;
+  min-height: 300px;
+  position: relative;
+}
+#map {
+  position: absolute;
+  inset: 0;
+  background: #dfe5ee;
+}
+.leaflet-container {
+  font-family: inherit;
+}
+/* Popups of found locations, with a large "Open in Street View" button */
+.pop b {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+.leaflet-container .pop a.sv {
+  display: block;
+  margin: 10px 0 2px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+.leaflet-container .pop a.sv:hover {
+  background: var(--blue-dark);
+}
+
+/* ---------- bottom bar: status line, counter, export ---------- */
+.bar {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: 14px 22px;
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.status {
+  flex: 1;
+  min-width: 240px;
+}
+.status .now {
+  font-weight: 600;
+}
+.track {
+  height: 8px;
+  background: var(--paper);
+  border-radius: 4px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+.track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--amber);
+  transition: width 0.2s;
+  border-radius: 4px;
+}
+.tally {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.tally b {
+  color: var(--ink);
+}
+.out {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.count {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-right: 6px;
+}
+.count small {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  font: inherit;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border: 1.5px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+}
+.btn.primary {
+  background: var(--ink);
+  color: #fff;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---------- small shared rules ---------- */
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- phones and narrow windows ---------- */
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .panel {
+    border-right: 0;
+    padding: 22px 16px 28px;
+  }
+  .stage {
+    height: 80vh;
+  }
+  h1 {
+    font-size: 1.75rem;
+  }
+}
+
+/* ---------- less motion for people who ask their system for it ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .track i,
+  fieldset {
+    transition: none;
+  }
+}
+
+/* ---------- more options and help ----------
+   "More options": closed sections (<details class="more">) with a one-line summary of what is set,
+   a "changed" mark when it differs from the defaults, and "Reset to defaults" inside. */
+.more {
+  margin-top: 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--panel);
+}
+.more[open] {
+  padding-bottom: 12px;
+}
+.more summary {
+  cursor: pointer;
+  padding: 10px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  list-style: none;
+}
+.more summary::-webkit-details-marker {
+  display: none;
+}
+/* An arrow that turns when the section opens */
+.more summary::before {
+  content: "▸";
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.more[open] summary::before {
+  transform: rotate(90deg);
+}
+.more-title {
+  font-weight: 700;
+}
+.more-sum {
+  color: var(--muted);
+  font-size: 0.9rem;
+  flex: 1 1 12em;
+  min-width: 0;
+}
+.more-changed {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #8a5a00;
+  background: var(--amber-soft);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.more .field:first-of-type,
+.more summary + .checkrow {
+  margin-top: 4px;
+}
+.more .reset {
+  display: block;
+  margin-top: 14px;
+  font-size: 0.9rem;
+}
+.more:not(.changed) .reset {
+  display: none;
+}
+/* A label or tick box with its "?" button */
+.labelrow,
+.checkrow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.labelrow label,
+.labelrow .label,
+.labelrow h2 {
+  margin-bottom: 6px;
+}
+.checkrow {
+  align-items: center;
+  margin-top: 14px;
+}
+.indent.checkrow {
+  margin-top: 8px;
+}
+.checkrow .check {
+  flex: 0 1 auto;
+  margin-top: 0;
+}
+.help {
+  flex: none;
+  width: 1.4em;
+  height: 1.4em;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.help:hover {
+  border-color: var(--blue-dark);
+  color: var(--blue-dark);
+}
+#helpBody p {
+  margin: 0 0 12px;
+}
+
+/* ---------- settings file ---------- */
+#settingsBox .acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ---------- camera choice (Photos) ---------- */
+.camera-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+}
+.camera-choices .check {
+  margin-top: 4px;
+}
+#helpBody ul {
+  margin: 0 0 12px;
+  padding-left: 1.2em;
+}
+#helpBody li {
+  margin-bottom: 6px;
+}
+
+/* ---------- camera view ----------
+   The two drawings: the car from above with the camera arrow, and from the side with the tilt (an arrow,
+   or in "random" a shaded range between two handles). Greyed out while they do not apply. */
+.dial {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin: 10px 0 0 28px;
+}
+.dial svg {
+  width: 150px;
+  height: 150px;
+  flex: none;
+  cursor: pointer;
+  touch-action: none; /* dragging on a phone turns the arrow instead of scrolling */
+  user-select: none;
+}
+.dial.off svg {
+  opacity: 0.45;
+}
+.dial-fields {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.dial-fields .unit {
+  max-width: 110px;
+}
+.dial-fields label {
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+.tilt-range-fields {
+  display: grid;
+  grid-template-columns: auto 110px;
+  align-items: center;
+  gap: 6px 8px;
+}
+.tilt-range-fields label {
+  margin: 0;
+}
+.dial-ring {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 2;
+}
+.dial-word {
+  font-size: 11px;
+  fill: var(--muted);
+  text-anchor: middle;
+}
+.car {
+  fill: #d7deea;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.car-glass {
+  fill: #9fb3d3;
+}
+.wheel {
+  fill: var(--ink);
+}
+.cam-mast {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.cam-line {
+  stroke: var(--blue);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.cam-head {
+  fill: var(--blue);
+}
+.tilt-range {
+  fill: rgba(29, 95, 209, 0.16);
+}
+.tilt-handle {
+  fill: #fff;
+  stroke: var(--blue);
+  stroke-width: 3;
+}
+#directionBox:not(.random) .tilt-range,
+#directionBox:not(.random) .tilt-handle,
+#directionBox:not(.random) #dirRangeFields,
+#directionBox.random #directionArrow,
+#directionBox.random #dirCarFields,
+#tiltBox:not(.random) .tilt-range,
+#tiltBox:not(.random) .tilt-handle,
+#tiltBox:not(.random) #tiltRangeFields,
+#tiltBox.random #tiltArrow,
+#tiltBox.random #tiltFixedFields,
+#zoomBox:not(.random) #zoomRangeFields,
+#zoomBox.random #zoomFixedFields {
+  display: none;
+}
+/* The ways to make the map file smaller, in the offer */
+.prune-ways {
+  margin: 8px 0 4px;
+}
+.prune-ways .radio {
+  margin-top: 4px;
+}
+.prune-ways .radio b {
+  display: inline;
+}
+#pruned .linkbtn {
+  margin-left: 6px;
+}
+/* A number under its tick box (giving up, the size limit) */
+.sub-field {
+  margin-top: 8px;
+}
+.zoom-box {
+  margin-top: 8px;
+}
+.zoom-box .tilt-range-fields {
+  justify-content: start;
+}
+/* The zoom sliders: a track, the part chosen filled in, and round handles like the drawings' handles.
+   For the range, two sliders lie on top of each other; only their handles take the pointer. */
+.zoom-slider {
+  position: relative;
+  height: 28px;
+  max-width: 280px;
+}
+.zoom-track,
+.zoom-fill {
+  position: absolute;
+  top: 12px;
+  height: 4px;
+  border-radius: 2px;
+}
+.zoom-track {
+  left: 0;
+  right: 0;
+  background: var(--line);
+}
+.zoom-fill {
+  left: 0;
+  background: var(--blue);
+}
+.zoom-slider input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.zoom-slider.two input[type="range"] {
+  pointer-events: none;
+}
+.zoom-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--blue);
+}
+.zoom-slider input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--blue);
+}
+.zoom-slider input[type="range"]:focus-visible {
+  outline: none;
+}
+.zoom-slider input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+.zoom-slider input[type="range"]:focus-visible::-moz-range-thumb {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+.zoom-scale {
+  display: flex;
+  justify-content: space-between;
+  max-width: 280px;
+  padding: 0 7px; /* the numbers sit under the handle's middle at each end */
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- your own distributions ---------- */
+.own-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+  font-size: 0.92rem;
+}
+.own-editor {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+.own-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+.own-mode .radio {
+  margin: 0;
+}
+.own-sum {
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+}
+.own-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 0.92rem;
+  margin-top: 4px;
+}
+/* The × that takes a country out; kept in place (invisible) when it has no share, so rows do not jump */
+.own-clear {
+  margin-left: 6px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.own-clear:hover {
+  color: var(--red);
+}
+.own-clear.none {
+  visibility: hidden;
+}
+.own-save {
+  margin-top: 10px;
+}
+.own-save label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.own-save-row {
+  display: flex;
+  gap: 8px;
+}
+.own-save-row input {
+  flex: 1;
+  min-width: 0;
+}
+.own-save-row .btn {
+  padding: 7px 14px;
+}
+/* The share fields in the table */
+.shares td.own-cell {
+  white-space: nowrap;
+}
+.shares .own-input {
+  width: 5.5em;
+  padding: 4px 6px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.own-unit {
+  margin-left: 3px;
+  color: var(--muted);
+}
+
+/* The line under step 2 that says what is looked for */
+.step-sum {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}

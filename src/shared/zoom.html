@@ -1,0 +1,53 @@
+<!-- Shared markup: the zoom, in "Camera view". Used by both tools: the build puts it where a page.html has a
+     line "SHARED zoom.html" in a comment (see src/assemble.js). -->
+<div class="field" role="radiogroup" aria-labelledby="zoomTitle">
+  <div class="labelrow">
+    <div class="label" id="zoomTitle">Zoom</div>
+    <button type="button" class="help" data-help="zoom" aria-label="Help: zoom">?</button>
+  </div>
+  <label class="radio"
+    ><input type="radio" name="zoomMode" id="zoomFixed" value="fixed" checked />The same for every
+    location</label
+  >
+  <label class="radio"
+    ><input type="radio" name="zoomMode" id="zoomRandom" value="random" />Random, within a range</label
+  >
+  <div class="dial-fields zoom-box" id="zoomBox">
+    <div id="zoomFixedFields">
+      <div class="zoom-slider">
+        <div class="zoom-track"></div>
+        <div class="zoom-fill" id="zoomFill"></div>
+        <input type="range" id="zoomSlider" min="0" max="4" step="0.1" value="0" aria-label="Zoom" />
+      </div>
+      <div class="zoom-scale" aria-hidden="true">
+        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+      </div>
+      <label for="zoom">Zoom</label>
+      <div class="unit">
+        <input type="text" inputmode="decimal" autocomplete="off" id="zoom" value="0" />
+      </div>
+    </div>
+    <div id="zoomRangeFields">
+      <div class="zoom-slider two">
+        <div class="zoom-track"></div>
+        <div class="zoom-fill" id="zoomRangeFill"></div>
+        <input type="range" id="zoomMinSlider" min="0" max="4" step="0.1" value="0" aria-label="Zoom from" />
+        <input type="range" id="zoomMaxSlider" min="0" max="4" step="0.1" value="2" aria-label="Zoom to" />
+      </div>
+      <div class="zoom-scale" aria-hidden="true">
+        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+      </div>
+      <div class="tilt-range-fields">
+        <label for="zoomMin">From</label>
+        <div class="unit">
+          <input type="text" inputmode="decimal" autocomplete="off" id="zoomMin" value="0" />
+        </div>
+        <label for="zoomMax">to</label>
+        <div class="unit">
+          <input type="text" inputmode="decimal" autocomplete="off" id="zoomMax" value="2" />
+        </div>
+      </div>
+    </div>
+    <p class="hint">0 widest, 1 about Street View's normal view, 4 closest.</p>
+  </div>
+</div>

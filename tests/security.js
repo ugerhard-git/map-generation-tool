@@ -45,7 +45,7 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
   ok(
     !/<script[^>]+src=|<link[^>]+stylesheet/i.test(html) &&
       html.includes(assemble(path.resolve(__dirname, "../src/app.js")).code.trim()) &&
-      html.includes(fs.readFileSync(path.resolve(__dirname, "../src/style.css"), "utf8").trim()),
+      html.includes(assemble(path.resolve(__dirname, "../src/style.css")).code.trim()),
     "one self-contained file with the app code and styles inside",
   );
   ok(

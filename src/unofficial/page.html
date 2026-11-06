@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Unofficial: the page's markup. The build (src/build.js) puts in the markup shared with the Map
+    Generation Tool (src/shared/*.html), fills in the placeholders (the styles, the app code, the icons and
+    the security policy) and turns this into the single published file, dist/unofficial/index.html.
+    Sections are labelled with the same names as in style.css and app.js.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unofficial: map-making.app maps of unofficial Street View</title>
+    <!--SHARED head.html-->
+  </head>
+  <body>
+    <!-- Shown instead of the app when another site puts this page in a frame (the check is in the scripts at the end) -->
+    <div class="framed" id="framed" hidden>
+      <p><b>This tool cannot be used inside another page.</b></p>
+      <p><a id="framedLink" href="./" target="_top" rel="noopener">Open it on its own</a></p>
+    </div>
+    <!-- First-visit dialog, also opened by "How it works" (app.js: dialogs) -->
+    <div class="dialog" id="welcome" hidden>
+      <div
+        class="dialog-box"
+        id="welcomeBox"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcomeTitle"
+        tabindex="-1"
+      >
+        <button type="button" class="dialog-x" id="welcomeX" aria-label="Close">×</button>
+        <h2 id="welcomeTitle">Welcome</h2>
+        <p>
+          This tool finds random unofficial Google Street View locations: everything Google shows that Google
+          did not take itself, such as photospheres, drone shots and road coverage taken with other cameras.
+          You import the result into map-making.app.
+        </p>
+        <ol>
+          <li>
+            <b>Choose where:</b> one or more countries or territories, a continent or the whole world. With
+            several, the locations are shared between them by their land area, or in equal shares.
+          </li>
+          <li>
+            <b>Or share them your own way,</b> under "Distribution": give each country a percentage or an
+            exact number of locations, and save it as a preset in this browser.
+          </li>
+          <li>
+            <b>Choose what to look for,</b> if you like, in the sections of step 2: photos from a certain
+            period, whole 360° photos only, large images only, or photos by certain uploaders (or not by
+            them). "Camera view" sets where the camera faces, how far it tilts and how far it is zoomed in.
+          </li>
+          <li><b>Choose how many,</b> then select "Find locations".</li>
+          <li>
+            <b>Download the map file</b> when the search is done, or stop it and download what was found. The
+            map on this page shows the first <span id="maxDrawn">20,000</span> locations, to stay quick; the
+            map file has all of them.
+          </li>
+          <li>
+            <b>Run a search again</b> later from "History", or keep your settings in a "Settings file", as in
+            the Map Generation Tool. Your Google key is never in either.
+          </li>
+        </ol>
+        <div class="welcome-warn">
+          <b>Unofficial coverage is hard to find.</b>
+          Google's service can be asked for its own coverage only, but not for unofficial coverage only. So
+          every random spot is looked up, and where Google's own coverage is nearer, it answers with that, and
+          any unofficial photo next to it stays hidden. Most locations are found away from Google's roads, and
+          a search takes far longer than one for official coverage. Indoor photos are found too: Google does
+          not say which photospheres are indoors. You can stop at any time and keep what was found, and
+          continue later.
+        </div>
+        <button type="button" class="btn primary" id="welcomeOk">Start</button>
+      </div>
+    </div>
+    <!--SHARED dialogs.html-->
+    <!-- Help texts, one per "?" button (data-help="…"): the title, then the text -->
+    <!--SHARED help-texts.html-->
+    <template id="help-countries">
+      <h2>Countries or territories</h2>
+      <p>
+        Every country and territory can be chosen, also those without any Google coverage. Add as many as you
+        like; with several, the locations are shared between them (see "Distribution" under "More options").
+      </p>
+    </template>
+    <template id="help-distribution">
+      <h2>Distribution</h2>
+      <p>With several countries, a continent or the whole world, the locations are shared between them:</p>
+      <ul>
+        <li>
+          <b>Land area:</b> a country with more land gets more locations. Large, empty countries get many, and
+          where there is little coverage, a country gives up and "Fill the gap" shares its locations among the
+          others.
+        </li>
+        <li><b>Equal shares:</b> every country gets the same number, a small island as many as Russia.</li>
+      </ul>
+      <p>
+        The whole world leaves out Antarctica, a tenth of the world's land with hardly any Street View; choose
+        it as a country or as the continent to search there. A single country gets all the locations.
+      </p>
+    </template>
+    <template id="help-criteria">
+      <h2>What each location has</h2>
+      <p>
+        Every location is unofficial coverage: a photo Google shows that Google did not take itself. Open the
+        sections below to choose more: the period, whole 360° photos and the image size under "Photos", and
+        whose photos under "Uploaders". With several chosen, a location must have all of them.
+      </p>
+      <p>
+        "Camera view" sets where the camera faces at each location, how far it tilts and how far it is zoomed
+        in.
+      </p>
+    </template>
+    <template id="help-own">
+      <h2>Your own distribution</h2>
+      <ul>
+        <li>
+          <b>Percentages:</b> give each country a share. The number of locations in step 3 is shared out in
+          those proportions, in whole numbers that add up exactly, so a small share of a small number can
+          round down to 0 locations. Decimals are fine (0.5 or 0,5). Shares that do not add up to 100 are used
+          in proportion; "Make it 100%" scales them so they do.
+        </li>
+        <li>
+          <b>Numbers:</b> give each country an exact number of locations. The number in step 3 is then their
+          total; changing it there scales them all.
+        </li>
+      </ul>
+      <p>
+        "Make your own from this distribution" starts from the shares of the distribution chosen; "Start your
+        own (equal shares)" gives every country in the area the same share. The × next to a share takes that
+        country out (sets it to 0); "Set all to 0" starts from nothing, so you can enter just the countries
+        you want.
+      </p>
+      <p>
+        Switching between the two keeps what you entered, converted. "Save as preset" keeps it in this browser
+        under "Your maps" in the distribution list; saving under a name you used before replaces that preset.
+      </p>
+    </template>
+    <template id="help-full360">
+      <h2>Whole 360° photos only</h2>
+      <p>
+        Leaves out photos that do not go all the way round, such as a panorama taken with a phone, which ends
+        at its edges. Told by the size of the photo Google gives: a whole 360° photo is twice as wide as it is
+        high.
+      </p>
+    </template>
+    <template id="help-minHeight">
+      <h2>Image size</h2>
+      <p>
+        Leaves out small photos, to skip blurry ones. Phones make photospheres of about 2,000 to 4,000 pixels
+        high; cameras made for 360° photos, and cars with such cameras, more. Google's own cars take 8,192.
+      </p>
+    </template>
+    <template id="help-uploaders">
+      <h2>Uploaders</h2>
+      <p>
+        Every unofficial photo has the name of whoever took it, as shown in Street View. Type names separated
+        by commas, as they are shown, without "©" and the year. Upper and lower case do not matter.
+      </p>
+      <ul>
+        <li><b>Leave out:</b> no photos by these, for example someone whose photos fill a whole area.</li>
+        <li><b>Only:</b> only photos by these.</li>
+      </ul>
+    </template>
+    <template id="help-direction">
+      <h2>Direction</h2>
+      <ul>
+        <li>
+          <b>As the photo faces:</b> the camera looks where the middle of the photo is: for road coverage,
+          where the car drove; for a photosphere, where the photographer had it face.
+        </li>
+        <li>
+          <b>At an angle to the photo's centre:</b> drag the arrow, or type the angle: 0° looks at the middle
+          of the photo, 90° to its right, 180° behind, 270° to its left.
+        </li>
+        <li>
+          <b>Random:</b> a different direction for every location, between the two handles (or the angles
+          typed), clockwise from the middle of the photo. 0° to 360°, the whole way round, is any direction.
+        </li>
+      </ul>
+    </template>
+    <template id="help-radius">
+      <h2>How far to look around each spot</h2>
+      <p>
+        For each random spot, Google is asked for the nearest photo of any kind within this distance; it
+        becomes a location only if it is unofficial. Further finds more where Google has no roads of its own,
+        but favours the edges of the coverage.
+      </p>
+    </template>
+    <template id="help-tags">
+      <h2>Tags in the map file</h2>
+      <p>
+        Each location in the map file gets the tags ticked here, to filter by in map-making.app. You can
+        change them after the search, before downloading.
+      </p>
+      <p>
+        The country tag is the country's usual English name, in a few cases shortened, such as "USA". A
+        territory, such as Puerto Rico or Gibraltar, gets its own name and its country's tag ("Puerto Rico"
+        and "USA") by default; "Tag territories with" can choose only one of the two. The uploader tag is the
+        name of whoever took the photo.
+      </p>
+    </template>
+    <!-- The app: settings panel on the left, map on the right (stacked on phones) -->
+    <div class="app">
+      <!-- novalidate: the app checks and corrects every number itself (app.js: wholeNumber), so the browser
+         must not refuse to start a search over a number between its steps (a radius of 1234 m, say) -->
+      <form class="panel" id="form" autocomplete="off" novalidate>
+        <h1>Unofficial</h1>
+        <p class="lede">
+          Build a map-making.app map of random unofficial Street View locations: photospheres, drone shots and
+          road coverage that Google did not take.
+        </p>
+        <p class="other-tool">Looking for Google's own coverage? <a href="../">Map Generation Tool</a></p>
+        <!--SHARED top.html-->
+
+        <fieldset id="fields">
+          <!-- Step 1: where (app.js: step 1) -->
+          <section class="step" id="stepWhere">
+            <h2><span class="n">1</span>Where?</h2>
+            <!--SHARED where.html-->
+            <!-- More options: how the locations are shared between the countries (app.js: more options) -->
+            <details class="more" id="moreDistribution">
+              <summary>
+                <span class="more-title">Distribution</span>
+                <span class="more-sum" id="sumDistribution"></span>
+              </summary>
+              <div class="field" id="distributionBox">
+                <div class="labelrow">
+                  <label for="distribution">Share the locations by</label>
+                  <button type="button" class="help" data-help="distribution" aria-label="Help: distribution">
+                    ?
+                  </button>
+                </div>
+                <select id="distribution"></select>
+                <p class="hint" id="distributionNote" hidden>Only used with several countries.</p>
+                <!-- Your own distributions (app.js: your own distributions): start one from the map chosen
+                     or with equal shares, edit a copy of a preset, or delete a preset -->
+                <div class="own-acts" id="ownActs">
+                  <button type="button" class="linkbtn" id="ownFromMap">
+                    Make your own from this distribution
+                  </button>
+                  <button type="button" class="linkbtn" id="ownEqual">Start your own (equal shares)</button>
+                  <button type="button" class="linkbtn" id="ownFromPreset" hidden>Edit a copy</button>
+                  <button type="button" class="linkbtn rm" id="presetDelete" hidden>
+                    Delete this preset
+                  </button>
+                  <button type="button" class="linkbtn" id="ownEdit" hidden>Edit the shares</button>
+                </div>
+              </div>
+              <button type="button" class="linkbtn reset" data-reset="moreDistribution">
+                Reset to defaults
+              </button>
+            </details>
+          </section>
+
+          <!-- Step 2: what to look for (app.js: step 2) -->
+          <section class="step" id="stepWhat">
+            <div class="labelrow">
+              <h2><span class="n">2</span>What should each location have?</h2>
+              <button
+                type="button"
+                class="help"
+                data-help="criteria"
+                aria-label="Help: what each location has"
+              >
+                ?
+              </button>
+            </div>
+            <!-- What is looked for, in a line (app.js: more options): the filters are in the sections below -->
+            <p class="step-sum" id="whatSummary"></p>
+            <!-- More options: photos (app.js: more options) -->
+            <details class="more" id="morePhotos">
+              <summary>
+                <span class="more-title">Photos</span>
+                <span class="more-sum" id="sumPhotos"></span>
+              </summary>
+              <!--SHARED period.html-->
+              <div class="checkrow">
+                <label class="check"
+                  ><input type="checkbox" id="full360" /><span>Whole 360° photos only</span></label
+                >
+                <button type="button" class="help" data-help="full360" aria-label="Help: whole 360° photos">
+                  ?
+                </button>
+              </div>
+              <div class="field">
+                <div class="labelrow">
+                  <label for="minHeight">Image size</label>
+                  <button type="button" class="help" data-help="minHeight" aria-label="Help: image size">
+                    ?
+                  </button>
+                </div>
+                <select id="minHeight"></select>
+              </div>
+              <button type="button" class="linkbtn reset" data-reset="morePhotos">Reset to defaults</button>
+            </details>
+            <!-- More options: whose photos (app.js: more options) -->
+            <details class="more" id="moreUploaders">
+              <summary>
+                <span class="more-title">Uploaders</span>
+                <span class="more-sum" id="sumUploaders"></span>
+              </summary>
+              <div class="field" role="radiogroup" aria-labelledby="uploadersTitle">
+                <div class="labelrow">
+                  <div class="label" id="uploadersTitle">Whose photos</div>
+                  <button type="button" class="help" data-help="uploaders" aria-label="Help: uploaders">
+                    ?
+                  </button>
+                </div>
+                <label class="radio"
+                  ><input
+                    type="radio"
+                    name="uploaderMode"
+                    id="uploadersAny"
+                    value="any"
+                    checked
+                  />Anyone's</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="uploaderMode" id="uploadersExclude" value="exclude" />Leave out
+                  these uploaders</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="uploaderMode" id="uploadersOnly" value="only" />Only these
+                  uploaders</label
+                >
+                <input
+                  type="text"
+                  class="sub-field"
+                  id="uploaderNames"
+                  maxlength="2000"
+                  spellcheck="false"
+                  placeholder="Names, separated by commas"
+                  aria-label="Uploaders, separated by commas"
+                />
+              </div>
+              <button type="button" class="linkbtn reset" data-reset="moreUploaders">
+                Reset to defaults
+              </button>
+            </details>
+            <!-- More options: where the camera faces, how far it tilts and the zoom (app.js: camera view). The drawings
+                 are for the mouse and touch; the number fields next to them do the same by keyboard. -->
+            <details class="more" id="moreView">
+              <summary>
+                <span class="more-title">Camera view</span>
+                <span class="more-sum" id="sumView"></span>
+              </summary>
+              <div class="field" role="radiogroup" aria-labelledby="directionTitle">
+                <div class="labelrow">
+                  <div class="label" id="directionTitle">Direction</div>
+                  <button type="button" class="help" data-help="direction" aria-label="Help: direction">
+                    ?
+                  </button>
+                </div>
+                <label class="radio"
+                  ><input type="radio" name="viewDirection" id="directionRoad" value="road" checked />As the
+                  photo faces</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="viewDirection" id="directionCar" value="car" />At an angle to the
+                  photo's centre</label
+                >
+                <label class="radio"
+                  ><input
+                    type="radio"
+                    name="viewDirection"
+                    id="directionRandom"
+                    value="random"
+                  />Random</label
+                >
+                <div class="dial" id="directionBox">
+                  <svg
+                    id="directionDial"
+                    viewBox="-110 -110 220 220"
+                    role="img"
+                    aria-label="The photo from above"
+                  >
+                    <circle class="dial-ring" r="80" />
+                    <text class="dial-word" x="0" y="-92">Front</text>
+                    <text class="dial-word" x="0" y="100">Back</text>
+                    <text class="dial-word" x="-96" y="4">Left</text>
+                    <text class="dial-word" x="96" y="4">Right</text>
+                    <!-- A 360° camera from above: a round body with its lens at the front -->
+                    <circle class="car" r="18" />
+                    <circle class="car-glass" cx="0" cy="-12" r="5" />
+                    <path class="tilt-range" id="directionRangeArc" d="" />
+                    <g id="directionArrow">
+                      <line class="cam-line" x1="0" y1="0" x2="0" y2="-74" />
+                      <polygon class="cam-head" points="0,-92 -9,-74 9,-74" />
+                    </g>
+                    <circle class="tilt-handle" id="dirFromHandle" r="8" cx="0" cy="-80" />
+                    <circle class="tilt-handle" id="dirToHandle" r="8" cx="0" cy="-80" />
+                  </svg>
+                  <div class="dial-fields">
+                    <div id="dirCarFields">
+                      <label for="carAngle">Angle</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="carAngle"
+                          value="0"
+                        /><span>°</span>
+                      </div>
+                    </div>
+                    <div id="dirRangeFields" class="tilt-range-fields">
+                      <label for="dirFrom">From</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="dirFrom"
+                          value="0"
+                        /><span>°</span>
+                      </div>
+                      <label for="dirTo">to</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="dirTo"
+                          value="360"
+                        /><span>°</span>
+                      </div>
+                    </div>
+                    <p class="hint">0° front, 90° right, 180° back, 270° left.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="field" role="radiogroup" aria-labelledby="tiltTitle">
+                <div class="labelrow">
+                  <div class="label" id="tiltTitle">Tilt</div>
+                  <button type="button" class="help" data-help="tilt" aria-label="Help: tilt">?</button>
+                </div>
+                <label class="radio"
+                  ><input type="radio" name="tiltMode" id="tiltFixed" value="fixed" checked />The same for
+                  every location</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="tiltMode" id="tiltRandom" value="random" />Random, within a
+                  range</label
+                >
+                <div class="dial" id="tiltBox">
+                  <svg
+                    id="tiltDial"
+                    viewBox="-62 -100 182 200"
+                    role="img"
+                    aria-label="The camera from the side"
+                  >
+                    <path class="dial-ring" d="M0,-80 A80,80 0 0,1 0,80" />
+                    <text class="dial-word" x="0" y="-86">Up</text>
+                    <text class="dial-word" x="0" y="96">Down</text>
+                    <text class="dial-word" x="100" y="-14">Level</text>
+                    <path class="tilt-range" id="tiltRangeArc" d="" />
+                    <!-- A camera on a tripod, from the side -->
+                    <line class="cam-mast" x1="0" y1="8" x2="-20" y2="44" />
+                    <line class="cam-mast" x1="0" y1="8" x2="20" y2="44" />
+                    <line class="cam-mast" x1="0" y1="8" x2="0" y2="44" />
+                    <rect class="car" x="-10" y="-8" width="20" height="16" rx="4" />
+                    <g id="tiltArrow">
+                      <line class="cam-line" x1="0" y1="0" x2="74" y2="0" />
+                      <polygon class="cam-head" points="92,0 74,-9 74,9" />
+                    </g>
+                    <circle class="tilt-handle" id="tiltMinHandle" r="8" cx="80" cy="0" />
+                    <circle class="tilt-handle" id="tiltMaxHandle" r="8" cx="80" cy="0" />
+                  </svg>
+                  <div class="dial-fields">
+                    <div id="tiltFixedFields">
+                      <label for="tilt">Tilt</label>
+                      <div class="unit">
+                        <input type="text" inputmode="numeric" autocomplete="off" id="tilt" value="0" /><span
+                          >°</span
+                        >
+                      </div>
+                    </div>
+                    <div id="tiltRangeFields" class="tilt-range-fields">
+                      <label for="tiltMin">From</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="tiltMin"
+                          value="-20"
+                        /><span>°</span>
+                      </div>
+                      <label for="tiltMax">to</label>
+                      <div class="unit">
+                        <input
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          id="tiltMax"
+                          value="20"
+                        /><span>°</span>
+                      </div>
+                    </div>
+                    <p class="hint">+90° straight up, 0° level, −90° straight down.</p>
+                  </div>
+                </div>
+              </div>
+              <!--SHARED zoom.html-->
+              <button type="button" class="linkbtn reset" data-reset="moreView">Reset to defaults</button>
+            </details>
+          </section>
+
+          <!-- Step 3: how many, and the Google key (app.js: step 3) -->
+          <section class="step" id="stepHowMany">
+            <h2><span class="n">3</span>How many?</h2>
+            <!--SHARED how-many.html-->
+            <!--SHARED more-search.html-->
+            <!-- More options: the map file (app.js: more options) -->
+            <details class="more" id="moreMapFile">
+              <summary>
+                <span class="more-title">Map file</span>
+                <span class="more-sum" id="sumMapFile"></span>
+              </summary>
+              <div class="field">
+                <label for="mapName">Map name</label>
+                <input type="text" id="mapName" maxlength="100" placeholder="Filled in for you" />
+              </div>
+              <div class="field" role="group" aria-labelledby="tagsTitle">
+                <div class="labelrow">
+                  <div class="label" id="tagsTitle">Tags in the map file</div>
+                  <button type="button" class="help" data-help="tags" aria-label="Help: tags">?</button>
+                </div>
+                <label class="check"
+                  ><input type="checkbox" id="tagCountry" checked /><span>The country</span></label
+                >
+                <!-- How territories are tagged, copied from Lookout (app.js: countryTags) -->
+                <div class="indent tagdate territory-row">
+                  <label for="territoryTag">Tag territories with</label>
+                  <select id="territoryTag">
+                    <option value="both">both: Puerto Rico and USA</option>
+                    <option value="own">their own name: Puerto Rico</option>
+                    <option value="parent">their country: USA</option>
+                  </select>
+                </div>
+                <label class="check"
+                  ><input type="checkbox" id="tagUploader" /><span>The uploader's name</span></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagYear" /><span
+                    >The date the photos were taken, as</span
+                  ></label
+                >
+                <div class="indent tagdate">
+                  <select id="tagDate" aria-label="Date in the tag">
+                    <option value="year">year (2023)</option>
+                    <option value="month">month and year (04-2023)</option>
+                  </select>
+                </div>
+              </div>
+              <!--SHARED size-limit.html-->
+              <button type="button" class="linkbtn reset" data-reset="moreMapFile">Reset to defaults</button>
+            </details>
+          </section>
+        </fieldset>
+
+        <!--SHARED results.html-->
+      </form>
+
+      <!--SHARED stage.html-->
+    </div>
+
+    <!-- Scripts. The build fills these in and fingerprints them for the security policy: the libraries
+         (Leaflet for the map, country-coder for finding a location's country), the country facts and the
+         land map with the framing check, and src/unofficial/app.js -->
+    <script>
+      /*LEAFLET_JS*/
+      /*COUNTRY_CODER_JS*/
+    </script>
+    <script>
+      /* Every country and territory: its land area in km², continent and (for a territory) its country,
+         worked out by the build from country-coder and the land map (src/countries.js). */
+      const COUNTRY_FACTS = /*COUNTRY_FACTS*/;
+      /* The tag each country gets with the country tag on, from the owner's list in
+         src/data/country-tags.json (code: tag). */
+      const COUNTRY_TAGS = /*COUNTRY_TAGS*/;
+      /* Where there is land, as a grid of run lengths, from Natural Earth (public domain) via the
+         world-atlas package; made by src/land.js. Random spots are only made on land. */
+      const LAND = /*LAND*/;
+      /* Inside another site's frame, show only a link to open the app on its own, so nobody can lay a fake
+         page over it and trick clicks (the security policy in the page itself cannot forbid framing). */
+      let FRAMED = false;
+      try {
+        FRAMED = window.top !== window.self;
+      } catch {
+        FRAMED = true;
+      }
+      if (FRAMED) {
+        document.querySelector(".app").hidden = true;
+        document.getElementById("framed").hidden = false;
+        document.getElementById("framedLink").href = location.href.split("#")[0];
+      }
+    </script>
+    <script>
+      /*APP_JS*/
+    </script>
+  </body>
+</html>

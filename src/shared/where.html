@@ -1,0 +1,33 @@
+<!-- Shared markup: step 1, where: countries, a continent or the whole world. Used by both tools: the build puts it where a page.html has a
+     line "SHARED where.html" in a comment (see src/assemble.js). -->
+<div class="scope" role="radiogroup" aria-label="Where to search">
+  <label class="radio"><input type="radio" name="scope" value="countries" checked />Chosen countries</label>
+  <label class="radio"><input type="radio" name="scope" value="continent" />A continent</label>
+  <label class="radio"><input type="radio" name="scope" value="world" />The whole world</label>
+</div>
+<!-- Chosen countries: chips and a field with suggestions -->
+<div class="field" id="countriesBox">
+  <div class="labelrow">
+    <label for="country">Countries or territories</label>
+    <button type="button" class="help" data-help="countries" aria-label="Help: countries">?</button>
+  </div>
+  <div class="chips" id="countryChips" hidden></div>
+  <div class="combo">
+    <input
+      type="text"
+      id="country"
+      role="combobox"
+      aria-autocomplete="list"
+      aria-expanded="false"
+      aria-controls="countryList"
+      placeholder="Start typing, for example Malta"
+      spellcheck="false"
+    />
+    <ul class="suggest" id="countryList" role="listbox" aria-label="Countries" hidden></ul>
+  </div>
+</div>
+<!-- A continent -->
+<div class="field" id="continentBox" hidden>
+  <label for="continent">Continent</label>
+  <select id="continent"></select>
+</div>

@@ -1,0 +1,65 @@
+<!-- Shared markup: the help texts both tools have. Used by both tools: the build puts it where a page.html has a
+     line "SHARED help-texts.html" in a comment (see src/assemble.js). -->
+<template id="help-years">
+  <h2>Photos taken in a certain period</h2>
+  <p>
+    Checks the photos Google shows by default at a spot, normally the newest. Google gives each photo's month
+    and year, so the period can start and end in any month, from May 2007, when Street View began. "Now"
+    always means the current month.
+  </p>
+  <p>Older photos are rarer and take longer to find.</p>
+</template>
+<template id="help-tilt">
+  <h2>Tilt</h2>
+  <p>
+    How far the camera looks up or down: +90° straight up at the sky, 0° level, −90° straight down at the
+    road. Drag the arrow, or type the angle.
+  </p>
+  <p>
+    With "Random, within a range", every location gets its own tilt between the two angles, set with the two
+    handles. Looking far up or down is rarely useful, so the range is −20° to 20° to start with.
+  </p>
+</template>
+<template id="help-zoom">
+  <h2>Zoom</h2>
+  <p>
+    How far the camera is zoomed in when a location opens, in map-making.app and in GeoGuessr: 0 is the widest
+    view, 1 about Street View's normal view, and each step of 1 about twice as close. 4 is the closest. Steps
+    in between, such as 1.5, work too.
+  </p>
+  <p>
+    With "Random, within a range", every location gets its own zoom between the two numbers, 0 to 2 to start
+    with.
+  </p>
+</template>
+<template id="help-apiKey">
+  <h2>Google API key</h2>
+  <p>
+    The search asks Google's Street View service, which needs a key with the Maps JavaScript API enabled. Your
+    key is kept only until you close this tab, and only sent to Google.
+  </p>
+</template>
+<template id="help-giveUpAfter">
+  <h2>Giving up on a country</h2>
+  <p>
+    The number of random spots in a row that bring no new location for a country. Where matching locations are
+    rare, the search then moves on; at the end you can fill the gap from the other countries.
+  </p>
+  <p>
+    Untick it to never give up: the search then keeps trying in every country until it has all the locations
+    or you stop it, however long that takes. Where there are hardly any matching locations, it may not end on
+    its own.
+  </p>
+</template>
+<template id="help-sizeLimit">
+  <h2>Map file size</h2>
+  <p>
+    The largest map file you want, in whole MB: 20 MB to start with, the most some places take in one upload,
+    such as Discord, where many maps are shared. The download button shows the file's size.
+  </p>
+  <p>
+    When a search ends with a larger file, you can make it smaller. Each country keeps its share of the
+    locations, and either the locations closest to others are dropped, for an even spread, or random ones. You
+    can undo it until the next search. Untick it for no limit.
+  </p>
+</template>
