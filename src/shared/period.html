@@ -1,0 +1,21 @@
+<!-- Shared markup: the photo period, in step 2. Used by both tools: the build puts it where a page.html has a
+     line "SHARED period.html" in a comment (see src/assemble.js). -->
+<div class="checkrow">
+  <label class="check"
+    ><input type="checkbox" id="yearsOn" /><span>Photos taken in a certain period</span></label
+  >
+  <button type="button" class="help" data-help="years" aria-label="Help: photo period">?</button>
+</div>
+<!-- Month and year from, month and year to ("Now" follows the calendar) -->
+<div class="period" id="yearsBox">
+  <div class="period-row" role="group" aria-label="From">
+    <span class="period-word">From</span>
+    <select id="monthFrom" aria-label="From month"></select>
+    <select id="yearFrom" aria-label="From year"></select>
+  </div>
+  <div class="period-row" role="group" aria-label="To">
+    <span class="period-word">to</span>
+    <select id="monthTo" aria-label="To month"></select>
+    <select id="yearTo" aria-label="To year"></select>
+  </div>
+</div>

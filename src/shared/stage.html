@@ -1,0 +1,20 @@
+<!-- Shared markup: the map and the bottom bar with the progress and the download buttons. Used by both tools: the build puts it where a page.html has a
+     line "SHARED stage.html" in a comment (see src/assemble.js). -->
+<div class="stage">
+  <!-- Map (app.js: map) -->
+  <div class="mapwrap"><div id="map"></div></div>
+  <!-- Bottom bar: status line, progress, counters, export buttons (app.js: run, export) -->
+  <div class="bar">
+    <div class="status" aria-live="polite">
+      <div class="now" id="now">Ready.</div>
+      <div class="track" id="track"><i id="fill"></i></div>
+      <div class="tally" id="tally"></div>
+    </div>
+    <div class="out">
+      <div class="count"><span id="count">0</span><small>locations</small></div>
+      <button class="btn primary" id="download" type="button" disabled>Download map file</button>
+      <button class="btn" id="copy" type="button" disabled>Copy</button>
+      <button class="btn" id="clear" type="button" disabled>Clear</button>
+    </div>
+  </div>
+</div>

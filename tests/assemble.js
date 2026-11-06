@@ -1,6 +1,7 @@
 // Putting a page's app code together (src/assemble.js): each /*SHARED <file>*/ line is replaced by that
-// file from src/shared/, with where every line came from; a file inserted twice or missing stops the
-// build; every shared file is used by a page; and the page holds the shared code. Needs no browser.
+// file from src/shared/ (<!--SHARED <file>--> in markup), with where every line came from; a file inserted
+// twice or missing stops the build; every shared file is used by a page; and both pages hold their code
+// with the shared parts. Needs no browser.
 const fs = require("fs"),
   os = require("os"),
   path = require("path");
@@ -57,25 +58,35 @@ ok(
   "a missing shared file stops the build",
 );
 ok(
-  assemble(app("  /*SHARED no-such-file.js*/\n")).code === "  /*SHARED no-such-file.js*/",
+  assemble(app("const a = 1; /*SHARED no-such-file.js*/\n")).code ===
+    "const a = 1; /*SHARED no-such-file.js*/",
   "only a marker on a line of its own counts",
 );
 
-// The pages of this repository.
-const pages = [path.join(__dirname, "../src/app.js")];
+// The files of the two pages of this repository that can use shared files.
+const pageFiles = ["src", "src/unofficial"].flatMap(dir =>
+  ["app.js", "style.css", "page.html"].map(f => path.join(__dirname, "..", dir, f)),
+);
+const MARKER = /^\s*(?:\/\*SHARED ([a-z0-9-]+\.(?:js|css))\*\/|<!--SHARED ([a-z0-9-]+\.html)-->)$/gm;
 const used = new Set(
-  pages.flatMap(p =>
-    [...fs.readFileSync(p, "utf8").matchAll(/^\/\*SHARED ([a-z0-9-]+\.js)\*\/$/gm)].map(m => m[1]),
-  ),
+  pageFiles.flatMap(p => [...fs.readFileSync(p, "utf8").matchAll(MARKER)].map(m => m[1] || m[2])),
 );
 const unused = fs.readdirSync(SHARED_DIR).filter(f => !used.has(f));
 ok(unused.length === 0, "every file in src/shared/ is used by a page" + (unused.length ? ": " + unused : ""));
 
-const built = path.join(__dirname, "../dist/index.nokey.html");
-ok(
-  fs.existsSync(built) && fs.readFileSync(built, "utf8").includes(assemble(pages[0]).code.trim()),
-  "the built page holds app.js with the shared code put in",
-);
+for (const [dir, built] of [
+  ["src", "dist/index.nokey.html"],
+  ["src/unofficial", "dist/unofficial/index.nokey.html"],
+]) {
+  const page = path.join(__dirname, "..", built);
+  const html = fs.existsSync(page) ? fs.readFileSync(page, "utf8") : "";
+  ok(
+    ["app.js", "style.css"].every(f =>
+      html.includes(assemble(path.join(__dirname, "..", dir, f)).code.trim()),
+    ),
+    `${built} holds its app code and styles with the shared parts put in`,
+  );
+}
 
 fs.rmSync(work, { recursive: true, force: true });
 console.log(fail ? `${fail} FAILED` : "ALL PASS");

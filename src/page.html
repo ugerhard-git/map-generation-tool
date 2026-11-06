@@ -9,37 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Map Generation Tool: map-making.app maps from your criteria</title>
-    <meta http-equiv="Content-Security-Policy" content="/*CSP*/" />
-    <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <!-- Icons from src/icon.svg, built into the page as data: addresses (the build fills these in) -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/*ICON_PNG*/" />
-    <link rel="icon" type="image/svg+xml" href="/*ICON_SVG*/" />
-    <link rel="apple-touch-icon" href="/*ICON_TOUCH*/" />
-    <!-- ------------------------------------------------------------------
-  SITE OWNER SETTINGS. Edit only the values between the quotes.
-
-  googleApiKey         Your Google API key. Leave it empty in the repository: the build
-                       fills it in from the GOOGLE_API_KEY environment variable.
-                       It needs the "Maps JavaScript API" enabled. In the Google
-                       Cloud console, restrict it to this site's address and to that
-                       API, and set a daily quota. If left empty, visitors are asked
-                       for their own key.
-
-  Do not edit the script blocks further down: the page only runs scripts
-  whose fingerprint matches the security policy above.
-------------------------------------------------------------------- -->
-    <script type="application/json" id="app-config">
-      {
-        "googleApiKey": ""
-      }
-    </script>
-    <style>
-      /*FONT_CSS*/
-      /*LEAFLET_CSS*/
-    </style>
-    <style>
-      /*APP_CSS*/
-    </style>
+    <!--SHARED head.html-->
   </head>
   <body>
     <!-- Shown instead of the app when another site puts this page in a frame (the check is in the scripts at the end) -->
@@ -106,76 +76,9 @@
         <button type="button" class="btn primary" id="welcomeOk">Start</button>
       </div>
     </div>
-    <!-- History dialog, opened by "History" next to "How it works" (app.js: history of searches) -->
-    <div class="dialog" id="history" hidden>
-      <div
-        class="dialog-box"
-        id="historyBox"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="historyTitle"
-        tabindex="-1"
-      >
-        <button type="button" class="dialog-x" id="historyX" aria-label="Close">×</button>
-        <h2 id="historyTitle">History</h2>
-        <p class="hint">
-          Your last searches, kept in this browser only. Only the settings are kept, not the results: running
-          a search again gives a new random selection.
-        </p>
-        <p id="historyEmpty" hidden></p>
-        <ul class="history-list" id="historyList"></ul>
-        <button type="button" class="linkbtn" id="historyClear" hidden>Clear history</button>
-        <label class="check"
-          ><input type="checkbox" id="historyOn" checked /><span
-            >Keep a history of my searches<br /><span class="hint"
-              >Up to 20 searches, in this browser only. Switching it off also clears it.</span
-            ></span
-          ></label
-        >
-      </div>
-    </div>
-    <!-- Settings file dialog, opened by "Settings file" next to "History" (app.js: settings file) -->
-    <div class="dialog" id="settingsFile" hidden>
-      <div
-        class="dialog-box"
-        id="settingsBox"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="settingsTitle"
-        tabindex="-1"
-      >
-        <button type="button" class="dialog-x" id="settingsX" aria-label="Close">×</button>
-        <h2 id="settingsTitle">Settings file</h2>
-        <p>
-          Save all your settings to a file, to use them again later or to give them to someone else. Loading
-          the file sets everything as it was. Your Google key is never in it.
-        </p>
-        <div class="acts">
-          <button type="button" class="btn primary" id="settingsSave">Save settings to a file</button>
-          <button type="button" class="btn" id="settingsLoad">Load settings from a file</button>
-        </div>
-        <input type="file" id="settingsPick" accept=".json,application/json" hidden />
-        <p class="msg" id="settingsMsg" role="status" hidden></p>
-      </div>
-    </div>
-    <!-- Help dialog, opened by the "?" buttons next to settings; its text comes from the help texts below
-         (app.js: help) -->
-    <div class="dialog" id="help" hidden>
-      <div
-        class="dialog-box"
-        id="helpBox"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="helpTitle"
-        tabindex="-1"
-      >
-        <button type="button" class="dialog-x" id="helpX" aria-label="Close">×</button>
-        <h2 id="helpTitle"></h2>
-        <div id="helpBody"></div>
-        <button type="button" class="btn primary" id="helpOk">OK</button>
-      </div>
-    </div>
+    <!--SHARED dialogs.html-->
     <!-- Help texts, one per "?" button (data-help="…"): the title, then the text -->
+    <!--SHARED help-texts.html-->
     <template id="help-countries">
       <h2>Countries or territories</h2>
       <p>
@@ -255,15 +158,6 @@
         </li>
       </ul>
     </template>
-    <template id="help-years">
-      <h2>Photos taken in a certain period</h2>
-      <p>
-        Checks the photos Google shows by default at a spot, normally the newest. Google gives each photo's
-        month and year, so the period can start and end in any month, from May 2007, when Street View began.
-        "Now" always means the current month.
-      </p>
-      <p>Older photos are rarer and take longer to find.</p>
-    </template>
     <template id="help-camera">
       <h2>Camera</h2>
       <p>Only photos from the cameras ticked here. With none ticked, any camera counts.</p>
@@ -319,65 +213,11 @@
         </li>
       </ul>
     </template>
-    <template id="help-tilt">
-      <h2>Tilt</h2>
-      <p>
-        How far the camera looks up or down: +90° straight up at the sky, 0° level, −90° straight down at the
-        road. Drag the arrow, or type the angle.
-      </p>
-      <p>
-        With "Random, within a range", every location gets its own tilt between the two angles, set with the
-        two handles. Looking far up or down is rarely useful, so the range is −20° to 20° to start with.
-      </p>
-    </template>
-    <template id="help-zoom">
-      <h2>Zoom</h2>
-      <p>
-        How far the camera is zoomed in when a location opens, in map-making.app and in GeoGuessr: 0 is the
-        widest view, 1 about Street View's normal view, and each step of 1 about twice as close. 4 is the
-        closest. Steps in between, such as 1.5, work too.
-      </p>
-      <p>
-        With "Random, within a range", every location gets its own zoom between the two numbers, 0 to 2 to
-        start with.
-      </p>
-    </template>
-    <template id="help-apiKey">
-      <h2>Google API key</h2>
-      <p>
-        The search asks Google's Street View service, which needs a key with the Maps JavaScript API enabled.
-        Your key is kept only until you close this tab, and only sent to Google.
-      </p>
-    </template>
     <template id="help-radius">
       <h2>How far to look around each spot</h2>
       <p>
         For each random spot, Google is asked for the nearest official panorama within this distance. Further
         finds locations faster, but favours the edges of the coverage and quiet areas.
-      </p>
-    </template>
-    <template id="help-giveUpAfter">
-      <h2>Giving up on a country</h2>
-      <p>
-        The number of random spots in a row that bring no new location for a country. Where matching locations
-        are rare, the search then moves on; at the end you can fill the gap from the other countries.
-      </p>
-      <p>
-        Untick it to never give up: the search then keeps trying in every country until it has all the
-        locations or you stop it, however long that takes. Where there are hardly any matching locations, it
-        may not end on its own.
-      </p>
-    </template>
-    <template id="help-sizeLimit">
-      <h2>Map file size</h2>
-      <p>
-        The largest map file you want, in whole MB: 20 MB to start with, the most some places take in one
-        upload, such as Discord, where many maps are shared. The download button shows the file's size.
-      </p>
-      <p>
-        When a search ends with a larger file, you can make it smaller. Each country keeps its share of the
-        locations, and either the locations closest to others are dropped, for an even spread, or random ones.
-        You can undo it until the next search. Untick it for no limit.
       </p>
     </template>
     <template id="help-tags">
@@ -399,62 +239,16 @@
       <form class="panel" id="form" autocomplete="off" novalidate>
         <h1>Map Generation Tool</h1>
         <p class="lede">Build a map-making.app map of random official Street View locations.</p>
-        <div class="toplinks">
-          <button type="button" class="howbtn" id="howBtn">How it works</button>
-          <button type="button" class="howbtn" id="historyBtn">History</button>
-          <button type="button" class="howbtn" id="settingsBtn">Settings file</button>
-        </div>
-
-        <!-- An unfinished search from an earlier visit, kept in this browser (app.js: unfinished search) -->
-        <div class="msg note" id="resume" hidden role="status">
-          <b id="resumeTitle"></b>
-          <p id="resumeText"></p>
-          <div class="acts">
-            <button type="button" class="btn primary" id="resumeGo">Continue</button>
-            <button type="button" class="btn" id="resumeShow">Download what was found</button>
-            <button type="button" class="btn" id="resumeDrop">Discard</button>
-          </div>
-        </div>
+        <p class="other-tool">
+          Looking for photospheres and other unofficial coverage? <a href="unofficial/">Unofficial</a>
+        </p>
+        <!--SHARED top.html-->
 
         <fieldset id="fields">
           <!-- Step 1: where (app.js: step 1) -->
           <section class="step" id="stepWhere">
             <h2><span class="n">1</span>Where?</h2>
-            <div class="scope" role="radiogroup" aria-label="Where to search">
-              <label class="radio"
-                ><input type="radio" name="scope" value="countries" checked />Chosen countries</label
-              >
-              <label class="radio"><input type="radio" name="scope" value="continent" />A continent</label>
-              <label class="radio"><input type="radio" name="scope" value="world" />The whole world</label>
-            </div>
-            <!-- Chosen countries: chips and a field with suggestions -->
-            <div class="field" id="countriesBox">
-              <div class="labelrow">
-                <label for="country">Countries or territories</label>
-                <button type="button" class="help" data-help="countries" aria-label="Help: countries">
-                  ?
-                </button>
-              </div>
-              <div class="chips" id="countryChips" hidden></div>
-              <div class="combo">
-                <input
-                  type="text"
-                  id="country"
-                  role="combobox"
-                  aria-autocomplete="list"
-                  aria-expanded="false"
-                  aria-controls="countryList"
-                  placeholder="Start typing, for example Malta"
-                  spellcheck="false"
-                />
-                <ul class="suggest" id="countryList" role="listbox" aria-label="Countries" hidden></ul>
-              </div>
-            </div>
-            <!-- A continent -->
-            <div class="field" id="continentBox" hidden>
-              <label for="continent">Continent</label>
-              <select id="continent"></select>
-            </div>
+            <!--SHARED where.html-->
             <!-- More options: how the locations are shared between the countries (app.js: more options) -->
             <details class="more" id="moreDistribution">
               <summary>
@@ -509,27 +303,7 @@
                 <span class="more-title">Photos</span>
                 <span class="more-sum" id="sumPhotos"></span>
               </summary>
-              <div class="checkrow">
-                <label class="check"
-                  ><input type="checkbox" id="yearsOn" /><span>Photos taken in a certain period</span></label
-                >
-                <button type="button" class="help" data-help="years" aria-label="Help: photo period">
-                  ?
-                </button>
-              </div>
-              <!-- Month and year from, month and year to ("Now" follows the calendar) -->
-              <div class="period" id="yearsBox">
-                <div class="period-row" role="group" aria-label="From">
-                  <span class="period-word">From</span>
-                  <select id="monthFrom" aria-label="From month"></select>
-                  <select id="yearFrom" aria-label="From year"></select>
-                </div>
-                <div class="period-row" role="group" aria-label="To">
-                  <span class="period-word">to</span>
-                  <select id="monthTo" aria-label="To month"></select>
-                  <select id="yearTo" aria-label="To year"></select>
-                </div>
-              </div>
+              <!--SHARED period.html-->
               <!-- The cameras: none ticked means any camera but Gen 1 -->
               <div class="field" role="group" aria-labelledby="camerasTitle">
                 <div class="labelrow">
@@ -761,82 +535,7 @@
                   </div>
                 </div>
               </div>
-              <div class="field" role="radiogroup" aria-labelledby="zoomTitle">
-                <div class="labelrow">
-                  <div class="label" id="zoomTitle">Zoom</div>
-                  <button type="button" class="help" data-help="zoom" aria-label="Help: zoom">?</button>
-                </div>
-                <label class="radio"
-                  ><input type="radio" name="zoomMode" id="zoomFixed" value="fixed" checked />The same for
-                  every location</label
-                >
-                <label class="radio"
-                  ><input type="radio" name="zoomMode" id="zoomRandom" value="random" />Random, within a
-                  range</label
-                >
-                <div class="dial-fields zoom-box" id="zoomBox">
-                  <div id="zoomFixedFields">
-                    <div class="zoom-slider">
-                      <div class="zoom-track"></div>
-                      <div class="zoom-fill" id="zoomFill"></div>
-                      <input
-                        type="range"
-                        id="zoomSlider"
-                        min="0"
-                        max="4"
-                        step="0.1"
-                        value="0"
-                        aria-label="Zoom"
-                      />
-                    </div>
-                    <div class="zoom-scale" aria-hidden="true">
-                      <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
-                    </div>
-                    <label for="zoom">Zoom</label>
-                    <div class="unit">
-                      <input type="text" inputmode="decimal" autocomplete="off" id="zoom" value="0" />
-                    </div>
-                  </div>
-                  <div id="zoomRangeFields">
-                    <div class="zoom-slider two">
-                      <div class="zoom-track"></div>
-                      <div class="zoom-fill" id="zoomRangeFill"></div>
-                      <input
-                        type="range"
-                        id="zoomMinSlider"
-                        min="0"
-                        max="4"
-                        step="0.1"
-                        value="0"
-                        aria-label="Zoom from"
-                      />
-                      <input
-                        type="range"
-                        id="zoomMaxSlider"
-                        min="0"
-                        max="4"
-                        step="0.1"
-                        value="2"
-                        aria-label="Zoom to"
-                      />
-                    </div>
-                    <div class="zoom-scale" aria-hidden="true">
-                      <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
-                    </div>
-                    <div class="tilt-range-fields">
-                      <label for="zoomMin">From</label>
-                      <div class="unit">
-                        <input type="text" inputmode="decimal" autocomplete="off" id="zoomMin" value="0" />
-                      </div>
-                      <label for="zoomMax">to</label>
-                      <div class="unit">
-                        <input type="text" inputmode="decimal" autocomplete="off" id="zoomMax" value="2" />
-                      </div>
-                    </div>
-                  </div>
-                  <p class="hint">0 widest, 1 about Street View's normal view, 4 closest.</p>
-                </div>
-              </div>
+              <!--SHARED zoom.html-->
               <button type="button" class="linkbtn reset" data-reset="moreView">Reset to defaults</button>
             </details>
           </section>
@@ -844,60 +543,8 @@
           <!-- Step 3: how many, and the Google key (app.js: step 3) -->
           <section class="step" id="stepHowMany">
             <h2><span class="n">3</span>How many?</h2>
-            <label for="target">Number of locations</label>
-            <input type="text" inputmode="numeric" autocomplete="off" id="target" value="300" />
-            <p class="hint">Up to 130,000.</p>
-            <div class="field" id="keyBox" hidden>
-              <div class="labelrow">
-                <label for="apiKey">Google API key</label>
-                <button type="button" class="help" data-help="apiKey" aria-label="Help: Google API key">
-                  ?
-                </button>
-              </div>
-              <input type="password" id="apiKey" placeholder="AIza…" spellcheck="false" />
-              <p class="hint">Kept only until you close this tab.</p>
-            </div>
-            <!-- More options: the search (app.js: more options) -->
-            <details class="more" id="moreSearch">
-              <summary>
-                <span class="more-title">Search</span>
-                <span class="more-sum" id="sumSearch"></span>
-              </summary>
-              <div class="field">
-                <div class="labelrow">
-                  <label for="radius">Look around each random spot up to</label>
-                  <button type="button" class="help" data-help="radius" aria-label="Help: radius">?</button>
-                </div>
-                <div class="unit">
-                  <input type="text" inputmode="numeric" autocomplete="off" id="radius" value="1,000" /><span
-                    >m</span
-                  >
-                </div>
-              </div>
-              <div class="field">
-                <div class="checkrow">
-                  <label class="check"
-                    ><input type="checkbox" id="giveUpOn" checked /><span
-                      >Give up on a country after</span
-                    ></label
-                  >
-                  <button type="button" class="help" data-help="giveUpAfter" aria-label="Help: giving up">
-                    ?
-                  </button>
-                </div>
-                <div class="unit sub-field">
-                  <input
-                    type="text"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    id="giveUpAfter"
-                    value="2,000"
-                    aria-label="Give up on a country after this many spots"
-                  /><span>spots</span>
-                </div>
-              </div>
-              <button type="button" class="linkbtn reset" data-reset="moreSearch">Reset to defaults</button>
-            </details>
+            <!--SHARED how-many.html-->
+            <!--SHARED more-search.html-->
             <!-- More options: the map file (app.js: more options) -->
             <details class="more" id="moreMapFile">
               <summary>
@@ -955,147 +602,16 @@
                   ></label
                 >
               </div>
-              <!-- The largest map file: over it, the page offers to make it smaller (app.js: map file size) -->
-              <div class="field">
-                <div class="checkrow">
-                  <label class="check"
-                    ><input type="checkbox" id="sizeLimitOn" checked /><span
-                      >Keep the map file under</span
-                    ></label
-                  >
-                  <button type="button" class="help" data-help="sizeLimit" aria-label="Help: map file size">
-                    ?
-                  </button>
-                </div>
-                <div class="unit sub-field">
-                  <input
-                    type="text"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    id="sizeLimit"
-                    value="20"
-                    aria-label="Largest map file, in MB"
-                  /><span>MB</span>
-                </div>
-              </div>
+              <!--SHARED size-limit.html-->
               <button type="button" class="linkbtn reset" data-reset="moreMapFile">Reset to defaults</button>
             </details>
           </section>
         </fieldset>
 
-        <!-- Locations per country: what each country gets, and while searching, how many were found
-             (app.js: locations per country). Outside the fieldset, so it stays readable while searching. -->
-        <details class="shares" id="sharesBox" hidden>
-          <summary id="sharesSummary">Locations per country</summary>
-          <!-- Editing your own distribution (app.js: your own distributions) -->
-          <div class="own-editor" id="ownEditor" hidden>
-            <div class="labelrow">
-              <div class="scope own-mode" role="radiogroup" aria-label="Enter the shares as">
-                <span>Enter as</span>
-                <label class="radio"
-                  ><input type="radio" name="ownMode" value="percent" checked />percentages</label
-                >
-                <label class="radio"><input type="radio" name="ownMode" value="number" />numbers</label>
-              </div>
-              <button type="button" class="help" data-help="own" aria-label="Help: your own distribution">
-                ?
-              </button>
-            </div>
-            <p class="own-sum" id="ownSum" role="status"></p>
-            <div class="own-links">
-              <button type="button" class="linkbtn" id="ownMake100" hidden>Make it 100%</button>
-              <button type="button" class="linkbtn rm" id="ownClearAll">Set all to 0</button>
-            </div>
-            <div class="own-save">
-              <label for="ownName">Save as preset</label>
-              <div class="own-save-row">
-                <input type="text" id="ownName" maxlength="40" placeholder="A name, e.g. Small islands" />
-                <button type="button" class="btn" id="ownSave">Save</button>
-              </div>
-              <p class="hint" id="ownSaved" hidden></p>
-            </div>
-          </div>
-          <p class="hint" id="sharesNote" hidden></p>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Country</th>
-                <th scope="col" id="sharesWantedHead">Wanted</th>
-                <th scope="col" id="sharesFoundHead">Found</th>
-              </tr>
-            </thead>
-            <tbody id="shares"></tbody>
-          </table>
-        </details>
-
-        <!-- Search and stop buttons, messages (app.js: run) -->
-        <!-- After a search was stopped: continue it while the settings are unchanged, or start a new one
-             (app.js: continuing a stopped search) -->
-        <button class="go" id="continueGo" type="button" hidden>Continue the search</button>
-        <button class="go" id="go" type="submit">Find locations</button>
-        <div class="msg note" id="continueNote" hidden role="status"></div>
-        <button class="btn stop" id="stop" type="button" hidden>Stop and keep what was found</button>
-        <div class="msg error" id="error" hidden role="alert"></div>
-        <div class="msg note" id="note" hidden role="status"></div>
-        <!-- At the end of a search where countries fell short: fill the gap or keep what was found
-             (app.js: shortfalls) -->
-        <div class="msg note" id="shortfall" hidden role="status">
-          <b id="shortfallTitle"></b>
-          <p id="shortfallText"></p>
-          <div class="acts">
-            <button type="button" class="btn primary" id="fillGap">
-              Fill the gap from the other countries
-            </button>
-            <button type="button" class="btn" id="keepFound">Keep what was found</button>
-          </div>
-        </div>
-        <!-- When the map file is over the size limit: make it smaller, keeping each country's share, or
-             download it anyway (app.js: map file size) -->
-        <div class="msg note" id="prune" hidden role="status">
-          <b id="pruneTitle"></b>
-          <p id="pruneText"></p>
-          <div class="prune-ways" role="radiogroup" aria-label="How to make it smaller">
-            <label class="radio"
-              ><input type="radio" name="pruneWay" id="pruneSpread" value="spread" checked /><span
-                ><b>Even spread:</b> drop the locations closest to others</span
-              ></label
-            >
-            <label class="radio"
-              ><input type="radio" name="pruneWay" id="pruneRandom" value="random" /><span
-                ><b>Random:</b> drop locations at random</span
-              ></label
-            >
-          </div>
-          <div class="acts">
-            <button type="button" class="btn primary" id="pruneGo">Make it smaller</button>
-            <button type="button" class="btn" id="pruneSkip">Download anyway</button>
-          </div>
-        </div>
-        <!-- After making it smaller: what was kept, and Undo until the next search -->
-        <div class="msg note" id="pruned" hidden role="status">
-          <span id="prunedText"></span>
-          <button type="button" class="linkbtn" id="pruneUndo">Undo</button>
-        </div>
+        <!--SHARED results.html-->
       </form>
 
-      <div class="stage">
-        <!-- Map (app.js: map) -->
-        <div class="mapwrap"><div id="map"></div></div>
-        <!-- Bottom bar: status line, progress, counters, export buttons (app.js: run, export) -->
-        <div class="bar">
-          <div class="status" aria-live="polite">
-            <div class="now" id="now">Ready.</div>
-            <div class="track" id="track"><i id="fill"></i></div>
-            <div class="tally" id="tally"></div>
-          </div>
-          <div class="out">
-            <div class="count"><span id="count">0</span><small>locations</small></div>
-            <button class="btn primary" id="download" type="button" disabled>Download map file</button>
-            <button class="btn" id="copy" type="button" disabled>Copy</button>
-            <button class="btn" id="clear" type="button" disabled>Clear</button>
-          </div>
-        </div>
-      </div>
+      <!--SHARED stage.html-->
     </div>
 
     <!-- Scripts. The build fills these in and fingerprints them for the security policy: the libraries

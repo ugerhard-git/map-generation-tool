@@ -1,0 +1,5 @@
+/*
+ * Unofficial: the page's styles. The build puts them into the page together with Leaflet's own styles.
+ * The styles both tools share are in src/shared/style.css; this tool has none of its own so far.
+ */
+/*SHARED style.css*/

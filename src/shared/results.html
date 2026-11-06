@@ -1,0 +1,89 @@
+<!-- Shared markup: the table of locations per country, the search buttons and the messages under the form. Used by both tools: the build puts it where a page.html has a
+     line "SHARED results.html" in a comment (see src/assemble.js). -->
+<!-- Locations per country: what each country gets, and while searching, how many were found
+     (app.js: locations per country). Outside the fieldset, so it stays readable while searching. -->
+<details class="shares" id="sharesBox" hidden>
+  <summary id="sharesSummary">Locations per country</summary>
+  <!-- Editing your own distribution (app.js: your own distributions) -->
+  <div class="own-editor" id="ownEditor" hidden>
+    <div class="labelrow">
+      <div class="scope own-mode" role="radiogroup" aria-label="Enter the shares as">
+        <span>Enter as</span>
+        <label class="radio"><input type="radio" name="ownMode" value="percent" checked />percentages</label>
+        <label class="radio"><input type="radio" name="ownMode" value="number" />numbers</label>
+      </div>
+      <button type="button" class="help" data-help="own" aria-label="Help: your own distribution">?</button>
+    </div>
+    <p class="own-sum" id="ownSum" role="status"></p>
+    <div class="own-links">
+      <button type="button" class="linkbtn" id="ownMake100" hidden>Make it 100%</button>
+      <button type="button" class="linkbtn rm" id="ownClearAll">Set all to 0</button>
+    </div>
+    <div class="own-save">
+      <label for="ownName">Save as preset</label>
+      <div class="own-save-row">
+        <input type="text" id="ownName" maxlength="40" placeholder="A name, e.g. Small islands" />
+        <button type="button" class="btn" id="ownSave">Save</button>
+      </div>
+      <p class="hint" id="ownSaved" hidden></p>
+    </div>
+  </div>
+  <p class="hint" id="sharesNote" hidden></p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Country</th>
+        <th scope="col" id="sharesWantedHead">Wanted</th>
+        <th scope="col" id="sharesFoundHead">Found</th>
+      </tr>
+    </thead>
+    <tbody id="shares"></tbody>
+  </table>
+</details>
+
+<!-- Search and stop buttons, messages (app.js: run) -->
+<!-- After a search was stopped: continue it while the settings are unchanged, or start a new one
+     (app.js: continuing a stopped search) -->
+<button class="go" id="continueGo" type="button" hidden>Continue the search</button>
+<button class="go" id="go" type="submit">Find locations</button>
+<div class="msg note" id="continueNote" hidden role="status"></div>
+<button class="btn stop" id="stop" type="button" hidden>Stop and keep what was found</button>
+<div class="msg error" id="error" hidden role="alert"></div>
+<div class="msg note" id="note" hidden role="status"></div>
+<!-- At the end of a search where countries fell short: fill the gap or keep what was found
+     (app.js: shortfalls) -->
+<div class="msg note" id="shortfall" hidden role="status">
+  <b id="shortfallTitle"></b>
+  <p id="shortfallText"></p>
+  <div class="acts">
+    <button type="button" class="btn primary" id="fillGap">Fill the gap from the other countries</button>
+    <button type="button" class="btn" id="keepFound">Keep what was found</button>
+  </div>
+</div>
+<!-- When the map file is over the size limit: make it smaller, keeping each country's share, or
+     download it anyway (app.js: map file size) -->
+<div class="msg note" id="prune" hidden role="status">
+  <b id="pruneTitle"></b>
+  <p id="pruneText"></p>
+  <div class="prune-ways" role="radiogroup" aria-label="How to make it smaller">
+    <label class="radio"
+      ><input type="radio" name="pruneWay" id="pruneSpread" value="spread" checked /><span
+        ><b>Even spread:</b> drop the locations closest to others</span
+      ></label
+    >
+    <label class="radio"
+      ><input type="radio" name="pruneWay" id="pruneRandom" value="random" /><span
+        ><b>Random:</b> drop locations at random</span
+      ></label
+    >
+  </div>
+  <div class="acts">
+    <button type="button" class="btn primary" id="pruneGo">Make it smaller</button>
+    <button type="button" class="btn" id="pruneSkip">Download anyway</button>
+  </div>
+</div>
+<!-- After making it smaller: what was kept, and Undo until the next search -->
+<div class="msg note" id="pruned" hidden role="status">
+  <span id="prunedText"></span>
+  <button type="button" class="linkbtn" id="pruneUndo">Undo</button>
+</div>

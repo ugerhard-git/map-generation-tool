@@ -1,0 +1,21 @@
+<!-- Shared markup: the map file size limit, in "Map file". Used by both tools: the build puts it where a page.html has a
+     line "SHARED size-limit.html" in a comment (see src/assemble.js). -->
+<!-- The largest map file: over it, the page offers to make it smaller (app.js: map file size) -->
+<div class="field">
+  <div class="checkrow">
+    <label class="check"
+      ><input type="checkbox" id="sizeLimitOn" checked /><span>Keep the map file under</span></label
+    >
+    <button type="button" class="help" data-help="sizeLimit" aria-label="Help: map file size">?</button>
+  </div>
+  <div class="unit sub-field">
+    <input
+      type="text"
+      inputmode="numeric"
+      autocomplete="off"
+      id="sizeLimit"
+      value="20"
+      aria-label="Largest map file, in MB"
+    /><span>MB</span>
+  </div>
+</div>

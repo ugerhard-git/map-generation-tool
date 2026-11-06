@@ -1,0 +1,37 @@
+<!-- Shared markup: the "Search" section of step 3. Used by both tools: the build puts it where a page.html has a
+     line "SHARED more-search.html" in a comment (see src/assemble.js). -->
+<!-- More options: the search (app.js: more options) -->
+<details class="more" id="moreSearch">
+  <summary>
+    <span class="more-title">Search</span>
+    <span class="more-sum" id="sumSearch"></span>
+  </summary>
+  <div class="field">
+    <div class="labelrow">
+      <label for="radius">Look around each random spot up to</label>
+      <button type="button" class="help" data-help="radius" aria-label="Help: radius">?</button>
+    </div>
+    <div class="unit">
+      <input type="text" inputmode="numeric" autocomplete="off" id="radius" value="1,000" /><span>m</span>
+    </div>
+  </div>
+  <div class="field">
+    <div class="checkrow">
+      <label class="check"
+        ><input type="checkbox" id="giveUpOn" checked /><span>Give up on a country after</span></label
+      >
+      <button type="button" class="help" data-help="giveUpAfter" aria-label="Help: giving up">?</button>
+    </div>
+    <div class="unit sub-field">
+      <input
+        type="text"
+        inputmode="numeric"
+        autocomplete="off"
+        id="giveUpAfter"
+        value="2,000"
+        aria-label="Give up on a country after this many spots"
+      /><span>spots</span>
+    </div>
+  </div>
+  <button type="button" class="linkbtn reset" data-reset="moreSearch">Reset to defaults</button>
+</details>

@@ -85,7 +85,12 @@ Agreed with the owner on 6 November 2026. A second page in this repository, **Un
 - **Saved settings** start with `unofficial.…`, so the two tools never share or overwrite each other's settings and history. The `mapgen.…` names stay as they are.
 - **Code:** sections both tools use live in `src/shared/` and are put into each page by the build (`src/assemble.js`); each tool keeps its own `app.js`, markup and styles for what differs. A section moves to `src/shared/` when the second tool needs it, not before.
 
-**How it finds unofficial coverage.** Google's script can be asked for official coverage only, but not for unofficial coverage only. Unofficial asks for the nearest outdoor panorama of any kind and keeps it only when it is not Google's own (its copyright does not name Google; `isOfficial`). Known limit: where official coverage is nearby, Google answers with that, and unofficial coverage next to it stays hidden. Unofficial therefore finds most where official coverage is thin, and needs more random spots per location; the radius is smaller by default.
+**How it finds unofficial coverage.** Google's script can be asked for official coverage only, but not for unofficial coverage only. Unofficial asks for the nearest panorama of any kind and keeps it only when it is not Google's own (its copyright does not name Google; `isOfficial`). Known limit: where official coverage is nearer, Google answers with that, and unofficial coverage next to it stays hidden. Unofficial therefore finds most where official coverage is thin, and needs more random spots per location.
+
+Changed while building step 2 (6 November 2026), as Google's documentation showed:
+
+- **No "indoors allowed" filter.** Google's "outdoor" source leaves out every photosphere, as Google cannot tell whether one is indoors or outdoors, so Unofficial asks every source ("default"), and indoor photos are found too. There is nothing in Google's answer to tell them apart.
+- **The radius stays at 1,000 m by default.** A smaller radius does not unhide anything: Google always answers with the nearest panorama, so an unofficial one is found only where it is nearer than any official one, whatever the radius.
 
 **Where.** Every country and territory, including Antarctica, not only those with official coverage. The continents come from the regions built into country-coder (Africa, Americas, Asia, Europe, Oceania, Antarctica), not from Vali.
 
@@ -101,13 +106,13 @@ Agreed with the owner on 6 November 2026. A second page in this repository, **Un
 - Removed: no road name, arrows (end of coverage, intersection), cameras and bad camera, older photos.
 - Kept: where, how many, radius, give up after, spacing, photo period (the date the photo was taken), camera view without "relative to the car" (a fixed or random direction, tilt and zoom), tags, map file size limit, history, settings file, resuming, continuing a stopped search.
 - Land only becomes a setting, on by default, as some photos are taken from boats or over water.
-- New: **full 360° only** (partial panoramas, from the image size), **minimum quality** (image height), **indoors allowed** (off by default), **uploaders** to leave out or to keep only, and the uploader's name as a tag.
+- New: **whole 360° only** (partial panoramas, from the image size: a whole one is twice as wide as high), **image size** (the image height: any, or at least 2,000 to 8,000 pixels), **uploaders** to leave out or to keep only (names from the copyright, separated by commas), and the uploader's name as a tag. Both image checks rely on the size Google gives for the whole image (`tiles.worldSize`), which is documented; they are still to be checked on real photospheres with the owner, as the cameras were.
 - Not now, at the owner's choice: telling photospheres, drone shots and road coverage apart.
 
 **Steps.**
 
-1. **Shared code** (this pull request): the sections that are already the same for both tools (random spots, time left, shortfalls, export, map file size) move to `src/shared/`; the build, the linter and the tests put them back into the page. The Map Generation Tool does not change.
-2. **Unofficial, first version:** the second page, its address, the links between the tools, the lookup and the filters above, with land area and equal shares. The sections it needs move to `src/shared/` as it needs them.
+1. **Shared code** (done, 6 November 2026): the sections that were already the same for both tools (random spots, time left, shortfalls, export, map file size) moved to `src/shared/`; the build, the linter and the tests put them back into the page. The Map Generation Tool did not change.
+2. **Unofficial, first version** (done, 6 November 2026): the second page at `unofficial/`, the links between the tools, the lookup and the filters above, with land area and equal shares. Nearly all code, the markup and the styles moved to `src/shared/`; each tool's `app.js` keeps its own parts (see "Two tools, one code" in [How the code works](how-the-code-works.md)). The camera drawings show a 360° camera instead of a car. The Map Generation Tool did not change, apart from the link to Unofficial under its title.
 3. **Population and population density** distributions, with the population import.
 
 ## Known limits

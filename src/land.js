@@ -125,13 +125,13 @@ function encode(cells) {
   return Buffer.from(bytes).toString("base64");
 }
 
-/** The land map for the page: { per, runs }. */
+/** The land map for the page: { per, runs }, and the grid itself for the build (cells, not in the page). */
 function landMap(file) {
   const cells = landGrid(landPolygons(file));
   const share = cells.reduce((n, c) => n + c, 0) / cells.length;
   // About 29% of the earth is land; with the coast cells, about 30%.
   if (share < 0.25 || share > 0.36) throw new Error(`the land map is ${(share * 100).toFixed(1)}% land`);
-  return { per: PER, runs: encode(cells) };
+  return { per: PER, runs: encode(cells), cells };
 }
 
 module.exports = { landMap };

@@ -1,0 +1,13 @@
+<!-- Shared markup: step 3, how many, and the Google key. Used by both tools: the build puts it where a page.html has a
+     line "SHARED how-many.html" in a comment (see src/assemble.js). -->
+<label for="target">Number of locations</label>
+<input type="text" inputmode="numeric" autocomplete="off" id="target" value="300" />
+<p class="hint">Up to 130,000.</p>
+<div class="field" id="keyBox" hidden>
+  <div class="labelrow">
+    <label for="apiKey">Google API key</label>
+    <button type="button" class="help" data-help="apiKey" aria-label="Help: Google API key">?</button>
+  </div>
+  <input type="password" id="apiKey" placeholder="AIza…" spellcheck="false" />
+  <p class="hint">Kept only until you close this tab.</p>
+</div>

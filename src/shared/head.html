@@ -1,0 +1,33 @@
+<!-- Shared markup: the styles and security policy of the page head. Used by both tools: the build puts it where a page.html has a
+     line "SHARED head.html" in a comment (see src/assemble.js). -->
+<meta http-equiv="Content-Security-Policy" content="/*CSP*/" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<!-- Icons from src/icon.svg, built into the page as data: addresses (the build fills these in) -->
+<link rel="icon" type="image/png" sizes="32x32" href="/*ICON_PNG*/" />
+<link rel="icon" type="image/svg+xml" href="/*ICON_SVG*/" />
+<link rel="apple-touch-icon" href="/*ICON_TOUCH*/" />
+<!-- ------------------------------------------------------------------
+  SITE OWNER SETTINGS. Edit only the values between the quotes.
+
+  googleApiKey         Your Google API key. Leave it empty in the repository: the build
+                       fills it in from the GOOGLE_API_KEY environment variable.
+                       It needs the "Maps JavaScript API" enabled. In the Google
+                       Cloud console, restrict it to this site's address and to that
+                       API, and set a daily quota. If left empty, visitors are asked
+                       for their own key.
+
+  Do not edit the script blocks further down: the page only runs scripts
+  whose fingerprint matches the security policy above.
+------------------------------------------------------------------- -->
+<script type="application/json" id="app-config">
+  {
+    "googleApiKey": ""
+  }
+</script>
+<style>
+  /*FONT_CSS*/
+  /*LEAFLET_CSS*/
+</style>
+<style>
+  /*APP_CSS*/
+</style>

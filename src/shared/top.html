@@ -1,0 +1,18 @@
+<!-- Shared markup: the buttons under the title and the box for an unfinished search. Used by both tools: the build puts it where a page.html has a
+     line "SHARED top.html" in a comment (see src/assemble.js). -->
+<div class="toplinks">
+  <button type="button" class="howbtn" id="howBtn">How it works</button>
+  <button type="button" class="howbtn" id="historyBtn">History</button>
+  <button type="button" class="howbtn" id="settingsBtn">Settings file</button>
+</div>
+
+<!-- An unfinished search from an earlier visit, kept in this browser (app.js: unfinished search) -->
+<div class="msg note" id="resume" hidden role="status">
+  <b id="resumeTitle"></b>
+  <p id="resumeText"></p>
+  <div class="acts">
+    <button type="button" class="btn primary" id="resumeGo">Continue</button>
+    <button type="button" class="btn" id="resumeShow">Download what was found</button>
+    <button type="button" class="btn" id="resumeDrop">Discard</button>
+  </div>
+</div>
