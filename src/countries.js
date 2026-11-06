@@ -9,6 +9,8 @@
 //              country-coder gives the place. A country made of several parts (France with its overseas
 //              parts, say) has none of its own: CONTINENT_OF gives it. The build stops if a place has none,
 //              so a new version of country-coder cannot leave one out unnoticed.
+//   population the number of people, from Natural Earth (src/data/population.json, made by
+//              tools/population.js); 0 for a place without any (Bouvet Island, say).
 //   parent     for a territory, the country whose tag it also gets (as TERRITORY_OF in the Map Generation
 //              Tool): Réunion is France's. "" for a country, and for Hong Kong, which keeps its own tag
 //              only, as in Lookout.
@@ -53,9 +55,10 @@ function geometryArea(g) {
  * @param {Uint8Array} cells the land map, a byte per cell, 1 for land, row by row from the north
  * @param {number} per cells per degree
  * @param {object} cc the country-coder library
- * @returns {Record<string, {area: number, continent: string, parent: string}>}
+ * @param {Record<string, number>} population people per two-letter code (src/data/population.json)
+ * @returns {Record<string, {area: number, population: number, continent: string, parent: string}>}
  */
-function countryFacts(cells, per, cc) {
+function countryFacts(cells, per, cc, population = {}) {
   const W = 360 * per,
     H = 180 * per;
   const area = {};
@@ -88,12 +91,19 @@ function countryFacts(cells, per, cc) {
         : "";
     facts[code] = {
       area: Math.max(1, Math.round(area[code] || geometryArea(whole.geometry))),
+      population: population[code] || 0,
       continent,
       parent,
     };
   }
   // Antarctica is a region in country-coder, not a country: it is found by the samples only.
-  if (area.AQ) facts.AQ = { area: Math.round(area.AQ), continent: "antarctica", parent: "" };
+  if (area.AQ)
+    facts.AQ = {
+      area: Math.round(area.AQ),
+      population: population.AQ || 0,
+      continent: "antarctica",
+      parent: "",
+    };
   return facts;
 }
 

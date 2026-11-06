@@ -113,7 +113,7 @@ Changed while building step 2 (6 November 2026), as Google's documentation showe
 
 1. **Shared code** (done, 6 November 2026): the sections that were already the same for both tools (random spots, time left, shortfalls, export, map file size) moved to `src/shared/`; the build, the linter and the tests put them back into the page. The Map Generation Tool did not change.
 2. **Unofficial, first version** (done, 6 November 2026): the second page at `unofficial/`, the links between the tools, the lookup and the filters above, with land area and equal shares. Nearly all code, the markup and the styles moved to `src/shared/`; each tool's `app.js` keeps its own parts (see "Two tools, one code" in [How the code works](how-the-code-works.md)). The camera drawings show a 360° camera instead of a car. The Map Generation Tool did not change, apart from the link to Unofficial under its title.
-3. **Population and population density** distributions, with the population import.
+3. **Population and population density** (done, 6 November 2026): two more built-in distributions. The populations come from Natural Earth's 1:10m admin 0 map units (public domain; mostly World Bank estimates for 2019), pinned to a commit and imported by `tools/population.js` into `src/data/population.json`, by hand when Natural Earth updates (rarely). Map units rather than countries, as they list France's overseas departments on their own, as country-coder does. Density is people per km² of land (the land area of step 2); its help says that small crowded places take most of a world map. Places where nobody lives (Bouvet Island, Heard Island) get nothing by population, and the table says why.
 
 ## Known limits
 
