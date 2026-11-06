@@ -63,6 +63,8 @@ The tests drive the page in a headless browser. Google's script and the map tile
 | `src/style.css`              | The page's styles                                                |
 | `src/icon.svg`               | The page icon; `npm run icons` makes the PNG versions next to it |
 | `src/app.js`                 | The app code                                                     |
+| `src/shared/`                | App code both tools use; the build puts it into `app.js`         |
+| `src/assemble.js`            | Puts `app.js` and the shared code together                       |
 | `src/build.js`               | Builds `dist/index.html`                                         |
 | `src/land.js`                | Makes the land map for the page, during the build                |
 | `src/data/vali.json`         | Country distributions and continents from Vali (generated)       |

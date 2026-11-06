@@ -3,7 +3,10 @@
 import js from "@eslint/js";
 import globals from "globals";
 import * as espree from "espree";
-import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import path from "node:path";
+
+const { assemble, SHARED_DIR } = createRequire(import.meta.url)("./src/assemble.js");
 
 // Names the page itself defines: the build adds Leaflet (L), the Vali data (VALI), the country tags (COUNTRY_TAGS), the land map (LAND) and the framing check (FRAMED) before
 // app.js, and Google's script adds `google` when it loads.
@@ -16,10 +19,47 @@ const pageGlobals = {
   LAND: "readonly",
 };
 
+// app.js is linted with the shared code put in (src/assemble.js), as the page gets it: names one part
+// defines and the other uses are then known, and unused ones are still found. A problem in shared code
+// is reported on the /*SHARED …*/ line of app.js, naming the shared file and its line. The shared files
+// are not linted on their own, as they are only parts of app.js.
+const assembled = {};
+const withSharedCode = {
+  preprocess(text, filename) {
+    assembled[filename] = assemble(filename);
+    return [{ text: assembled[filename].code, filename: "app.js" }];
+  },
+  postprocess([messages], filename) {
+    const { origins } = assembled[filename];
+    const ownLines = [];
+    // The line in app.js that inserts each shared file, to report problems in shared code on.
+    const sharedMarks = {};
+    let ownLine = 0;
+    for (const o of origins) {
+      if (o.file === filename) ownLine = o.line;
+      else sharedMarks[o.file] ??= ownLine + 1;
+      ownLines.push(o.file === filename ? o.line : sharedMarks[o.file]);
+    }
+    return messages.map(m => {
+      const o = origins[m.line - 1];
+      if (!o || o.file === filename) return { ...m, line: o ? o.line : m.line, endLine: undefined };
+      const where = path.relative(path.dirname(SHARED_DIR), o.file) + ":" + o.line;
+      return {
+        ...m,
+        line: ownLines[m.line - 1],
+        column: 1,
+        endLine: undefined,
+        message: `${where}: ${m.message}`,
+      };
+    });
+  },
+  supportsAutofix: false,
+};
+
 // The tests run some code inside the page (page.evaluate), where it uses app.js's top-level names.
-// Read those names from app.js, so this list never goes out of date.
+// Read those names from app.js and the shared code, so this list never goes out of date.
 const appNames = {};
-for (const node of espree.parse(readFileSync("src/app.js", "utf8"), { ecmaVersion: "latest" }).body) {
+for (const node of espree.parse(assemble("src/app.js").code, { ecmaVersion: "latest" }).body) {
   if (node.type === "VariableDeclaration")
     for (const d of node.declarations) if (d.id.type === "Identifier") appNames[d.id.name] = "writable";
   if ((node.type === "FunctionDeclaration" || node.type === "ClassDeclaration") && node.id)
@@ -27,7 +67,7 @@ for (const node of espree.parse(readFileSync("src/app.js", "utf8"), { ecmaVersio
 }
 
 export default [
-  { ignores: ["dist/", "node_modules/"] },
+  { ignores: ["dist/", "node_modules/", "src/shared/"] },
   js.configs.recommended,
   {
     rules: {
@@ -37,10 +77,15 @@ export default [
   },
   {
     files: ["src/app.js"],
+    processor: withSharedCode,
+  },
+  {
+    // The app code with the shared code put in, which ESLint names src/app.js/0_app.js.
+    files: ["src/app.js/*.js"],
     languageOptions: { sourceType: "script", globals: { ...globals.browser, ...pageGlobals } },
   },
   {
-    files: ["src/build.js", "src/land.js", "tests/**/*.js", "tools/**/*.js"],
+    files: ["src/build.js", "src/land.js", "src/assemble.js", "tests/**/*.js", "tools/**/*.js"],
     languageOptions: { sourceType: "commonjs", globals: { ...globals.node } },
   },
   {
