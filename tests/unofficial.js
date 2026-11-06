@@ -70,11 +70,19 @@ const path = require("path");
     options: [...$("distribution").options].map(o => o.value),
     continents: [...$("continent").options].map(o => o.value),
     ru: COUNTRY_FACTS.RU.area,
+    people: {
+      CN: COUNTRY_FACTS.CN.population,
+      MT: COUNTRY_FACTS.MT.population,
+      BV: COUNTRY_FACTS.BV.population,
+    },
     mc: COUNTRY_FACTS.MC.area,
     gf: COUNTRY_FACTS.GF,
   }));
   ok(facts.n > 240 && facts.hasAQ && facts.hasBY, "every country and territory, Antarctica and Belarus too");
-  ok(facts.options.join() === "land,equal", "the built-in distributions: land area, equal shares");
+  ok(
+    facts.options.join() === "land,population,density,equal",
+    "the built-in distributions: land area, population, population density, equal shares",
+  );
   ok(
     facts.continents.join() === "africa,americas,antarctica,asia,europe,oceania",
     "the continents: " + facts.continents,
@@ -84,6 +92,10 @@ const path = require("path");
     `land areas: Russia ${facts.ru} km², Monaco ${facts.mc} km²`,
   );
   ok(facts.gf.parent === "FR" && facts.gf.continent === "americas", "French Guiana belongs to France");
+  ok(
+    facts.people.CN > 1.3e9 && facts.people.MT > 4e5 && facts.people.MT < 7e5 && facts.people.BV === 0,
+    "populations: " + JSON.stringify(facts.people),
+  );
   // the same security policy as the Map Generation Tool (built the same way, see tests/security.js)
   const html = require("fs").readFileSync(
     path.join(__dirname, "../dist/unofficial/index.nokey.html"),
@@ -111,6 +123,26 @@ const path = require("path");
   plan = await p.evaluate(() => planTargets());
   ok(plan.RU === 500 && plan.MT === 500, "equal shares: " + JSON.stringify(plan));
   ok(/equal shares/.test(await p.getAttribute("#mapName", "placeholder")), "the map name says equal shares");
+  // By population, Russia (about 145 million) and Malta (about half a million); by density, Malta
+  // (over 1,000 people per km²) far more than Russia (under 10)
+  await p.selectOption("#distribution", "population");
+  plan = await p.evaluate(() => planTargets());
+  ok(plan.RU > 990 && (plan.MT || 0) <= 5, "population: " + JSON.stringify(plan));
+  await p.selectOption("#distribution", "density");
+  plan = await p.evaluate(() => planTargets());
+  ok(plan.MT > 950 && plan.RU < 50, "population density: " + JSON.stringify(plan));
+  ok(/population density/.test(await p.getAttribute("#mapName", "placeholder")), "the map name says so");
+  // A place where nobody lives gets nothing by population, and the table says why
+  await p.evaluate(() => {
+    chosenCountries = ["MT", "BV"];
+    whereChanged();
+  });
+  plan = await p.evaluate(() => planTargets());
+  ok(plan.MT === 1000 && !plan.BV, "Bouvet Island, where nobody lives, gets none");
+  ok(
+    /Not in the population figures, so they get none: Bouvet Island/.test(await p.textContent("#sharesNote")),
+    "the table says why: " + (await p.textContent("#sharesNote")),
+  );
   await p.selectOption("#distribution", "land");
   // The whole world leaves out Antarctica; the continent Antarctica is just it
   await p.check("input[name=scope][value=world]");

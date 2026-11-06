@@ -174,12 +174,20 @@ buildPage(__dirname, "", {
   COUNTRY_TAGS: asScript(tagsByCode),
 });
 
-// Unofficial, at unofficial/: every country and territory, with its land area, continent and parent
-// country, worked out from country-coder and the land map (src/countries.js).
+// Unofficial, at unofficial/: every country and territory, with its land area, population, continent and
+// parent country, worked out from country-coder, the land map and Natural Earth's populations (made by
+// tools/population.js; checked here, so a broken file stops the build instead of reaching the page).
+const population = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "data/population.json"), "utf8"),
+).population;
+for (const [code, n] of Object.entries(population))
+  if (!/^[A-Z]{2}$/.test(code) || !Number.isInteger(n) || n < 0 || n > 2e9)
+    throw new Error(`population.json: ${code} must be a two-letter code with a whole number of people`);
 const facts = require("./countries.js").countryFacts(
   land.cells,
   land.per,
   require("@rapideditor/country-coder"),
+  population,
 );
 buildPage(path.join(__dirname, "unofficial"), "unofficial", {
   COUNTRY_FACTS: asScript(facts),

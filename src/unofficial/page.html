@@ -91,11 +91,25 @@
           where there is little coverage, a country gives up and "Fill the gap" shares its locations among the
           others.
         </li>
+        <li>
+          <b>Population:</b> a country with more people gets more locations, so China and India get the most.
+          Places where nobody lives get none.
+        </li>
+        <li>
+          <b>Population density:</b> by people per km² of land. Small, crowded places get the most: in the
+          whole world or a continent, Singapore, Macao, Monaco and Hong Kong would take a large part of the
+          locations. It suits a few countries, or a region of similar ones, better.
+        </li>
         <li><b>Equal shares:</b> every country gets the same number, a small island as many as Russia.</li>
       </ul>
       <p>
         The whole world leaves out Antarctica, a tenth of the world's land with hardly any Street View; choose
         it as a country or as the continent to search there. A single country gets all the locations.
+      </p>
+      <p>
+        The land area comes from the land map built into the page; the population from
+        <a href="https://www.naturalearthdata.com" target="_blank" rel="noopener">Natural Earth</a>, mostly
+        estimates for 2019.
       </p>
     </template>
     <template id="help-criteria">
@@ -573,8 +587,9 @@
       /*COUNTRY_CODER_JS*/
     </script>
     <script>
-      /* Every country and territory: its land area in km², continent and (for a territory) its country,
-         worked out by the build from country-coder and the land map (src/countries.js). */
+      /* Every country and territory: its land area in km², population, continent and (for a territory) its
+         country, worked out by the build from country-coder, the land map and Natural Earth's populations
+         (src/countries.js). */
       const COUNTRY_FACTS = /*COUNTRY_FACTS*/;
       /* The tag each country gets with the country tag on, from the owner's list in
          src/data/country-tags.json (code: tag). */

@@ -10,8 +10,10 @@
  * part of this file. This file holds only what is this tool's own:
  *
  *   - its identity: name, saved settings ("unofficial.…"), every country and territory (COUNTRY_FACTS,
- *     made by the build from country-coder and the land map, src/countries.js);
- *   - its distributions: land area (the default) and equal shares, besides one's own;
+ *     made by the build from country-coder, the land map and Natural Earth's populations,
+ *     src/countries.js);
+ *   - its distributions: land area (the default), population, population density and equal shares,
+ *     besides one's own;
  *   - its filters: whole 360° photos only, the smallest image, uploaders to leave out or to keep only;
  *   - its tags: the uploader;
  *   - what a panorama must have: not Google's own (see "what a location must have").
@@ -77,7 +79,7 @@ const TOOL_NAME = "Unofficial";
    in the IndexedDB database DB_NAME. Never changed, so visitors keep what they saved. */
 const STORE_PREFIX = "unofficial.",
   DB_NAME = "unofficial";
-/* Every country and territory with borders in the page: { code: { area, continent, parent } }, made by
+/* Every country and territory with borders in the page: { code: { area, population, continent, parent } }, made by
    the build (src/countries.js) as COUNTRY_FACTS. Unofficial coverage can be anywhere, so all are offered,
    Antarctica too. */
 const COUNTRIES = Object.keys(COUNTRY_FACTS).sort();
@@ -123,12 +125,19 @@ const TERRITORY_OF = Object.fromEntries(
 
 /* ---------- step 1: distributions ----------
    This tool's part of step 1 (the rest is in src/shared/where.js): the continents, and the built-in
-   distributions that share the locations between the countries of the area: by land area (the default)
-   or in equal shares. */
+   distributions that share the locations between the countries of the area: by land area (the default),
+   population, population density (people per km² of land) or in equal shares. The land area and the
+   population come with COUNTRY_FACTS (src/countries.js; the population from Natural Earth, made by
+   tools/population.js). */
 const DEFAULT_DISTRIBUTION = "land";
 const DEFAULT_CONTINENT = "europe";
 /* The built-in distributions and their names. */
-const BUILT_IN = { land: "Land area", equal: "Equal shares" };
+const BUILT_IN = {
+  land: "Land area",
+  population: "Population",
+  density: "Population density",
+  equal: "Equal shares",
+};
 /* Shown in the country field's list when no country matches what was typed. */
 const NO_COUNTRY_MATCHES = "No country or territory matches";
 /* The continents: the UN regions that country-coder gives each place (src/countries.js). */
@@ -164,12 +173,21 @@ function renderDistributionChoices() {
 }
 /* The distribution chosen when nothing is changed: by land area. */
 const defaultDistribution = () => DEFAULT_DISTRIBUTION;
+/* A country's share in a built-in distribution: its land area in km², its population, its people per
+   km² of land, or 1 for equal shares. A place without people (Bouvet Island) gets nothing by population. */
+function builtInShare(code, distribution) {
+  const f = COUNTRY_FACTS[code];
+  if (distribution === "population") return f.population;
+  if (distribution === "density") return f.population / f.area;
+  if (distribution === "equal") return 1;
+  return f.area;
+}
 /* The countries of the chosen area with their shares in the chosen built-in distribution (see
-   areaWeights): their land area, or 1 each for equal shares. A single country gets everything. */
+   areaWeights). A single country gets everything. */
 function builtInWeights() {
   if (scope() === "countries" && chosenCountries.length === 1) return { [chosenCountries[0]]: 1 };
-  const equal = $("distribution").value === "equal";
-  return Object.fromEntries(ownAreaCodes().map(c => [c, equal ? 1 : COUNTRY_FACTS[c].area]));
+  const d = $("distribution").value;
+  return Object.fromEntries(ownAreaCodes().map(c => [c, builtInShare(c, d)]));
 }
 /* The countries of the area: the chosen countries, the continent's countries, or every country but
    Antarctica for the whole world (it is a tenth of the earth's land, nearly all without any Street View;
@@ -462,8 +480,12 @@ function applyToolSettings(s) {
 const cleanBuiltIn = d => (typeof d === "string" && Object.hasOwn(BUILT_IN, d) ? d : DEFAULT_DISTRIBUTION);
 /* The built-in distribution of settings in words, for the history: "Land area". */
 const builtInWords = s => BUILT_IN[s.distribution] || s.distribution;
-/* The chosen built-in distribution's name, for the table of locations per country. */
-const builtInName = () => BUILT_IN[$("distribution").value] || "this distribution";
+/* What the chosen built-in distribution leaves countries out of, for the table of locations per country:
+   "Not in the population figures, so they get none: Bouvet Island". */
+const builtInName = () =>
+  ["population", "density"].includes($("distribution").value)
+    ? "the population figures"
+    : "this distribution";
 /* What settings ask of each location, as wanted() gives it for the form. */
 const wantedOf = s => {
   const uploaders = uploaderList(s.uploaderNames);

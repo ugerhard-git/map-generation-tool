@@ -33,7 +33,7 @@ It runs entirely in the browser as a single HTML page. There is no server of its
 The second tool builds map-making.app maps of random **unofficial** Street View locations: everything Google shows that Google did not take itself. It works like the Map Generation Tool and shares most of its code, with these differences:
 
 - **Every country and territory** can be chosen, Antarctica too, not only those with official coverage. The continents are the UN regions.
-- **Distributions:** by land area (the default) or in equal shares, besides your own. The whole world leaves out Antarctica unless you choose it.
+- **Distributions:** by land area (the default), population, population density (people per km² of land) or in equal shares, besides your own. The whole world leaves out Antarctica unless you choose it. With population density, small crowded places such as Singapore and Monaco get the most, so it suits a few countries better than the whole world.
 - **The lookup:** Google can be asked for its own coverage only, but not for unofficial coverage only. So each random spot asks for the nearest photo of any kind, and keeps it only if it is not Google's own. Where Google's own coverage is nearer, it hides any unofficial photo next to it, so most locations are found away from Google's roads, and a search takes far longer. Indoor photos are found too: Google does not say which photospheres are indoors.
 - **Filters:** the photo period, whole 360° photos only, the image size, and uploaders to leave out or to keep only. No road names, arrows or cameras.
 - **Tags:** the country, the uploader's name and the date.
@@ -89,6 +89,8 @@ The tests drive the page in a headless browser. Google's script and the map tile
 | `src/data/vali.json`         | Country distributions and continents from Vali (generated)       |
 | `tools/vali.js`              | Updates `src/data/vali.json` from Vali; runs monthly on GitHub   |
 | `src/data/country-tags.json` | The tag each country gets in the map file (edited by hand)       |
+| `src/data/population.json`   | Unofficial's populations, from Natural Earth (generated)         |
+| `tools/population.js`        | Updates `src/data/population.json` from Natural Earth (by hand)  |
 | `tests/`                     | Browser tests, one file per feature area                         |
 | `docs/`                      | [How the code works](docs/how-the-code-works.md), for developers |
 | `CONTRIBUTING.md`            | How to make a change, and the rules                              |
@@ -96,7 +98,7 @@ The tests drive the page in a headless browser. Google's script and the map tile
 
 ## Credits
 
-The country distributions of well-known GeoGuessr maps and the continent lists come from [Vali](https://github.com/slashP/Vali) by slashP (GPL-3.0). Country borders, and Unofficial's continents and territories, come from [country-coder](https://github.com/rapideditor/country-coder), the land map from [Natural Earth](https://www.naturalearthdata.com) (public domain) through [world-atlas](https://github.com/topojson/world-atlas) (ISC), the map from [Leaflet](https://leafletjs.com) and [OpenStreetMap](https://www.openstreetmap.org/copyright).
+The country distributions of well-known GeoGuessr maps and the continent lists come from [Vali](https://github.com/slashP/Vali) by slashP (GPL-3.0). Country borders, and Unofficial's continents and territories, come from [country-coder](https://github.com/rapideditor/country-coder), the land map and Unofficial's populations from [Natural Earth](https://www.naturalearthdata.com) (public domain) through [world-atlas](https://github.com/topojson/world-atlas) (ISC), the map from [Leaflet](https://leafletjs.com) and [OpenStreetMap](https://www.openstreetmap.org/copyright).
 
 ## Licence
 
