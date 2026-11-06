@@ -14,8 +14,9 @@
  *     src/countries.js);
  *   - its distributions: land area (the default), population, population density and equal shares,
  *     besides one's own;
- *   - its filters: whole 360° photos only, the smallest image, uploaders to leave out or to keep only;
- *   - its tags: the uploader;
+ *   - its filters: whole 360° photos only, the smallest image, with or without arrows, uploaders to
+ *     leave out or to keep only;
+ *   - its tags: the uploader, arrows or no arrows;
  *   - what a panorama must have: not Google's own (see "what a location must have").
  *
  * HOW A SEARCH RUNS is the same as in the Map Generation Tool (see the overview at the top of src/app.js),
@@ -27,8 +28,9 @@
  * one is indoors), so indoor photos are found too.
  *
  * SAVED IN THE BROWSER (localStorage, each name starts with "unofficial.", see `store`): the same as in
- * the Map Generation Tool, without its filters and tags, and with full360, minHeight, uploaderMode
- * ("any", "exclude" or "only"), uploaderNames and tagUploader. The unfinished search is in the IndexedDB
+ * the Map Generation Tool, without its filters and tags, and with full360, minHeight, arrows ("any",
+ * "with" or "without"), uploaderMode ("any", "exclude" or "only"), uploaderNames, tagUploader and
+ * tagArrows. The unfinished search is in the IndexedDB
  * database "unofficial". A visitor's own Google key is only kept in sessionStorage ("unofficial.key").
  */
 
@@ -44,6 +46,7 @@
  * @property {string} date       photo date "YYYY-MM" or "YYYY", or ""
  * @property {string} cc         two-letter country code
  * @property {string} uploader   who took the photo, as Google names them ("" when Google does not say)
+ * @property {boolean} arrows    the photo has arrows to other photos (Street View lets one walk on)
  */
 /**
  * One arrow of a panorama: the direction to a neighbouring panorama and the road name shown on it.
@@ -97,6 +100,10 @@ const OTHER_TOOL = {
   settingsFormat: "map-generation-tool settings",
 };
 const RADIUS_DEFAULT = 1000; // metres around a random spot to look for a panorama
+/* Random spots in a row without a new location before a country gives up: more than in the Map Generation
+   Tool (2,000), as unofficial coverage is rarer and often hidden by Google's own (agreed with the owner,
+   November 2026). */
+const GIVE_UP_DEFAULT = 5000;
 /* Google's sources for a lookup (see lookup): every source. "outdoor" would leave out every photosphere,
    as Google cannot tell whether one is indoors; "google" only gives official coverage. */
 const LOOKUP_SOURCES = ["default"];
@@ -213,11 +220,15 @@ function distributionLabel() {
 
 /* ---------- step 2: filters ----------
    This tool's filters (the period is shared, src/shared/period.js): whole 360° photos only, the smallest
-   image, and the uploaders to leave out or to keep only. */
+   image, with or without arrows, and the uploaders to leave out or to keep only. */
 /* The smallest image offered, as its height in pixels (0: any size). Phones make photospheres of about
    2,000 to 4,000 pixels high; cameras made for 360° photos and Google's cars more. */
 const MIN_HEIGHTS = [0, 2000, 4000, 6000, 8000];
 const UPLOADER_MODES = ["any", "exclude", "only"];
+/* Arrows: any photo, only photos with arrows to other photos (a series, such as road coverage or a walk),
+   or only photos without (one on its own, such as a single photosphere). One choice, as the two exclude
+   each other (CONTRIBUTING.md: "A simple interface"). */
+const ARROW_CHOICES = ["any", "with", "without"];
 for (const h of MIN_HEIGHTS)
   $("minHeight").append(
     makeElement("option", {
@@ -235,7 +246,8 @@ const uploaderList = text =>
         .filter(Boolean),
     ),
   ].slice(0, 50);
-/* What each location must have: { years: {from, to} | null, full360, minHeight, uploaderMode, uploaders }.
+/* What each location must have: { years: {from, to} | null, full360, minHeight, arrows, uploaderMode,
+   uploaders }.
    Uploaders only count with names typed. */
 function wanted() {
   const uploaders = uploaderList($("uploaderNames").value);
@@ -244,6 +256,7 @@ function wanted() {
     years: years(),
     full360: $("full360").checked,
     minHeight: wholeNumber($("minHeight").value, 0, 100000, 0),
+    arrows: radioValue("arrows", ARROW_CHOICES, "any"),
     uploaderMode: uploaders.length ? mode : "any",
     uploaders,
   };
@@ -261,6 +274,12 @@ $("minHeight").onchange = () => {
   store.set("minHeight", +$("minHeight").value);
   updateMapName();
 };
+setRadio("arrows", ARROW_CHOICES.includes(store.get("arrows")) ? store.get("arrows") : "any");
+for (const r of document.querySelectorAll("input[name=arrows]"))
+  r.onchange = () => {
+    store.set("arrows", r.value);
+    updateMapName();
+  };
 setRadio(
   "uploaderMode",
   UPLOADER_MODES.includes(store.get("uploaderMode")) ? store.get("uploaderMode") : "any",
@@ -297,6 +316,8 @@ function wantedLabel(w) {
   const parts = [];
   if (w.full360) parts.push("whole 360°");
   if (w.minHeight) parts.push(`at least ${fmt(w.minHeight)} px`);
+  if (w.arrows === "with") parts.push("with arrows");
+  if (w.arrows === "without") parts.push("no arrows");
   if (w.years) parts.push(periodLabel(w.years, " – "));
   if (w.uploaderMode === "exclude") parts.push("not by " + namesLabel(w.uploaders));
   if (w.uploaderMode === "only") parts.push("by " + namesLabel(w.uploaders));
@@ -312,6 +333,7 @@ function wantedLabel(w) {
 const TAG_OPTIONS = {
   tagCountry: true,
   tagUploader: false,
+  tagArrows: false,
   tagYear: false,
 };
 /* The tags of a location for the export, from the ticked options: "Malta", "Jane Doe", "2023". */
@@ -319,11 +341,13 @@ function tagsFor(l) {
   const tags = [];
   if ($("tagCountry").checked) tags.push(...countryTagsOf(l));
   if ($("tagUploader").checked && l.uploader) tags.push(l.uploader);
+  // (every location gets one of the two, agreed with the owner, November 2026, so either can be filtered for)
+  if ($("tagArrows").checked) tags.push(l.arrows ? "Arrows" : "No arrows");
   if ($("tagYear").checked && l.date) tags.push(dateTagOf(l));
   return tags;
 }
 /* This tool's tag options in words, for the summary of "Map file" (the country and date are shared). */
-const TAG_WORDS = { tagUploader: "uploader" };
+const TAG_WORDS = { tagUploader: "uploader", tagArrows: "arrows" };
 
 /*SHARED tags.js*/
 
@@ -333,7 +357,8 @@ const TAG_WORDS = { tagUploader: "uploader" };
    This tool's "More options" sections for its filters (see src/shared/more-options.js), and the line
    under step 2 that says what is looked for. */
 /* True when anything is asked of a location, besides unofficial coverage. */
-const anythingWanted = w => !!w.years || w.full360 || w.minHeight > 0 || w.uploaderMode !== "any";
+const anythingWanted = w =>
+  !!w.years || w.full360 || w.minHeight > 0 || w.arrows !== "any" || w.uploaderMode !== "any";
 /* The line under step 2 when nothing is asked. */
 const ANY_LOCATION_WORDS = "Any unofficial location. Choose more in the sections below.";
 /** @type {Record<string, {summary: () => string, changed: () => boolean, reset: () => void}>} */
@@ -344,6 +369,8 @@ const MORE_TOOL = {
       const bits = [w.years ? periodLabel(w.years) : "Any time"];
       if (w.full360) bits.push("whole 360° only");
       if (w.minHeight) bits.push(`at least ${fmt(w.minHeight)} pixels high`);
+      if (w.arrows === "with") bits.push("with arrows");
+      if (w.arrows === "without") bits.push("no arrows");
       return bits.join(", ");
     },
     changed: () =>
@@ -353,7 +380,8 @@ const MORE_TOOL = {
       $("yearTo").value !== "now" ||
       +$("monthTo").value !== 12 ||
       $("full360").checked ||
-      $("minHeight").value !== "0",
+      $("minHeight").value !== "0" ||
+      radioValue("arrows", ARROW_CHOICES, "any") !== "any",
     reset: () => {
       setControl("yearFrom", String(YEAR_FIRST));
       setControl("monthFrom", "1");
@@ -362,6 +390,9 @@ const MORE_TOOL = {
       setControl("yearsOn", false);
       setControl("full360", false);
       setControl("minHeight", "0");
+      setRadio("arrows", "any");
+      store.set("arrows", "any");
+      updateMapName();
     },
   },
   moreUploaders: {
@@ -409,7 +440,7 @@ const toolSearchSettings = () => ({});
 /* Google's sources for a lookup: every source (see LOOKUP_SOURCES). */
 const lookupSources = () => LOOKUP_SOURCES;
 /* Whether a panorama found for a country matches what is asked (want): not Google's own, a whole 360°
-   photo and large enough if that is asked, from the period, by the uploaders asked for. Resolves to
+   photo and large enough if that is asked, with or without arrows, from the period, by the uploaders asked for. Resolves to
    { pano, facts }, to "official" (counted apart, as such spots hide unofficial coverage), or to null when
    it does not match. (Async like the Map Generation Tool's, which may look up an older photo.) */
 async function panoramaWanted(r, code, key, want) {
@@ -418,6 +449,8 @@ async function panoramaWanted(r, code, key, want) {
   if (
     (want.full360 && !(r.height > 0 && r.width === 2 * r.height)) ||
     (want.minHeight && r.height < want.minHeight) ||
+    (want.arrows === "with" && !r.links.length) ||
+    (want.arrows === "without" && r.links.length > 0) ||
     (want.years && !inYears(r.date, want.years)) ||
     (want.uploaderMode === "exclude" && uploaderIn(uploader, want.uploaders)) ||
     (want.uploaderMode === "only" && !uploaderIn(uploader, want.uploaders))
@@ -428,9 +461,10 @@ async function panoramaWanted(r, code, key, want) {
 /* The checks after the one that the panorama lies in the country: none here. */
 const laterChecks = () => true;
 /* What this tool keeps about a location, besides the shared fields (see Location). */
-const locationFields = r => ({ uploader: uploaderOf(r.copyright) });
+const locationFields = r => ({ uploader: uploaderOf(r.copyright), arrows: r.links.length > 0 });
 /* What a location has, in words, for its popup on the map. */
-const locationFacts = l => (l.uploader ? ["By " + l.uploader] : []);
+const locationFacts = l =>
+  [l.uploader && "By " + l.uploader, l.arrows ? "Arrows" : "No arrows"].filter(Boolean);
 /* Where the camera faces with "As the photo faces" (see locationView): the photo's centre, or any
    direction when Google does not say. */
 const roadHeading = r => r.carHeading ?? Math.random() * 360;
@@ -454,6 +488,7 @@ const roadHeading = r => r.carHeading ?? Math.random() * 360;
 const toolSettings = () => ({
   full360: $("full360").checked,
   minHeight: wholeNumber($("minHeight").value, 0, 100000, 0),
+  arrows: radioValue("arrows", ARROW_CHOICES, "any"),
   uploaderMode: radioValue("uploaderMode", UPLOADER_MODES, "any"),
   uploaderNames: $("uploaderNames").value.trim().slice(0, 2000),
 });
@@ -461,6 +496,7 @@ const toolSettings = () => ({
 const cleanToolSettings = r => ({
   full360: r.full360 === true,
   minHeight: MIN_HEIGHTS.includes(r.minHeight) ? r.minHeight : 0,
+  arrows: ARROW_CHOICES.includes(r.arrows) ? r.arrows : "any",
   uploaderMode: UPLOADER_MODES.includes(r.uploaderMode) ? r.uploaderMode : "any",
   uploaderNames: cleanText(r.uploaderNames, 2000).trim(),
 });
@@ -470,6 +506,8 @@ function applyToolSettings(s) {
   store.set("full360", s.full360);
   $("minHeight").value = String(s.minHeight);
   store.set("minHeight", s.minHeight);
+  setRadio("arrows", s.arrows);
+  store.set("arrows", s.arrows);
   setRadio("uploaderMode", s.uploaderMode);
   store.set("uploaderMode", s.uploaderMode);
   $("uploaderNames").value = s.uploaderNames;
@@ -493,6 +531,7 @@ const wantedOf = s => {
     years: s.yearsOn ? periodOf(s) : null,
     full360: s.full360,
     minHeight: s.minHeight,
+    arrows: s.arrows,
     uploaderMode: uploaders.length ? s.uploaderMode : "any",
     uploaders,
   };
@@ -500,7 +539,7 @@ const wantedOf = s => {
 /* More about settings in words, for the history: nothing here. */
 const toolDetails = () => [];
 /* This tool's fields of a location read back from an unfinished search, checked (see cleanLocation). */
-const cleanLocationFields = l => ({ uploader: cleanText(l.uploader, 100) });
+const cleanLocationFields = l => ({ uploader: cleanText(l.uploader, 100), arrows: l.arrows === true });
 
 /*SHARED history.js*/
 

@@ -143,6 +143,7 @@ const OTHER_TOOL = {
   settingsFormat: "unofficial settings",
 };
 const RADIUS_DEFAULT = 1000; // metres around a random spot to look for a panorama
+const GIVE_UP_DEFAULT = 2000; // random spots in a row without a new location before a country gives up
 /* Google's sources for a lookup (see lookup): official coverage that is also outdoor coverage, so
    Google's own indoor panoramas (a museum, say) are not found either. Several sources mean all of them
    must hold. */
