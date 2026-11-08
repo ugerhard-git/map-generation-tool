@@ -1,11 +1,12 @@
 // Security checks that are not tied to one feature: the content security policy, a self-contained page
 // without keys, framing, and stored values that have been tampered with.
 const { chromium } = require("./pw.js");
-const { SITE, PAGE, isSite, serveSite } = require("./site.js");
+const { SITE, PAGE, isSite, serveSite, SPLIT, DIST } = require("./site.js");
+const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
 const { assemble } = require("../src/assemble.js");
-const page = path.resolve(__dirname, "../dist/index.nokey.html");
+const page = path.join(DIST, "index.nokey.html");
 (async () => {
   const b = await chromium.launch();
   let fail = 0;
@@ -17,8 +18,13 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
   const csp = /http-equiv="Content-Security-Policy" content="([^"]*)"/.exec(html)[1];
   const script = /script-src ([^;]*)/.exec(csp)[1];
   ok(
-    !/unsafe-inline|unsafe-eval|\*\.googleapis\.com|https:(\s|$)|\*(\s|$)/.test(script),
-    "scripts: only fingerprinted inline code and Google's own script hosts: " +
+    !/unsafe-inline|unsafe-eval|\*\.googleapis\.com|https:(\s|$)|\*(\s|$)/.test(script) &&
+      (SPLIT
+        ? script.trim() === "'self' https://maps.googleapis.com https://*.gstatic.com"
+        : !/'self'/.test(script)),
+    (SPLIT
+      ? "scripts: only from this server and Google's own script hosts: "
+      : "scripts: only fingerprinted inline code and Google's own script hosts: ") +
       script.replace(/'sha256-[^']*'/g, "sha"),
   );
   ok(
@@ -42,16 +48,53 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
     ),
     "every build placeholder filled in",
   );
-  ok(
-    !/<script[^>]+src=|<link[^>]+stylesheet/i.test(html) &&
-      html.includes(assemble(path.resolve(__dirname, "../src/app.js")).code.trim()) &&
-      html.includes(assemble(path.resolve(__dirname, "../src/style.css")).code.trim()),
-    "one self-contained file with the app code and styles inside",
-  );
-  ok(
-    /window\.countryCoder|globalThis\.countryCoder/.test(html) && !/sourceMappingURL/.test(html),
-    "country lookup library built into the page, without links to outside files",
-  );
+  if (!SPLIT) {
+    ok(
+      !/<script[^>]+src=|<link[^>]+stylesheet/i.test(html) &&
+        html.includes(assemble(path.resolve(__dirname, "../src/app.js")).code.trim()) &&
+        html.includes(assemble(path.resolve(__dirname, "../src/style.css")).code.trim()),
+      "one self-contained file with the app code and styles inside",
+    );
+    ok(
+      /window\.countryCoder|globalThis\.countryCoder/.test(html) && !/sourceMappingURL/.test(html),
+      "country lookup library built into the page, without links to outside files",
+    );
+  } else {
+    // The split build: no code inside the page; every script and style sheet is a file under assets/
+    // with its fingerprint, which the browser checks before using it
+    const tags = [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"[^>]*>/g)].filter(m =>
+      /\.(js|css)"/.test(m[0]),
+    );
+    const files = tags.map(([tag, href]) => {
+      const file = path.join(DIST, href);
+      const integrity = /integrity="([^"]+)"/.exec(tag)?.[1];
+      const want =
+        fs.existsSync(file) &&
+        "sha384-" + crypto.createHash("sha384").update(fs.readFileSync(file)).digest("base64");
+      return { href, ok: !!integrity && integrity === want };
+    });
+    ok(
+      files.length >= 5 && files.every(f => f.ok && f.href.startsWith("assets/")),
+      "every script and style sheet is a file under assets/ with its fingerprint: " +
+        files.map(f => f.href + (f.ok ? "" : " (fingerprint wrong)")).join(", "),
+    );
+    ok(
+      !/<script>|<script\s+(?!type="application\/json")[^>]*>[^<]/.test(html) && !/<style>/.test(html),
+      "no code or styles left inside the page",
+    );
+    const other = fs.readFileSync(path.join(DIST, "unofficial", "index.nokey.html"), "utf8");
+    const shared = ["leaflet", "country-coder", "land", "shared"].every(
+      n =>
+        new RegExp(`"assets/${n}\\.[0-9a-f]+\\.(js|css)"`).test(html) &&
+        new RegExp(`"\\.\\./assets/${n}\\.[0-9a-f]+\\.(js|css)"`).test(other) &&
+        html.match(new RegExp(`assets/${n}\\.[0-9a-f]+`))[0] ===
+          other.match(new RegExp(`assets/${n}\\.[0-9a-f]+`))[0],
+    );
+    ok(
+      shared,
+      "both tools load the same files for Leaflet, country-coder, the land map and the shared styles",
+    );
+  }
   ok(!/AIza[0-9A-Za-z_-]{35}/.test(html.replace("AIza…", "")), "no Google key in the key-less build");
   // Nothing shaped like a Google key in the repository's own files either (tests included: a made-up
   // key in a test is flagged by GitHub's secret scanning just like a real one)
@@ -75,7 +118,7 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
   );
 
   // framed by another page: the app does not run, a link opens it on its own
-  const outer = path.resolve(__dirname, "../dist/frame-test.html");
+  const outer = path.join(DIST, "frame-test.html");
   fs.writeFileSync(
     outer,
     `<!doctype html><title>outer</title><iframe id="f" src="index.nokey.html" style="width:900px;height:600px"></iframe>`,
@@ -106,6 +149,29 @@ const page = path.resolve(__dirname, "../dist/index.nokey.html");
   );
   await p.goto(PAGE);
   ok((await p.isVisible(".app")) && (await p.isHidden("#framed")), "opened directly: app shown");
+
+  if (SPLIT) {
+    // A script file changed on the server (or on the way) does not run: its fingerprint no longer matches
+    const tctx = await b.newContext();
+    const t = await tctx.newPage();
+    const blocked = [];
+    t.on("console", m => /integrity|digest/i.test(m.text()) && blocked.push(m.text()));
+    await t.route("**/*", async r => {
+      const url = r.request().url();
+      if (!isSite(url)) return r.fulfill({ status: 204, body: "" });
+      if (/assets\/mapgen\.[0-9a-f]+\.js$/.test(url))
+        return r.fulfill({ contentType: "text/javascript", body: "window.__tampered = true;" });
+      return serveSite(r);
+    });
+    await t.goto(PAGE);
+    await t.waitForTimeout(800);
+    ok(
+      (await t.evaluate(() => !window.__tampered && typeof searchTargets === "undefined")) &&
+        blocked.length > 0,
+      "a changed script file is refused: " + (blocked[0] || "nothing refused").slice(0, 120),
+    );
+    await tctx.close();
+  }
 
   // tampered stored values do not break the page
   await p.evaluate(() => {

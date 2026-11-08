@@ -60,6 +60,8 @@ GOOGLE_API_KEY=your-key npm run build  # both pages with your key built in
 
 The build writes one self-contained file for each tool, `dist/index.html` and `dist/unofficial/index.html`. Each embeds the Leaflet map library, the country-coder country lookup, a land map made from Natural Earth and the Overpass font, and it adds a Content Security Policy that only allows the page's own scripts to run.
 
+For hosting both tools on a server of your own, the build also writes them split up, in `dist/split/`: the same two pages, `index.html` and `unofficial/index.html`, with their scripts and styles as files in `dist/split/assets/`. Both pages load the same files for what they share (Leaflet, country-coder, the land map, the font and the shared styles), so a browser that opens both downloads those once; each tool's data and app code is a file of its own. The file names carry a fingerprint, so the server can let browsers keep them for a long time (for example `Cache-Control: max-age=31536000, immutable` for `assets/`). Upload the whole folder, keeping its layout. Its security policy allows scripts from the page's own server and Google's, and every script and style sheet carries its fingerprint, so a changed file is refused.
+
 Never commit a key. The key is inserted by the build from the `GOOGLE_API_KEY` environment variable; the published site gets it from a GitHub secret.
 
 ## Tests
@@ -69,6 +71,7 @@ npx playwright install chromium   # once
 npm run build
 npm test                          # all test files
 npm test -- search                # only files whose name starts with "search"
+npm run test:split                # all test files, against the split build (dist/split/)
 ```
 
 The tests drive the page in a headless browser. Google's script and the map tiles are simulated, so they need no network and no key.

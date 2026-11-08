@@ -1,5 +1,6 @@
 // Runs every test file in this folder one after another and reports which passed.
 // Each file prints "PASS …" / "FAIL …" lines and ends with "ALL PASS" when everything held.
+// With --split (npm run test:split), against the split build in dist/split/ (see src/build.js).
 const { spawnSync } = require("child_process");
 const fs = require("fs"),
   path = require("path");
@@ -11,7 +12,14 @@ if (!fs.existsSync(path.join(dist, "index.nokey.html"))) {
 }
 fs.mkdirSync(path.join(dist, "screens"), { recursive: true });
 
-const only = process.argv.slice(2);
+if (process.argv.includes("--split")) {
+  process.env.SITE_BUILD = "split"; // read by tests/site.js in each test file
+  if (!fs.existsSync(path.join(dist, "split", "index.nokey.html"))) {
+    console.error('dist/split/index.nokey.html is missing. Run "npm run build" first.');
+    process.exit(1);
+  }
+}
+const only = process.argv.slice(2).filter(a => a !== "--split");
 const files = fs
   .readdirSync(__dirname)
   .filter(f => f.endsWith(".js") && !["run.js", "pw.js", "site.js", "helpers.js"].includes(f))
