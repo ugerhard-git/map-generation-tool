@@ -144,9 +144,11 @@ const OTHER_TOOL = {
 };
 const RADIUS_DEFAULT = 1000; // metres around a random spot to look for a panorama
 const GIVE_UP_DEFAULT = 2000; // random spots in a row without a new location before a country gives up
-/* Google's sources for a lookup (see lookup): official coverage that is also outdoor coverage, so
-   Google's own indoor panoramas (a museum, say) are not found either. Several sources mean all of them
-   must hold. */
+/* Google's sources for a lookup (see lookup): official coverage that Google counts as outdoor coverage.
+   Several sources mean all of them must hold. This leaves out some indoor panoramas, but not all of
+   Google's own: the owner's test (November 2026) found five of its indoor panoramas (stations, museums)
+   that Google gives for "outdoor" too, and nothing in Google's answer tells them apart. They are rare in
+   the results, as a random spot almost always has the street outside nearer. */
 const LOOKUP_SOURCES = ["google", "outdoor"];
 /* Words for the camera view (see "camera view"): what "Along the road" is called, what the camera's
    angle is measured from, and the drawings. */
