@@ -48,8 +48,8 @@
           <li>
             <b>Choose what to look for,</b> if you like, in the sections of step 2: spots where Street View
             shows no road name, spots where the coverage ends (only one arrow), intersections (three or more
-            arrows), photos from a certain period or camera, or a mix. "Camera view" sets where the camera
-            faces, how far it tilts and how far it is zoomed in.
+            arrows), spots with no arrows at all, photos from a certain period or camera, or a mix. "Camera
+            view" sets where the camera faces, how far it tilts and how far it is zoomed in.
           </li>
           <li><b>Choose how many,</b> then select "Find locations".</li>
           <li>
@@ -103,8 +103,9 @@
       <h2>What each location has</h2>
       <p>
         Open the sections below to choose what every location must have: the photos (period, camera) under
-        "Photos", road names and arrows (the end of the coverage, intersections) under "Roads and arrows".
-        With several chosen, a location must have all of them. With none, any official location counts.
+        "Photos", road names and arrows (the end of the coverage, intersections, no arrows) under "Roads and
+        arrows". With several chosen, a location must have all of them. With none, any official location
+        counts.
       </p>
       <p>
         Google's own photos inside some buildings, such as stations and museums, can occasionally be among the
@@ -159,6 +160,11 @@
         </li>
         <li>
           <b>Intersection:</b> three or more arrows, where roads meet. The camera faces along one of them.
+        </li>
+        <li>
+          <b>No arrows at all:</b> a single photo on its own, with no way on to another. They are rare in
+          Google's own coverage, so a search can take a long time, and many countries have none. The camera
+          faces a random direction.
         </li>
       </ul>
     </template>
@@ -355,8 +361,8 @@
                   ?
                 </button>
               </div>
-              <!-- Arrows: one choice, as "end of coverage" (one arrow) and "intersection" (three or more)
-                   exclude each other -->
+              <!-- Arrows: one choice, as "end of coverage" (one arrow), "intersection" (three or more) and
+                   "no arrows at all" exclude each other -->
               <div class="field arrows" role="radiogroup" aria-labelledby="arrowsTitle">
                 <div class="labelrow">
                   <div class="label" id="arrowsTitle">Arrows</div>
@@ -376,6 +382,9 @@
                     id="arrowsIntersection"
                     value="intersection"
                   />Intersection (three or more arrows)</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="arrows" id="arrowsNone" value="none" />No arrows at all</label
                 >
               </div>
               <button type="button" class="linkbtn reset" data-reset="moreRoads">Reset to defaults</button>
@@ -588,6 +597,9 @@
                   ><input type="checkbox" id="tagIntersection" /><span
                     >"Intersection", where it applies</span
                   ></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagNoArrows" /><span>"No arrows", where it applies</span></label
                 >
                 <label class="check"
                   ><input type="checkbox" id="tagYear" /><span

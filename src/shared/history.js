@@ -20,7 +20,7 @@ const HISTORY_MAX = 20;
  * @property {{mode: string, values: Record<string, number>, name: string}|null} own  with distribution
  *                                  "own": the values themselves (a preset is kept as its values, too)
  * @property {boolean} noRoadName   (Map Generation Tool)
- * @property {"any"|"end"|"intersection"} arrows  the arrows asked for (before intersections: deadEnd)
+ * @property {"any"|"end"|"intersection"|"none"} arrows  the arrows asked for (before intersections: deadEnd)
  * @property {boolean} camGen4      the chosen cameras (none ticked: any camera but Gen 1)
  * @property {boolean} camGen23
  * @property {boolean} camBad

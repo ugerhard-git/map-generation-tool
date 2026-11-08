@@ -77,6 +77,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 30. **A split build for one's own server** (done, 8 November 2026, at the owner's request): besides the one-file pages, the build writes `dist/split/`, where both pages load their scripts and styles as files from `assets/`, the shared ones (Leaflet, country-coder, the land map, the font and the shared styles, about 1.2 MB) the same for both. Each tool's data and app code stays one file, with its copy of the shared code: splitting that too would mean 23 files per page in a set order, for about 160 KB. Its security policy allows scripts from the page's own server, each tag with its file's fingerprint (agreed with the owner). The tests run against both builds.
 
+31. **No arrows at all** (done, 8 November 2026, at the owner's request): a fourth choice under "Arrows" in "Roads and arrows" (Map Generation Tool): only spots with no arrows, a photo on its own. The camera faces a random direction there. A "No arrows" tag in "Map file", where it applies, worded as in Unofficial. Kept with the settings as `arrows: "none"` and `tagNoArrows`.
+
 Later, to be discussed when they come up: more tag options.
 
 ## A second tool: Unofficial

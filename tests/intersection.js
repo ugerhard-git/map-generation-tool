@@ -108,6 +108,70 @@ const { openPage, search, searchEnded } = require("./helpers.js");
     "the history describes it",
   );
 
+  // No arrows at all (added November 2026): Google answers with 0, 1, 2 and 3 arrows in turn
+  await p.evaluate(() => {
+    let n = 0;
+    const headings = [[], [40], [40, 220], [10, 100, 250]];
+    window.__sv = req => {
+      const h = headings[n % 4];
+      return {
+        id: `A${h.length}_${n++}`,
+        lat: req.location.lat,
+        lng: req.location.lng,
+        links: h.map(heading => ({ heading, description: "" })),
+      };
+    };
+  });
+  await p.check("#arrowsNone");
+  ok(
+    !(await p.isChecked("#arrowsEnd")) && !(await p.isChecked("#arrowsIntersection")),
+    "no arrows is one choice with the others",
+  );
+  ok(
+    /^No arrows$/.test(await p.textContent("#moreRoads .more-sum")) &&
+      (await p.isVisible("#moreRoads .more-changed")),
+    "the summary says no arrows: " + (await p.textContent("#moreRoads .more-sum")),
+  );
+  await p.uncheck("#tagIntersection");
+  await p.check("#tagNoArrows");
+  await search(p, { country: "Malta", arrows: "none", target: 6 });
+  await searchEnded(p);
+  const none = await p.evaluate(() => ({
+    kinds: [...new Set(results.map(l => l.panoId.split("_")[0]))].join(),
+    flagged: results.every(l => l.noArrows === true && !l.deadEnd && !l.intersection),
+    headings: new Set(results.map(l => Math.round(l.heading))).size,
+    tags: [...new Set(JSON.parse(exportJson()).customCoordinates.map(c => c.extra.tags.join()))].join(" | "),
+    name: document.getElementById("mapName").placeholder,
+    facts: results.every(l => locationFacts(l).includes("No arrows")),
+  }));
+  ok(none.kinds === "A0" && none.flagged, "only spots with no arrows at all: " + none.kinds);
+  ok(none.headings > 1, "the camera faces a random direction");
+  ok(none.tags === "Malta,No arrows", "tagged No arrows: " + none.tags);
+  ok(none.name === "Malta: No arrows", "the map name says so: " + none.name);
+  ok(none.facts, "and the dot's popup");
+  await search(p, { country: "Malta", arrows: "any", target: 8 });
+  await searchEnded(p);
+  ok(
+    (await p.evaluate(
+      () =>
+        results.every(l => l.noArrows === l.panoId.startsWith("A0_")) &&
+        JSON.parse(exportJson()).customCoordinates.every(
+          c => c.extra.tags.includes("No arrows") === c.panoId.startsWith("A0_"),
+        ),
+    )) === true,
+    "with any arrows, the No arrows tag goes only where there are none",
+  );
+  const kept = await p.evaluate(() => ({
+    arrows: cleanSettings({ arrows: "none" }).arrows,
+    history: historyDetails(cleanSettings({ arrows: "none" })),
+    read: cleanLocation({ lat: 35.9, lng: 14.4, heading: 1, panoId: "ABCD", cc: "MT", noArrows: "yes" })
+      .noArrows,
+  }));
+  ok(
+    kept.arrows === "none" && / · No arrows · /.test(kept.history) && kept.read === false,
+    "kept with the settings, described in the history, and checked when read back: " + kept.history,
+  );
+
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();
   console.log(fail ? `${fail} FAILED` : "ALL PASS");

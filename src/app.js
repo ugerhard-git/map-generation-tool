@@ -51,8 +51,8 @@
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution (a Vali map, "continent", "own" or "preset:<id>"), own (the distribution of one's own being
- *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end" or "intersection"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
- *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagYear, tagDate, sizeLimitOn, sizeLimit (the largest map file), territoryTag (how territories are tagged: "both", "own" or "parent"), tagCamera (which tags the export
+ *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end", "intersection" or "none"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
+ *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagIntersection, tagNoArrows, tagYear, tagDate, sizeLimitOn, sizeLimit (the largest map file), territoryTag (how territories are tagged: "both", "own" or "parent"), tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
  *   historyOn (whether that history is kept).
@@ -85,6 +85,7 @@
  * @property {boolean} noRoadName no road name shown on the arrows
  * @property {boolean} deadEnd   only one arrow: the coverage ends here
  * @property {boolean} [intersection] three or more arrows
+ * @property {boolean} [noArrows] no arrows at all: a photo on its own
  * @property {string} [camera]   "gen4", "gen23", "badcam", or "" when not known (see cameraOf)
  */
 /**
@@ -301,9 +302,10 @@ function cameras() {
     .map(([, cam]) => cam);
   return chosen.length ? chosen : null;
 }
-/* The arrows asked for: "any", "end" (one arrow: the end of the coverage) or "intersection" (three or
-   more). One choice, as the two exclude each other (CONTRIBUTING.md: "A simple interface"). */
-const ARROWS = ["any", "end", "intersection"];
+/* The arrows asked for: "any", "end" (one arrow: the end of the coverage), "intersection" (three or
+   more) or "none" (no arrows at all: a photo on its own; added at the owner's request, November 2026).
+   One choice, as they exclude each other (CONTRIBUTING.md: "A simple interface"). */
+const ARROWS = ["any", "end", "intersection", "none"];
 const arrows = () => document.querySelector("input[name=arrows]:checked")?.value || "any";
 // Before intersections, "End of coverage" was a tick box, saved as "deadEnd": it is moved over once.
 {
@@ -357,6 +359,7 @@ function wantedLabel(w) {
   if (w.noRoadName) parts.push("no road name");
   if (w.arrows === "end") parts.push("end of coverage");
   if (w.arrows === "intersection") parts.push("intersection");
+  if (w.arrows === "none") parts.push("no arrows");
   if (w.years) parts.push(periodLabel(w.years, " – "));
   if (w.cameras) parts.push(w.cameras.map(c => CAMERAS[c]).join(" and "));
   else if (w.noBadCamera) parts.push("no bad camera");
@@ -374,6 +377,7 @@ const TAG_OPTIONS = {
   tagNoRoadName: false,
   tagDeadEnd: false,
   tagIntersection: false,
+  tagNoArrows: false,
   tagYear: false,
   tagCamera: false,
 };
@@ -391,6 +395,7 @@ function tagsFor(l) {
   if ($("tagNoRoadName").checked && l.noRoadName) tags.push("No road name");
   if ($("tagDeadEnd").checked && l.deadEnd) tags.push("Dead end");
   if ($("tagIntersection").checked && l.intersection) tags.push("Intersection");
+  if ($("tagNoArrows").checked && l.noArrows) tags.push("No arrows");
   if ($("tagYear").checked && l.date) tags.push(dateTagOf(l));
   if ($("tagCamera").checked && l.camera) tags.push(CAMERAS[l.camera]);
   return tags;
@@ -399,6 +404,7 @@ const TAG_WORDS = {
   tagNoRoadName: "no road name",
   tagDeadEnd: "dead end",
   tagIntersection: "intersection",
+  tagNoArrows: "no arrows",
   tagCamera: "camera",
 };
 
@@ -421,6 +427,7 @@ const MORE_TOOL = {
       if ($("noRoadName").checked) bits.push("no road name");
       if (arrows() === "end") bits.push("end of coverage");
       if (arrows() === "intersection") bits.push("intersection");
+      if (arrows() === "none") bits.push("no arrows");
       const text = bits.join(", ") || "any road names, any arrows";
       return text.charAt(0).toUpperCase() + text.slice(1);
     },
@@ -595,6 +602,7 @@ async function panoramaWanted(r, code, key, want) {
     (want.noRoadName && !facts.noRoadName) ||
     (want.arrows === "end" && !facts.deadEnd) ||
     (want.arrows === "intersection" && !facts.intersection) ||
+    (want.arrows === "none" && r.links.length > 0) ||
     (want.years && !inYears(r.date, want.years))
   )
     return null;
@@ -619,13 +627,17 @@ const locationFields = (r, code, facts) => ({
   noRoadName: facts.noRoadName,
   deadEnd: facts.deadEnd,
   intersection: facts.intersection,
+  noArrows: r.links.length === 0,
   camera: cameraOf(r, code),
 });
 /* What a location has, in words, for its popup on the map. */
 const locationFacts = l =>
-  [l.noRoadName && "No road name", l.deadEnd && "End of coverage", l.intersection && "Intersection"].filter(
-    Boolean,
-  );
+  [
+    l.noRoadName && "No road name",
+    l.deadEnd && "End of coverage",
+    l.intersection && "Intersection",
+    l.noArrows && "No arrows",
+  ].filter(Boolean);
 /* Where the camera faces with "Along the road" (see locationView). */
 const roadHeading = (r, facts) => cameraHeading(r.links, facts);
 /* Where the camera faces along the road. At the end of the coverage: away from the one arrow, towards
@@ -711,6 +723,7 @@ const cleanLocationFields = l => ({
   noRoadName: l.noRoadName === true,
   deadEnd: l.deadEnd === true,
   intersection: l.intersection === true,
+  noArrows: l.noArrows === true,
   camera: typeof l.camera === "string" && Object.hasOwn(CAMERAS, l.camera) ? l.camera : "",
 });
 
