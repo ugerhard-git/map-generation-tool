@@ -405,6 +405,27 @@ async function runSearch() {
   stoppedKey = stopRequested && !fatal && results.length < currentTarget ? runKey : "";
   updateContinue();
 }
+/* The degrees a random direction's range spans, clockwise from dirFrom to dirTo; 360 for the whole way
+   round. A function declaration, so "camera view", earlier in the page, can use it too. */
+function directionSpan(v) {
+  return (((v.dirTo - v.dirFrom) % 360) + 360) % 360 || 360;
+}
+/* The camera view without settings: along the road (each tool's roadHeading), level, zoom 0. It is the
+   default of "Camera view", and the view in a tool without it (CAMERA_VIEW null). */
+const DEFAULT_VIEW = Object.freeze({
+  direction: "road",
+  carAngle: 0,
+  dirFrom: 0,
+  dirTo: 360,
+  tiltMode: "fixed",
+  tilt: 0,
+  tiltMin: -20,
+  tiltMax: 20,
+  zoomMode: "fixed",
+  zoom: 0,
+  zoomMin: 0,
+  zoomMax: 2,
+});
 /* The settings a search runs with, from the form now; each tool adds its own (toolSearchSettings). */
 function searchSettingsNow(key) {
   return {
@@ -413,7 +434,7 @@ function searchSettingsNow(key) {
     key,
     giveUpAfter: giveUpLimit(),
     ...toolSearchSettings(),
-    view: viewSettings(),
+    view: CAMERA_VIEW ? CAMERA_VIEW.view() : DEFAULT_VIEW,
   };
 }
 /** The settings of the current search, kept for going on after "Fill the gap".
@@ -424,18 +445,7 @@ let searchSettings = {
   key: "",
   giveUpAfter: GIVE_UP_DEFAULT,
   useOlder: false,
-  view: {
-    direction: "road",
-    carAngle: 0,
-    tiltMode: "fixed",
-    tilt: 0,
-    tiltMin: -20,
-    tiltMax: 20,
-    zoomMode: "fixed",
-    zoom: 0,
-    zoomMin: 0,
-    zoomMax: 2,
-  },
+  view: DEFAULT_VIEW,
 };
 $("form").onsubmit = e => {
   e.preventDefault();

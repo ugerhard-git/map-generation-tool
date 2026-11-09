@@ -39,8 +39,7 @@ function angleField(id) {
    widest view (lower numbers look the same), 1 about Street View's normal view, and each 1 more about
    twice as close; decimals zoom in between. Checked with the owner in map-making.app and GeoGuessr
    (October 2026), where 4 was only a little closer than 3, so 4 is the closest offered. */
-const ZOOM_MODES = ["fixed", "random"],
-  ZOOM_MAX = 4;
+const ZOOM_MODES = ["fixed", "random"]; // (ZOOM_MAX, the closest zoom, is in "helpers")
 /* The zoom fields and their defaults: the zoom for every location, and the range of a random zoom. */
 const ZOOM_FIELDS = { zoom: 0, zoomMin: 0, zoomMax: 2 };
 /* A zoom as kept: a number from 0 to 4 with one decimal; d if it is not one. */
@@ -80,7 +79,6 @@ function angleWord(a) {
   return a % 45 === 0 ? words[a / 45] : "";
 }
 /* How wide the range of a random direction is, clockwise from dirFrom to dirTo: 1–360°. */
-const directionSpan = v => (((v.dirTo - v.dirFrom) % 360) + 360) % 360 || 360;
 /* A tilt in words: "level", "10° up", "25° down". */
 const tiltWord = t => (t === 0 ? "level" : t > 0 ? `${t}° up` : `${-t}° down`);
 /* A signed angle as written on the page: "−20°", "20°". */
@@ -331,3 +329,59 @@ dragOn($("tiltDial"), (x, y, first) => {
   setAngle(tiltHandle, t);
 });
 updateView();
+
+/* The camera view as the shared code sees it (the settings, the history, "More options" and the search):
+   through this one name, so a tool without "Camera view" leaves this file out and says
+   CAMERA_VIEW = null (Unofficial, since November 2026); the shared code then uses DEFAULT_VIEW. */
+const CAMERA_VIEW = {
+  /* The search's view, from the form (see searchSettingsNow). */
+  view: viewSettings,
+  /* Its part of currentSettings: the direction is kept as viewDirection. */
+  settings: () => (({ direction, ...rest }) => ({ viewDirection: direction, ...rest }))(viewSettings()),
+  /* Its part of cleanSettings: values from outside, checked. */
+  clean: r => ({
+    viewDirection: VIEW_DIRECTIONS.includes(r.viewDirection) ? r.viewDirection : "road",
+    ...Object.fromEntries(
+      Object.entries(ANGLE_FIELDS).map(([id, f]) => [id, wholeNumber(r[id], f.lo, f.hi, f.d)]),
+    ),
+    tiltMode: TILT_MODES.includes(r.tiltMode) ? r.tiltMode : "fixed",
+    // (settings from before the zoom was kept get zoom 0, as the map files had then)
+    zoomMode: ZOOM_MODES.includes(r.zoomMode) ? r.zoomMode : "fixed",
+    ...Object.fromEntries(Object.entries(ZOOM_FIELDS).map(([id, d]) => [id, cleanZoom(r[id], d)])),
+  }),
+  /* Its part of applySettings: the form and what is saved. */
+  apply: s => {
+    setRadio("viewDirection", s.viewDirection);
+    setRadio("tiltMode", s.tiltMode);
+    store.set("viewDirection", s.viewDirection);
+    store.set("tiltMode", s.tiltMode);
+    setRadio("zoomMode", s.zoomMode);
+    store.set("zoomMode", s.zoomMode);
+    for (const id of [...Object.keys(ANGLE_FIELDS), ...Object.keys(ZOOM_FIELDS)]) {
+      $(id).value = String(s[id]);
+      store.set(id, s[id]);
+    }
+    updateView();
+  },
+  /* Its words in the history (see historyDetails): none for the defaults. */
+  details: s => {
+    const view = { ...s, direction: s.viewDirection };
+    return viewIsDefault(view) ? [] : ["camera " + viewSummary(view).replace(/^./, c => c.toLowerCase())];
+  },
+  /* Its "More options" section (see "more options"). */
+  more: {
+    summary: () => viewSummary(viewSettings()),
+    changed: () => !viewIsDefault(viewSettings()),
+    reset: () => {
+      setRadio("viewDirection", "road");
+      setRadio("tiltMode", "fixed");
+      store.set("viewDirection", "road");
+      store.set("tiltMode", "fixed");
+      setRadio("zoomMode", "fixed");
+      store.set("zoomMode", "fixed");
+      for (const [id, f] of Object.entries(ANGLE_FIELDS)) setControl(id, String(f.d));
+      for (const [id, d] of Object.entries(ZOOM_FIELDS)) setControl(id, String(d));
+      updateView();
+    },
+  },
+};

@@ -88,11 +88,25 @@ const STORE_PREFIX = "unofficial.",
 const COUNTRIES = Object.keys(COUNTRY_FACTS).sort();
 /* Countries left out of a settings file, in words. */
 const DROPPED_COUNTRY_WORDS = "not known";
-/* The settings file (see "settings file"): its format name and the tool in its messages. No settings have
-   been renamed yet (OLDER_SETTING_NAMES). */
+/* The settings file (see "settings file"): its format name and the tool in its messages. Files from before
+   "Camera view" was removed (November 2026) have its settings; they load without a note
+   (OLDER_SETTING_NAMES). */
 const SETTINGS_FORMAT = "unofficial settings",
   TOOL_TITLE = "Unofficial",
-  OLDER_SETTING_NAMES = [];
+  OLDER_SETTING_NAMES = [
+    "viewDirection",
+    "carAngle",
+    "dirFrom",
+    "dirTo",
+    "tiltMode",
+    "tilt",
+    "tiltMin",
+    "tiltMax",
+    "zoomMode",
+    "zoom",
+    "zoomMin",
+    "zoomMax",
+  ];
 /* The other tool in this repository: linked in the header, and named when its settings file is loaded here. */
 const OTHER_TOOL = {
   name: "the Map Generation Tool",
@@ -107,15 +121,6 @@ const GIVE_UP_DEFAULT = 5000;
 /* Google's sources for a lookup (see lookup): every source. "outdoor" would leave out every photosphere,
    as Google cannot tell whether one is indoors; "google" only gives official coverage. */
 const LOOKUP_SOURCES = ["default"];
-/* Words for the camera view (see "camera view"): "Along the road" is "As the photo faces" here, and the
-   camera's angle is measured from the photo's centre (Google's centerHeading): for road coverage, where
-   the car drove; for a photosphere, where the photographer had it face. */
-const VIEW_WORDS = {
-  road: "As the photo faces",
-  front: "the photo's centre",
-  above: "The photo from above",
-  side: "The camera from the side",
-};
 /* The country each territory belongs to, for its country tag (see countryTags): from country-coder, as
    the build found it. Hong Kong keeps its own tag only, as in Lookout and the Map Generation Tool. */
 const TERRITORY_OF = Object.fromEntries(
@@ -351,7 +356,27 @@ const TAG_WORDS = { tagUploader: "uploader", tagArrows: "arrows" };
 
 /*SHARED tags.js*/
 
-/*SHARED camera-view.js*/
+/* No "Camera view" here (removed at the owner's request, November 2026: not needed for this tool, and the
+   page stays simpler): every location faces as the photo faces (roadHeading), level, at zoom 0
+   (DEFAULT_VIEW). The shared code asks CAMERA_VIEW, which is null here; the Map Generation Tool puts in
+   src/shared/camera-view.js. */
+const CAMERA_VIEW = null;
+// The camera view's settings saved before it was removed are cleared (CONTRIBUTING.md: "Never break")
+for (const id of [
+  "viewDirection",
+  "carAngle",
+  "dirFrom",
+  "dirTo",
+  "tiltMode",
+  "tilt",
+  "tiltMin",
+  "tiltMax",
+  "zoomMode",
+  "zoom",
+  "zoomMin",
+  "zoomMax",
+])
+  store.remove(id);
 
 /* ---------- more options: this tool ----------
    This tool's "More options" sections for its filters (see src/shared/more-options.js), and the line
