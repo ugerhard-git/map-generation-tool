@@ -79,6 +79,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 31. **No arrows at all** (done, 8 November 2026, at the owner's request): a fourth choice under "Arrows" in "Roads and arrows" (Map Generation Tool): only spots with no arrows, a photo on its own. The camera faces a random direction there. A "No arrows" tag in "Map file", where it applies, worded as in Unofficial. Kept with the settings as `arrows: "none"` and `tagNoArrows`.
 
+32. **No camera view in Unofficial** (done, 9 November 2026, at the owner's request: not needed for its use, and the page stays simpler): its "Camera view" section is gone; every location faces as the photo faces (the middle of the photo), level, at zoom 0. The Map Generation Tool keeps it. The shared code now uses the camera view only through `CAMERA_VIEW` (from `src/shared/camera-view.js`, or `null` in a tool without it). Unofficial's saved camera view settings are cleared, and settings files with them load without a note.
+
 Later, to be discussed when they come up: more tag options.
 
 ## A second tool: Unofficial
@@ -107,8 +109,8 @@ Changed while building step 2 (6 November 2026), as Google's documentation showe
 
 **Filters.**
 
-- Removed: no road name, arrows (end of coverage, intersection), cameras and bad camera, older photos.
-- Kept: where, how many, radius, give up after, spacing, photo period (the date the photo was taken), camera view without "relative to the car" (a fixed or random direction, tilt and zoom), tags, map file size limit, history, settings file, resuming, continuing a stopped search.
+- Removed: no road name, arrows (end of coverage, intersection), cameras and bad camera, older photos; later (November 2026) also the camera view (see step 32).
+- Kept: where, how many, radius, give up after, spacing, photo period (the date the photo was taken), tags, map file size limit, history, settings file, resuming, continuing a stopped search.
 - Land only becomes a setting, on by default, as some photos are taken from boats or over water.
 - New: **whole 360° only** (partial panoramas, from the image size: a whole one is twice as wide as high), **image size** (the image height: any, or at least 2,000 to 8,000 pixels), **uploaders** to leave out or to keep only (names from the copyright, separated by commas), and the uploader's name as a tag. Both image checks rely on the size Google gives for the whole image (`tiles.worldSize`), which is documented; they are still to be checked on real photospheres with the owner, as the cameras were.
 - Not now, at the owner's choice: telling photospheres, drone shots and road coverage apart.

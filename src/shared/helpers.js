@@ -103,6 +103,10 @@ const esc = s =>
 /* A string from outside, cut to max characters; anything that is not a string becomes "". */
 const cleanText = (v, max = 200) => (typeof v === "string" ? v.slice(0, max) : "");
 /* True for a real number between lo and hi. */
+/* The closest zoom a location's view can have (see "camera view"): 4, as in map-making.app and GeoGuessr,
+   where 4 was only a little closer than 3 (checked with the owner, October 2026). Here, as a saved
+   location's zoom is checked with it in every tool (see "unfinished search"). */
+const ZOOM_MAX = 4;
 const inRange = (n, lo, hi) => typeof n === "number" && Number.isFinite(n) && n >= lo && n <= hi;
 /* A whole number from a form field, or d when it is empty or outside lo–hi. */
 function wholeNumber(value, lo, hi, d) {

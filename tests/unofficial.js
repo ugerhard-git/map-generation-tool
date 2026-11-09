@@ -180,8 +180,8 @@ const path = require("path");
     "counts the spots where Google answered with its own coverage",
   );
   ok(
-    r.customCoordinates.every(c => c.heading === 42),
-    "the camera faces the photo's centre by default (centerHeading)",
+    r.customCoordinates.every(c => c.heading === 42 && c.pitch === 0 && c.zoom === 0),
+    "the camera faces the photo's centre (centerHeading), level, at zoom 0",
   );
   // the uploader: in the popup facts and as a tag
   ok(
@@ -322,7 +322,44 @@ const path = require("path");
   ok(/Unofficial, the other tool/.test(mapgenOther.error), "and names Unofficial for its settings files");
   await m.close();
 
-  // 7. A screenshot of the page with the sections open
+  // 7. No "Camera view" (removed November 2026): no section, nothing of it in the settings or the history;
+  // what was saved for it before is cleared, and settings files with it load without a note
+  const ctx7 = await b.newContext({ viewport: { width: 1360, height: 860 } });
+  await ctx7.addInitScript(() => {
+    if (sessionStorage.getItem("seeded")) return;
+    sessionStorage.setItem("seeded", "1");
+    localStorage.setItem("unofficial.viewDirection", JSON.stringify("random"));
+    localStorage.setItem("unofficial.tilt", "15");
+    localStorage.setItem("unofficial.zoomMode", JSON.stringify("random"));
+  });
+  const v = await open(ctx7);
+  const noView = await v.evaluate(() => ({
+    section: !!document.getElementById("moreView") || !!document.getElementById("viewDirection"),
+    saved: ["viewDirection", "tilt", "zoomMode"].map(k => localStorage.getItem("unofficial." + k)).join(),
+    settings: Object.keys(currentSettings()).filter(k => /view|tilt|zoom|carAngle|dir(From|To)/i.test(k)),
+    cleaned: Object.keys(cleanSettings({ viewDirection: "car", tilt: 20 })).filter(k => /view|tilt/i.test(k)),
+    details: historyDetails(cleanSettings({ viewDirection: "car", carAngle: 90, tilt: 20 })),
+    file: readSettingsFile(
+      JSON.stringify({
+        format: "unofficial settings",
+        version: 1,
+        settings: { viewDirection: "random", tiltMode: "random", zoom: 2, countries: ["MT"] },
+      }),
+    ),
+  }));
+  ok(!noView.section, "no Camera view section");
+  ok(noView.saved === ",,", "what was saved for the camera view is cleared: " + noView.saved);
+  ok(
+    noView.settings.length === 0 && noView.cleaned.length === 0 && !/camera/i.test(noView.details),
+    "nothing of it in the settings or the history: " + noView.details,
+  );
+  ok(
+    noView.file.notes.length === 0 && noView.file.settings.countries.join() === "MT",
+    "a settings file from before loads without a note: " + noView.file.notes.join(" "),
+  );
+  await ctx7.close();
+
+  // 8. A screenshot of the page with the sections open
   await p.screenshot({ path: path.join(__dirname, "../dist/screens/unofficial.png"), fullPage: true });
 
   const errors = allErrors.flat();

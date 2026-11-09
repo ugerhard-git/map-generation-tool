@@ -22,21 +22,8 @@ const MORE = {
     reset: () => setControl("distribution", defaultDistribution()),
   },
   ...MORE_TOOL,
-  moreView: {
-    summary: () => viewSummary(viewSettings()),
-    changed: () => !viewIsDefault(viewSettings()),
-    reset: () => {
-      setRadio("viewDirection", "road");
-      setRadio("tiltMode", "fixed");
-      store.set("viewDirection", "road");
-      store.set("tiltMode", "fixed");
-      setRadio("zoomMode", "fixed");
-      store.set("zoomMode", "fixed");
-      for (const [id, f] of Object.entries(ANGLE_FIELDS)) setControl(id, String(f.d));
-      for (const [id, d] of Object.entries(ZOOM_FIELDS)) setControl(id, String(d));
-      updateView();
-    },
-  },
+  // "Camera view", in a tool that has it (see "camera view")
+  ...(CAMERA_VIEW ? { moreView: CAMERA_VIEW.more } : {}),
   moreSearch: {
     summary: () =>
       `${fmt(radius())} m around each spot, ${$("giveUpOn").checked ? `give up after ${fmt(giveUpAfter())} spots` : "never give up"}`,

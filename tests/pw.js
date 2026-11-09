@@ -7,7 +7,7 @@ const pw = require("playwright");
 const seen = () => {
   const sections = {
     mapgen: ["moreDistribution", "moreRoads", "morePhotos", "moreView", "moreSearch", "moreMapFile"],
-    unofficial: ["moreDistribution", "morePhotos", "moreUploaders", "moreView", "moreSearch", "moreMapFile"],
+    unofficial: ["moreDistribution", "morePhotos", "moreUploaders", "moreSearch", "moreMapFile"],
   };
   try {
     for (const [tool, open] of Object.entries(sections)) {

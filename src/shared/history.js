@@ -89,7 +89,7 @@ function currentSettings() {
     monthFrom: wholeNumber($("monthFrom").value, 1, 12, 1),
     yearTo: cleanYearTo($("yearTo").value),
     monthTo: wholeNumber($("monthTo").value, 1, 12, 12),
-    ...(({ direction, ...rest }) => ({ viewDirection: direction, ...rest }))(viewSettings()),
+    ...(CAMERA_VIEW ? CAMERA_VIEW.settings() : {}),
     target: target(),
     radius: radius(),
     giveUpAfter: giveUpAfter(),
@@ -123,14 +123,7 @@ function cleanSettings(raw) {
     monthFrom: wholeNumber(r.monthFrom, 1, 12, 1),
     yearTo: cleanYearTo(r.yearTo),
     monthTo: wholeNumber(r.monthTo, 1, 12, 12),
-    viewDirection: VIEW_DIRECTIONS.includes(r.viewDirection) ? r.viewDirection : "road",
-    ...Object.fromEntries(
-      Object.entries(ANGLE_FIELDS).map(([id, f]) => [id, wholeNumber(r[id], f.lo, f.hi, f.d)]),
-    ),
-    tiltMode: TILT_MODES.includes(r.tiltMode) ? r.tiltMode : "fixed",
-    // (settings from before the zoom was kept get zoom 0, as the map files had then)
-    zoomMode: ZOOM_MODES.includes(r.zoomMode) ? r.zoomMode : "fixed",
-    ...Object.fromEntries(Object.entries(ZOOM_FIELDS).map(([id, d]) => [id, cleanZoom(r[id], d)])),
+    ...(CAMERA_VIEW ? CAMERA_VIEW.clean(r) : {}),
     target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
     radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
     giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
@@ -212,8 +205,7 @@ function historyDetails(s) {
   if (s.scope !== "countries" || s.countries.length > 1)
     bits.push(s.distribution === "own" ? s.own?.name || "your own distribution" : builtInWords(s));
   bits.push(wantedLabel(wantedOf(s)), ...toolDetails(s));
-  const view = { ...s, direction: s.viewDirection };
-  if (!viewIsDefault(view)) bits.push("camera " + viewSummary(view).replace(/^./, c => c.toLowerCase()));
+  if (CAMERA_VIEW) bits.push(...CAMERA_VIEW.details(s));
   bits.push(`${fmt(s.target)} ${s.target === 1 ? "location" : "locations"}`, `${fmt(s.radius)} m`);
   if (!s.giveUpOn) bits.push("never give up");
   return bits.join(" · ");
@@ -297,19 +289,9 @@ function applySettings(s) {
     else $(id).value = String(s[id]);
     store.set(id, s[id]);
   }
-  setRadio("viewDirection", s.viewDirection);
-  setRadio("tiltMode", s.tiltMode);
-  store.set("viewDirection", s.viewDirection);
-  store.set("tiltMode", s.tiltMode);
-  setRadio("zoomMode", s.zoomMode);
-  store.set("zoomMode", s.zoomMode);
-  for (const id of [...Object.keys(ANGLE_FIELDS), ...Object.keys(ZOOM_FIELDS)]) {
-    $(id).value = String(s[id]);
-    store.set(id, s[id]);
-  }
+  if (CAMERA_VIEW) CAMERA_VIEW.apply(s);
   updateSizeLimit();
   updateGiveUp();
-  updateView();
   updateYears();
   updateTagDate();
   updateMapName();

@@ -38,7 +38,7 @@ The second tool builds map-making.app maps of random **unofficial** Street View 
 - **Filters:** the photo period, whole 360° photos only, the image size, with or without arrows (connected to other photos, or a photo on its own), and uploaders to leave out or to keep only. No road names or cameras.
 - **Tags:** the country, the uploader's name, "Arrows" or "No arrows", and the date.
 - **Giving up:** a country gives up after 5,000 random spots in a row without a new location (2,000 in the Map Generation Tool), as unofficial coverage is rarer.
-- **Camera view:** "As the photo faces" instead of "Along the road", and angles are measured from the middle of the photo instead of the car.
+- **No camera view:** every location faces as the photo faces (the middle of the photo), level, at zoom 0. The settings for direction, tilt and zoom are left out, to keep the page simple.
 
 Its settings are saved in your browser apart from the Map Generation Tool's, and each tool has its own history and settings files.
 

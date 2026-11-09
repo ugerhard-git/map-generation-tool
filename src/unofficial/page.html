@@ -47,7 +47,7 @@
           <li>
             <b>Choose what to look for,</b> if you like, in the sections of step 2: photos from a certain
             period, whole 360° photos only, large images only, or photos by certain uploaders (or not by
-            them). "Camera view" sets where the camera faces, how far it tilts and how far it is zoomed in.
+            them).
           </li>
           <li><b>Choose how many,</b> then select "Find locations".</li>
           <li>
@@ -119,10 +119,6 @@
         sections below to choose more: the period, whole 360° photos, the image size and arrows under
         "Photos", and whose photos under "Uploaders". With several chosen, a location must have all of them.
       </p>
-      <p>
-        "Camera view" sets where the camera faces at each location, how far it tilts and how far it is zoomed
-        in.
-      </p>
     </template>
     <template id="help-own">
       <h2>Your own distribution</h2>
@@ -184,23 +180,6 @@
       <ul>
         <li><b>Leave out:</b> no photos by these, for example someone whose photos fill a whole area.</li>
         <li><b>Only:</b> only photos by these.</li>
-      </ul>
-    </template>
-    <template id="help-direction">
-      <h2>Direction</h2>
-      <ul>
-        <li>
-          <b>As the photo faces:</b> the camera looks where the middle of the photo is: for road coverage,
-          where the car drove; for a photosphere, where the photographer had it face.
-        </li>
-        <li>
-          <b>At an angle to the photo's centre:</b> drag the arrow, or type the angle: 0° looks at the middle
-          of the photo, 90° to its right, 180° behind, 270° to its left.
-        </li>
-        <li>
-          <b>Random:</b> a different direction for every location, between the two handles (or the angles
-          typed), clockwise from the middle of the photo. 0° to 360°, the whole way round, is any direction.
-        </li>
       </ul>
     </template>
     <template id="help-radius">
@@ -380,173 +359,6 @@
               <button type="button" class="linkbtn reset" data-reset="moreUploaders">
                 Reset to defaults
               </button>
-            </details>
-            <!-- More options: where the camera faces, how far it tilts and the zoom (app.js: camera view). The drawings
-                 are for the mouse and touch; the number fields next to them do the same by keyboard. -->
-            <details class="more" id="moreView">
-              <summary>
-                <span class="more-title">Camera view</span>
-                <span class="more-sum" id="sumView"></span>
-              </summary>
-              <div class="field" role="radiogroup" aria-labelledby="directionTitle">
-                <div class="labelrow">
-                  <div class="label" id="directionTitle">Direction</div>
-                  <button type="button" class="help" data-help="direction" aria-label="Help: direction">
-                    ?
-                  </button>
-                </div>
-                <label class="radio"
-                  ><input type="radio" name="viewDirection" id="directionRoad" value="road" checked />As the
-                  photo faces</label
-                >
-                <label class="radio"
-                  ><input type="radio" name="viewDirection" id="directionCar" value="car" />At an angle to the
-                  photo's centre</label
-                >
-                <label class="radio"
-                  ><input
-                    type="radio"
-                    name="viewDirection"
-                    id="directionRandom"
-                    value="random"
-                  />Random</label
-                >
-                <div class="dial" id="directionBox">
-                  <svg
-                    id="directionDial"
-                    viewBox="-110 -110 220 220"
-                    role="img"
-                    aria-label="The photo from above"
-                  >
-                    <circle class="dial-ring" r="80" />
-                    <text class="dial-word" x="0" y="-92">Front</text>
-                    <text class="dial-word" x="0" y="100">Back</text>
-                    <text class="dial-word" x="-96" y="4">Left</text>
-                    <text class="dial-word" x="96" y="4">Right</text>
-                    <!-- A 360° camera from above: a round body with its lens at the front -->
-                    <circle class="car" r="18" />
-                    <circle class="car-glass" cx="0" cy="-12" r="5" />
-                    <path class="tilt-range" id="directionRangeArc" d="" />
-                    <g id="directionArrow">
-                      <line class="cam-line" x1="0" y1="0" x2="0" y2="-74" />
-                      <polygon class="cam-head" points="0,-92 -9,-74 9,-74" />
-                    </g>
-                    <circle class="tilt-handle" id="dirFromHandle" r="8" cx="0" cy="-80" />
-                    <circle class="tilt-handle" id="dirToHandle" r="8" cx="0" cy="-80" />
-                  </svg>
-                  <div class="dial-fields">
-                    <div id="dirCarFields">
-                      <label for="carAngle">Angle</label>
-                      <div class="unit">
-                        <input
-                          type="text"
-                          inputmode="numeric"
-                          autocomplete="off"
-                          id="carAngle"
-                          value="0"
-                        /><span>°</span>
-                      </div>
-                    </div>
-                    <div id="dirRangeFields" class="tilt-range-fields">
-                      <label for="dirFrom">From</label>
-                      <div class="unit">
-                        <input
-                          type="text"
-                          inputmode="numeric"
-                          autocomplete="off"
-                          id="dirFrom"
-                          value="0"
-                        /><span>°</span>
-                      </div>
-                      <label for="dirTo">to</label>
-                      <div class="unit">
-                        <input
-                          type="text"
-                          inputmode="numeric"
-                          autocomplete="off"
-                          id="dirTo"
-                          value="360"
-                        /><span>°</span>
-                      </div>
-                    </div>
-                    <p class="hint">0° front, 90° right, 180° back, 270° left.</p>
-                  </div>
-                </div>
-              </div>
-              <div class="field" role="radiogroup" aria-labelledby="tiltTitle">
-                <div class="labelrow">
-                  <div class="label" id="tiltTitle">Tilt</div>
-                  <button type="button" class="help" data-help="tilt" aria-label="Help: tilt">?</button>
-                </div>
-                <label class="radio"
-                  ><input type="radio" name="tiltMode" id="tiltFixed" value="fixed" checked />The same for
-                  every location</label
-                >
-                <label class="radio"
-                  ><input type="radio" name="tiltMode" id="tiltRandom" value="random" />Random, within a
-                  range</label
-                >
-                <div class="dial" id="tiltBox">
-                  <svg
-                    id="tiltDial"
-                    viewBox="-62 -100 182 200"
-                    role="img"
-                    aria-label="The camera from the side"
-                  >
-                    <path class="dial-ring" d="M0,-80 A80,80 0 0,1 0,80" />
-                    <text class="dial-word" x="0" y="-86">Up</text>
-                    <text class="dial-word" x="0" y="96">Down</text>
-                    <text class="dial-word" x="100" y="-14">Level</text>
-                    <path class="tilt-range" id="tiltRangeArc" d="" />
-                    <!-- A camera on a tripod, from the side -->
-                    <line class="cam-mast" x1="0" y1="8" x2="-20" y2="44" />
-                    <line class="cam-mast" x1="0" y1="8" x2="20" y2="44" />
-                    <line class="cam-mast" x1="0" y1="8" x2="0" y2="44" />
-                    <rect class="car" x="-10" y="-8" width="20" height="16" rx="4" />
-                    <g id="tiltArrow">
-                      <line class="cam-line" x1="0" y1="0" x2="74" y2="0" />
-                      <polygon class="cam-head" points="92,0 74,-9 74,9" />
-                    </g>
-                    <circle class="tilt-handle" id="tiltMinHandle" r="8" cx="80" cy="0" />
-                    <circle class="tilt-handle" id="tiltMaxHandle" r="8" cx="80" cy="0" />
-                  </svg>
-                  <div class="dial-fields">
-                    <div id="tiltFixedFields">
-                      <label for="tilt">Tilt</label>
-                      <div class="unit">
-                        <input type="text" inputmode="numeric" autocomplete="off" id="tilt" value="0" /><span
-                          >°</span
-                        >
-                      </div>
-                    </div>
-                    <div id="tiltRangeFields" class="tilt-range-fields">
-                      <label for="tiltMin">From</label>
-                      <div class="unit">
-                        <input
-                          type="text"
-                          inputmode="numeric"
-                          autocomplete="off"
-                          id="tiltMin"
-                          value="-20"
-                        /><span>°</span>
-                      </div>
-                      <label for="tiltMax">to</label>
-                      <div class="unit">
-                        <input
-                          type="text"
-                          inputmode="numeric"
-                          autocomplete="off"
-                          id="tiltMax"
-                          value="20"
-                        /><span>°</span>
-                      </div>
-                    </div>
-                    <p class="hint">+90° straight up, 0° level, −90° straight down.</p>
-                  </div>
-                </div>
-              </div>
-              <!--SHARED zoom.html-->
-              <button type="button" class="linkbtn reset" data-reset="moreView">Reset to defaults</button>
             </details>
           </section>
 
