@@ -136,7 +136,9 @@ const DROPPED_COUNTRY_WORDS = "not known, or without official Street View";
    older versions saved under another name, which cleanSettings moves over. */
 const SETTINGS_FORMAT = "map-generation-tool settings",
   TOOL_TITLE = "the Map Generation Tool",
-  OLDER_SETTING_NAMES = ["deadEnd"];
+  // (indoor and tagIndoor: the indoor filter and tag, published from 6 to 9 November 2026 and removed, as
+  // Google's answer cannot tell indoor panoramas apart; files from then load without a note)
+  OLDER_SETTING_NAMES = ["deadEnd", "indoor", "tagIndoor"];
 /* The other tool in this repository: linked in the header, and named when its settings file is loaded here. */
 const OTHER_TOOL = {
   name: "Unofficial",
@@ -387,6 +389,8 @@ if (typeof oldFeatures === "boolean")
   for (const id of ["tagNoRoadName", "tagDeadEnd"])
     if (store.get(id, null) === null) store.set(id, oldFeatures);
 store.remove("tagFeatures");
+// The indoor filter and tag were published for a few days (November 2026) and removed again
+for (const id of ["indoor", "tagIndoor"]) store.remove(id);
 /* The tags of a location for the export, from the ticked options: "Malta", "No road name", "2023" or
    "04-2023". */
 function tagsFor(l) {

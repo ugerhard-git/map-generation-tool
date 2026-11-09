@@ -40,6 +40,9 @@ const { openPage } = require("./helpers.js");
     put("viewDirection", "constructor");
     put("carAngle", "1e999");
     put("tiltMin", { valueOf: 1 });
+    // the indoor filter and tag, published for a few days in November 2026 and removed again
+    put("indoor", "only");
+    put("tagIndoor", true);
     put("history", [
       {
         at: 1,
@@ -123,6 +126,27 @@ const { openPage } = require("./helpers.js");
     f.settings.dirFrom === 0 && f.settings.dirTo === 360 && f.settings.tiltMax === 20,
     "and camera view values out of range get their defaults",
   );
+  // Removed options: cleared from the browser, and files from then load without a note
+  ok(
+    (await p.evaluate(() =>
+      [localStorage.getItem("mapgen.indoor"), localStorage.getItem("mapgen.tagIndoor")].join(),
+    )) === ",",
+    "the removed indoor options are cleared from the browser",
+  );
+  const indoorFile = await p.evaluate(() =>
+    readSettingsFile(
+      JSON.stringify({
+        format: "map-generation-tool settings",
+        version: 1,
+        settings: { indoor: "both", tagIndoor: true },
+      }),
+    ),
+  );
+  ok(
+    indoorFile.notes.length === 0 && !("indoor" in indoorFile.settings),
+    "a settings file from then loads without a note: " + indoorFile.notes.join(" "),
+  );
+
   const hostile = await hostileShown();
   ok(!hostile.ran && hostile.imgs === 0, "nothing ran");
 
