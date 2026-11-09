@@ -75,8 +75,6 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 29. **Continuing a stopped search** (done, 30 October 2026, at the owner's request): after "Stop", "Continue the search" runs it on from where it stopped, as long as the settings are those it ran with; "Start a new search" starts afresh. With changed settings, only a new search is possible, and a warning says it starts from scratch and replaces what was found; changing them back brings "Continue" back. The map name, tags and size limit do not count, as they do not change which locations are found. Also after "Download what was found" for a search kept from an earlier visit.
 
-30. **Indoor locations** (done, 6 November 2026, at the owner's request): "Indoor locations" in "Photos": none (the default: outdoor only, as before), both, or only indoor; Google's own indoor panoramas only, as photos others uploaded are never official coverage. Google's answer does not say whether a panorama is indoors, so each panorama that matches everything else is checked with one more lookup: the nearest outdoor panorama at its exact spot is itself only when it is outdoors. An "Indoor" tag in "Map file", where it applies. The check still needs confirming on real Google coverage with the owner.
-
 Later, to be discussed when they come up: more tag options.
 
 ## A second tool: Unofficial
