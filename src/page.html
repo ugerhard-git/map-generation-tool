@@ -48,8 +48,8 @@
           <li>
             <b>Choose what to look for,</b> if you like, in the sections of step 2: spots where Street View
             shows no road name, spots where the coverage ends (only one arrow), intersections (three or more
-            arrows), photos from a certain period or camera, or a mix. "Camera view" sets where the camera
-            faces, how far it tilts and how far it is zoomed in.
+            arrows), spots with no arrows at all, photos from a certain period or camera, or a mix. "Camera
+            view" sets where the camera faces, how far it tilts and how far it is zoomed in.
           </li>
           <li><b>Choose how many,</b> then select "Find locations".</li>
           <li>
@@ -103,8 +103,13 @@
       <h2>What each location has</h2>
       <p>
         Open the sections below to choose what every location must have: the photos (period, camera) under
-        "Photos", road names and arrows (the end of the coverage, intersections) under "Roads and arrows".
-        With several chosen, a location must have all of them. With none, any official location counts.
+        "Photos", road names and arrows (the end of the coverage, intersections, no arrows) under "Roads and
+        arrows". With several chosen, a location must have all of them. With none, any official location
+        counts.
+      </p>
+      <p>
+        Google's own photos inside some buildings, such as stations and museums, can occasionally be among the
+        locations: Google gives no way to leave them out.
       </p>
       <p>
         "Camera view" sets where the camera faces at each location, how far it tilts and how far it is zoomed
@@ -156,6 +161,11 @@
         <li>
           <b>Intersection:</b> three or more arrows, where roads meet. The camera faces along one of them.
         </li>
+        <li>
+          <b>No arrows at all:</b> a single photo on its own, with no way on to another. They are rare in
+          Google's own coverage, so a search can take a long time, and many countries have none. The camera
+          faces a random direction.
+        </li>
       </ul>
     </template>
     <template id="help-camera">
@@ -193,25 +203,6 @@
         period.
       </p>
       <p>It is greyed out unless cameras are ticked or "No bad camera" is.</p>
-    </template>
-    <template id="help-indoor">
-      <h2>Indoor locations</h2>
-      <p>
-        Google's own photos inside buildings, such as museums, stations and stadiums. Photos others uploaded
-        are never included: they are not official coverage.
-      </p>
-      <ul>
-        <li><b>None</b> (the default): outdoor locations only.</li>
-        <li><b>Both</b>: indoor and outdoor locations, as they come.</li>
-        <li>
-          <b>Only indoor</b>: indoor locations only. They are rare, so a search takes much longer, and many
-          countries have none.
-        </li>
-      </ul>
-      <p>
-        Whether a photo is indoors is checked with one more question to Google for each location that matches
-        everything else. An "Indoor" tag can be added under "Map file".
-      </p>
     </template>
     <template id="help-direction">
       <h2>Direction</h2>
@@ -354,26 +345,6 @@
                   ?
                 </button>
               </div>
-              <!-- Google's own indoor photos (a museum, say): left out, as before, or also, or only them -->
-              <div class="field" role="radiogroup" aria-labelledby="indoorTitle">
-                <div class="labelrow">
-                  <div class="label" id="indoorTitle">Indoor locations</div>
-                  <button type="button" class="help" data-help="indoor" aria-label="Help: indoor locations">
-                    ?
-                  </button>
-                </div>
-                <label class="radio"
-                  ><input type="radio" name="indoor" id="indoorNone" value="none" checked />None, outdoor
-                  only</label
-                >
-                <label class="radio"
-                  ><input type="radio" name="indoor" id="indoorBoth" value="both" />Both, indoor and
-                  outdoor</label
-                >
-                <label class="radio"
-                  ><input type="radio" name="indoor" id="indoorOnly" value="only" />Only indoor</label
-                >
-              </div>
               <button type="button" class="linkbtn reset" data-reset="morePhotos">Reset to defaults</button>
             </details>
             <!-- More options: road names and arrows (app.js: more options) -->
@@ -390,8 +361,8 @@
                   ?
                 </button>
               </div>
-              <!-- Arrows: one choice, as "end of coverage" (one arrow) and "intersection" (three or more)
-                   exclude each other -->
+              <!-- Arrows: one choice, as "end of coverage" (one arrow), "intersection" (three or more) and
+                   "no arrows at all" exclude each other -->
               <div class="field arrows" role="radiogroup" aria-labelledby="arrowsTitle">
                 <div class="labelrow">
                   <div class="label" id="arrowsTitle">Arrows</div>
@@ -411,6 +382,9 @@
                     id="arrowsIntersection"
                     value="intersection"
                   />Intersection (three or more arrows)</label
+                >
+                <label class="radio"
+                  ><input type="radio" name="arrows" id="arrowsNone" value="none" />No arrows at all</label
                 >
               </div>
               <button type="button" class="linkbtn reset" data-reset="moreRoads">Reset to defaults</button>
@@ -625,6 +599,9 @@
                   ></label
                 >
                 <label class="check"
+                  ><input type="checkbox" id="tagNoArrows" /><span>"No arrows", where it applies</span></label
+                >
+                <label class="check"
                   ><input type="checkbox" id="tagYear" /><span
                     >The date the photos were taken, as</span
                   ></label
@@ -639,9 +616,6 @@
                   ><input type="checkbox" id="tagCamera" /><span
                     >The camera (Gen 4, Gen 2/3, Bad camera)</span
                   ></label
-                >
-                <label class="check"
-                  ><input type="checkbox" id="tagIndoor" /><span>"Indoor", where it applies</span></label
                 >
               </div>
               <!--SHARED size-limit.html-->

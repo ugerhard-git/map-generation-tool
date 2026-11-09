@@ -78,7 +78,7 @@ async function chooseCountry(page, name) {
 }
 
 /** Fills the form and starts a search: the countries (names; they replace those chosen before), the
- *  criteria (arrows: "any", "end" or "intersection"; deadEnd: true is short for "end"), the number and
+ *  criteria (arrows: "any", "end", "intersection" or "none"; deadEnd: true is short for "end"), the number and
  *  the key. */
 async function search(
   page,

@@ -20,13 +20,12 @@ const HISTORY_MAX = 20;
  * @property {{mode: string, values: Record<string, number>, name: string}|null} own  with distribution
  *                                  "own": the values themselves (a preset is kept as its values, too)
  * @property {boolean} noRoadName   (Map Generation Tool)
- * @property {"any"|"end"|"intersection"} arrows  the arrows asked for (before intersections: deadEnd)
+ * @property {"any"|"end"|"intersection"|"none"} arrows  the arrows asked for (before intersections: deadEnd)
  * @property {boolean} camGen4      the chosen cameras (none ticked: any camera but Gen 1)
  * @property {boolean} camGen23
  * @property {boolean} camBad
  * @property {boolean} noBadCamera  leave out bad camera coverage (only without chosen cameras)
  * @property {boolean} useOlder     use an older photo at the spot instead of bad camera, if there is one
- * @property {"none"|"both"|"only"} indoor  (Map Generation Tool) Google's own indoor locations: none, also, only
  * @property {boolean} full360      (Unofficial) whole 360° photos only
  * @property {number} minHeight     (Unofficial) the smallest image height, in pixels; 0 for any
  * @property {"any"|"exclude"|"only"} uploaderMode  (Unofficial) whose photos

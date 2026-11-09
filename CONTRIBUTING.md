@@ -28,6 +28,7 @@ For a bigger change or a new feature, open an issue first so we can agree on the
    npm run lint        # ESLint; must be clean
    npm run build
    npm test            # browser tests; all files must pass
+   npm run test:split  # the same tests against the split build (dist/split/)
    ```
 
 6. Open a pull request that says what changed, why, and how you tested it. For visual changes, include before and after screenshots.
@@ -66,12 +67,12 @@ The tool should feel easy on first sight, also as settings are added. Every chan
 
 - **Saved settings.** The names saved in the browser (`mapgen.…` for the Map Generation Tool, `unofficial.…` for Unofficial, listed at the top of each tool's `app.js`) stay as they are, so visitors keep their choices. When an option is removed, clear its saved value when the page loads. When a saved setting changes shape, move the old one over on load.
 - **Shared links.** Once the app has shareable links, links people have already sent must keep opening, including links with parameters that no longer exist (they are ignored). Everything read from a link is checked before use.
-- **The security policy.** Only the page's own scripts may run. The build fingerprints them, so inline event handlers (`onclick="…"`) and new outside scripts will not run; wire events up in `app.js`. Do not loosen the policy to make a change work. A feature that needs a new service adds just that host to `connect-src` in `src/build.js`. `tests/security.js` checks the policy, and [SECURITY.md](SECURITY.md) lists the protections.
+- **The security policy.** Only the page's own scripts may run. The build fingerprints them, so inline event handlers (`onclick="…"`) and new outside scripts will not run; wire events up in `app.js`. The split build (`dist/split/`) allows scripts from the page's own server (`'self'`) instead of listing their fingerprints in the policy, as the policy cannot list fingerprints of script files; each script and style sheet tag carries its file's fingerprint (`integrity`) instead, so a changed file is refused (agreed with the owner, November 2026). `tests/security.js` checks both. Do not loosen the policy to make a change work. A feature that needs a new service adds just that host to `connect-src` in `src/build.js`. `tests/security.js` checks the policy, and [SECURITY.md](SECURITY.md) lists the protections.
 - **Untrusted input.** Treat everything from outside (Google, uploaded files, shared links, saved settings) as untrusted: check it, and put it on the page as text, never as HTML.
 - **Keys.** Never put keys in the repository, in shared links or in error messages. The site key comes from the `GOOGLE_API_KEY` environment variable at build time.
 
 ## Also keep in mind
 
-- **One self-contained page.** No runtime CDNs or trackers. Libraries are installed with npm and embedded by the build.
+- **One self-contained page.** No runtime CDNs or trackers. Libraries are installed with npm and embedded by the build. The split build (`dist/split/`, for hosting both tools on one server) puts the same code into files on that server instead, never on another site.
 - **Interface text for non-technical users:** plain words, sentence case, no jargon; say what happened and what to do next.
 - **Be kind to free services** such as the OpenStreetMap servers. Don't add features that multiply requests to them.

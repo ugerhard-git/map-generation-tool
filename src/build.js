@@ -6,6 +6,15 @@
 // fingerprinted for the Content Security Policy. The Google key comes from the GOOGLE_API_KEY environment
 // variable; index.nokey.html next to each page is the same page without it, for the tests. Run with
 // `npm run build`.
+//
+// A second build, in dist/split/, is for hosting both tools on one server of one's own (agreed with the
+// owner, November 2026): the same two pages, but with the scripts and styles in files of their own under
+// dist/split/assets/, where both pages load the same files for what they share (Leaflet, country-coder,
+// the land map, the font and the shared styles), so a browser that opens both downloads them once. Each
+// tool's data and app code is one file of its own (it still holds its copy of the shared code: see "Two
+// tools, one code"). The file names carry a fingerprint, so a server may let browsers keep them for long.
+// Its security policy allows scripts from the page's own server ('self') and Google's, and each script
+// tag carries its file's fingerprint (integrity), so a changed file does not run.
 const fs = require("fs"),
   path = require("path"),
   crypto = require("crypto");
@@ -91,6 +100,85 @@ const key = (process.env.GOOGLE_API_KEY || "").trim();
 if (key && !/^[A-Za-z0-9_-]{20,80}$/.test(key))
   throw new Error("GOOGLE_API_KEY does not look like a Google API key");
 
+// ---------- the split build (dist/split/) ----------
+
+const splitDir = path.join(dist, "split");
+fs.rmSync(splitDir, { recursive: true, force: true });
+fs.mkdirSync(path.join(splitDir, "assets"), { recursive: true });
+const sharedStyles = fs.readFileSync(path.join(__dirname, "shared/style.css"), "utf8");
+/* Writes one file into dist/split/assets/ under a name with its fingerprint ("leaflet.1a2b3c4d.js"), once
+   even when both pages ask for it. Returns its path from the site's root and its integrity value. */
+function asset(name, ext, text) {
+  const digest = crypto.createHash("sha384").update(text, "utf8");
+  const integrity = "sha384-" + digest.copy().digest("base64");
+  const file = `${name}.${digest.digest("hex").slice(0, 10)}.${ext}`;
+  fs.writeFileSync(path.join(splitDir, "assets", file), text);
+  return { href: "assets/" + file, integrity };
+}
+/* Turns a finished one-file page (tpl, with its policy and placeholders filled in) into the split page
+   for dist/split/<out>/: its three script blocks and two style blocks become files under assets/. */
+function splitPage(tpl, dir, out, appJs, where) {
+  const up = out ? "../".repeat(out.split("/").length) : "";
+  const scriptTag = a => `<script src="${up}${a.href}" integrity="${a.integrity}"></script>`;
+  const styleTag = a => `<link rel="stylesheet" href="${up}${a.href}" integrity="${a.integrity}" />`;
+  const blocks = [];
+  tpl.replace(/<script>([\s\S]*?)<\/script>/g, (all, body) => blocks.push(body));
+  if (blocks.length !== 3) throw new Error(`split build: expected 3 script blocks in ${where}`);
+  // 1. the libraries, the same for both pages
+  const leaflet = asset("leaflet", "js", leafletJs),
+    coder = asset("country-coder", "js", countryCoderJs);
+  // 2. the data and the framing check: the land map, the same for both, in a file of its own
+  const landLine = `const LAND = ${JSON.stringify({ per: land.per, runs: land.runs })};`;
+  if (blocks[1].split(landLine).length !== 2)
+    throw new Error(`split build: the land map not found in ${where}`);
+  const landFile = asset("land", "js", landLine + "\n");
+  // 2 and 3. this tool's data, the framing check and its app code, in one file and in that order
+  const tool = asset(
+    out ? out.replace(/\//g, "-") : "mapgen",
+    "js",
+    blocks[1].replace(landLine, "") + "\n" + appJs,
+  );
+  // The styles: what both share (the font, Leaflet's, src/shared/style.css), then the tool's own, if any
+  const shared = asset("shared", "css", fontCss + "\n" + leafletCss + "\n" + sharedStyles);
+  const toolCss = fs.readFileSync(path.join(dir, "style.css"), "utf8");
+  const [before, after = null] = toolCss.split(/^\s*\/\*SHARED style\.css\*\/\s*$/m);
+  if (after === null) throw new Error(`split build: ${where}/style.css does not put in src/shared/style.css`);
+  const rules = css => css.replace(/\/\*[\s\S]*?\*\//g, "").trim();
+  if (rules(before))
+    throw new Error(
+      `split build: ${where}/style.css has rules before the shared styles; they would come after them in the split build`,
+    );
+  const ownCss = rules(after) ? styleTag(asset(out || "mapgen", "css", after)) : "";
+
+  let page = tpl;
+  let i = 0;
+  page = page.replace(/<script>([\s\S]*?)<\/script>/g, () => {
+    i++;
+    if (i === 1) return scriptTag(leaflet) + "\n    " + scriptTag(coder);
+    if (i === 2) return scriptTag(landFile) + "\n    " + scriptTag(tool);
+    return "";
+  });
+  const styles = page.match(/<style>[\s\S]*?<\/style>\s*<style>[\s\S]*?<\/style>/);
+  if (!styles) throw new Error(`split build: the two style blocks not found in ${where}`);
+  page = page.replace(styles[0], () => styleTag(shared) + (ownCss ? "\n" + ownCss : ""));
+  // The policy: scripts and style sheets from this server; the rest as in the one-file page.
+  page = page.replace(
+    /script-src [^;]*;/,
+    `script-src 'self' https://maps.googleapis.com https://*.gstatic.com;`,
+  );
+  page = page.replace(/style-src [^;]*;/, "style-src 'self' 'unsafe-inline';");
+  if (/<script>|<style>/.test(page)) throw new Error(`split build: inline code left in ${where}`);
+  const folder = path.join(splitDir, out);
+  fs.mkdirSync(folder, { recursive: true });
+  const withKey = page.replace(/("googleApiKey": )"[^"]*"/, (all, k) => k + JSON.stringify(key));
+  fs.writeFileSync(path.join(folder, "index.html"), withKey);
+  fs.writeFileSync(path.join(folder, "index.nokey.html"), page.replace(/("googleApiKey": )"[^"]*"/, '$1""'));
+  console.log(
+    path.join("dist/split", out, "index.html"),
+    (withKey.length / 1024).toFixed(0) + " KB, with its scripts and styles in assets/",
+  );
+}
+
 // ---------- each page ----------
 
 // Builds one page from the page.html, style.css and app.js in folder `dir` into dist/<out>/, with the
@@ -152,6 +240,7 @@ function buildPage(dir, out, data) {
   if (left) throw new Error(`placeholder ${left[0]} in ${where}/page.html was not filled in`);
   const folder = path.join(dist, out);
   fs.mkdirSync(folder, { recursive: true });
+  splitPage(tpl, dir, out, appJs, where);
   const withKey = tpl.replace(/("googleApiKey": )"[^"]*"/, (all, k) => k + JSON.stringify(key));
   fs.writeFileSync(path.join(folder, "index.html"), withKey);
   // Same page without a key, for the automated tests (they enter a key of their own).
