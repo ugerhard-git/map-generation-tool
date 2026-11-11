@@ -91,6 +91,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 37. **"Look along the coverage" taken out** (done, 11 November 2026, at the owner's request, after his tests with the search log): with "No road name" and "End of coverage" in Germany, 100 locations took 1.5 minutes without it; with it, the search was stopped after 5.6 minutes at 62. It made 21,265 lookups along the coverage beside 5,026 random spots (about 424 lookups per location instead of 63), and the share of random spots that brought a location did not rise (1.2% against 1.6%). A random spot almost always lands mid-road (two arrows), and the end of the coverage, or a road without a name, is usually hundreds of panoramas away, far beyond a few steps. "Follow the coverage" had already been taken out (step 34). Its saved settings (`lookAlong`, `lookAlongDepth`, and those of step 33) are cleared, and settings files with them load without a note. The shared check of one panorama (`keepPanorama`) and the search log stay; the "Search" markup is one file again.
 
+38. **25 lookups at the same time by default** (done, 11 November 2026, at the owner's request, after his tests with the search log): Kazakhstan, 300 locations, took 2:29 at 6, 1:09 at 12, 0:36 at 25 and 0:30 at 50, with one failed lookup in all four searches (about 93,000 lookups). From 25 to 50 it gains only about 20%, while putting more load on slow computers and on keys with a limit per minute, so 25 is the default and 50 stays the most. A visitor who changed the number keeps theirs; settings from before the setting get 25. The help now suggests a lower number, such as 12 or 6, if failed lookups appear.
+
 Later, to be discussed when they come up:
 
 - More tag options.

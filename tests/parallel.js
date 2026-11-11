@@ -1,4 +1,4 @@
-// Lookups at the same time: 6 unless "Lookups at the same time" under "Search" says otherwise (1 to 50); kept
+// Lookups at the same time: 25 unless "Lookups at the same time" under "Search" says otherwise (1 to 50); kept
 // with the settings and in the history. In both tools.
 const { chromium } = require("./pw.js");
 const { openPage, search, searchEnded, chooseCountry } = require("./helpers.js");
@@ -32,9 +32,9 @@ const { UNOFFICIAL } = require("./site.js");
 
   const { page: p, errors } = await openPage(b);
   await p.evaluate(() => (document.getElementById("moreSearch").open = true));
-  ok((await p.inputValue("#parallel")) === "6", "6 by default");
+  ok((await p.inputValue("#parallel")) === "25", "25 by default");
   let n = await atOnce(p, () => search(p, { country: "Malta", target: 40 }));
-  ok(n === 6, "6 lookups at once: " + n);
+  ok(n === 25, "25 lookups at once: " + n);
 
   await p.fill("#parallel", "20");
   await p.press("#parallel", "Tab");
@@ -61,22 +61,22 @@ const { UNOFFICIAL } = require("./site.js");
   const kept = await p.evaluate(() => ({
     before: cleanSettings({}).parallel,
     wrong: cleanSettings({ parallel: 99 }).parallel,
-    read: cleanSettings({ parallel: 25 }).parallel,
-    history: historyDetails(cleanSettings({ parallel: 25 })),
+    read: cleanSettings({ parallel: 12 }).parallel,
+    history: historyDetails(cleanSettings({ parallel: 12 })),
     plain: historyDetails(cleanSettings({})),
   }));
   ok(
-    kept.before === 6 && kept.wrong === 6 && kept.read === 25,
+    kept.before === 25 && kept.wrong === 25 && kept.read === 12,
     "read back and checked: " + JSON.stringify(kept),
   );
   ok(
-    /25 lookups at once/.test(kept.history) && !/lookups at once/.test(kept.plain),
-    "in the history when not 6",
+    /12 lookups at once/.test(kept.history) && !/lookups at once/.test(kept.plain),
+    "in the history when not 25",
   );
-  await p.evaluate(() => applySettings(cleanSettings({ ...currentSettings(), parallel: 12 })));
-  ok((await p.inputValue("#parallel")) === "12", "put back into the form from the history");
+  await p.evaluate(() => applySettings(cleanSettings({ ...currentSettings(), parallel: 6 })));
+  ok((await p.inputValue("#parallel")) === "6", "put back into the form from the history");
   await p.click("[data-reset=moreSearch]");
-  ok((await p.inputValue("#parallel")) === "6", "Reset to defaults: 6");
+  ok((await p.inputValue("#parallel")) === "25", "Reset to defaults: 25");
 
   // Unofficial has it too
   const { page: u, errors: uErrors } = await openPage(b, "ok", null, UNOFFICIAL);
