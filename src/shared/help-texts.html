@@ -51,6 +51,31 @@
     its own.
   </p>
 </template>
+<template id="help-parallel">
+  <h2>Lookups at the same time</h2>
+  <p>
+    How many random spots the search asks Google about at once. It starts with 6. More lookups at the same
+    time usually means a faster search, especially where most random spots find nothing, as in large, sparsely
+    covered countries. It does not change how many lookups a search needs, only how quickly they are sent.
+  </p>
+  <p>The risks of a higher number:</p>
+  <ul>
+    <li>
+      Google may answer more slowly, or refuse some lookups for a while when too many come in at once. Refused
+      lookups appear as "failed lookups" under the progress bar. After 20 in a row, the search stops, and you
+      can continue it later.
+    </li>
+    <li>A limit set on your Google key, such as lookups per minute, is reached sooner.</li>
+    <li>
+      A slow computer or connection may not keep up, so the page can feel sluggish while the search runs.
+    </li>
+    <li>
+      When a country fills up, the lookups already under way still finish, so a few more lookups than needed
+      are made.
+    </li>
+  </ul>
+  <p>Try 12 or 25. If failed lookups start to appear, go back to a lower number. At most 50.</p>
+</template>
 <template id="help-searchLog">
   <h2>Search log</h2>
   <p>

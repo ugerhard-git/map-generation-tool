@@ -22,6 +22,8 @@ const NUMBER_FIELDS = {
   // the largest map file, in MB (agreed with the owner, October 2026: 20 MB, as some places such as
   // Discord take no larger uploads)
   sizeLimit: { lo: 1, hi: 1000, d: SIZE_LIMIT_DEFAULT, step: 1 },
+  // lookups sent to Google at the same time ("Lookups at the same time" under "Search")
+  parallel: { lo: 1, hi: PARALLEL_MAX, d: PARALLEL, step: 1 },
   // each tool's own number fields (the Map Generation Tool: those of "Look along the coverage")
   ...TOOL_NUMBER_FIELDS,
 };
@@ -38,6 +40,7 @@ const target = () => fieldNumber("target");
 const radius = () => fieldNumber("radius");
 const giveUpAfter = () => fieldNumber("giveUpAfter");
 const sizeLimit = () => fieldNumber("sizeLimit");
+const parallel = () => fieldNumber("parallel");
 $("sizeLimitOn").checked = store.get("sizeLimitOn", true) !== false;
 /* The size limit's number only applies while it is ticked: greyed out otherwise. */
 function updateSizeLimit() {

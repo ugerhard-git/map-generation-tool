@@ -50,6 +50,7 @@ const HISTORY_MAX = 20;
  * @property {number} zoomMax
  * @property {number} target
  * @property {number} radius
+ * @property {number} parallel     lookups at the same time (settings from before: PARALLEL)
  * @property {number} giveUpAfter
  * @property {boolean} giveUpOn     false: a country never gives up
  * @property {boolean} sizeLimitOn  offer to make the map file smaller when it is over sizeLimit
@@ -92,6 +93,7 @@ function currentSettings() {
     ...(CAMERA_VIEW ? CAMERA_VIEW.settings() : {}),
     target: target(),
     radius: radius(),
+    parallel: parallel(),
     giveUpAfter: giveUpAfter(),
     giveUpOn: $("giveUpOn").checked,
     sizeLimitOn: $("sizeLimitOn").checked,
@@ -126,6 +128,7 @@ function cleanSettings(raw) {
     ...(CAMERA_VIEW ? CAMERA_VIEW.clean(r) : {}),
     target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
     radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
+    parallel: wholeNumber(r.parallel, 1, PARALLEL_MAX, PARALLEL),
     giveUpAfter: wholeNumber(r.giveUpAfter, GIVE_UP_MIN, GIVE_UP_MAX, GIVE_UP_DEFAULT),
     // (settings from before it was optional give up, as searches did then)
     giveUpOn: r.giveUpOn !== false,
@@ -207,6 +210,7 @@ function historyDetails(s) {
   bits.push(wantedLabel(wantedOf(s)), ...toolDetails(s));
   if (CAMERA_VIEW) bits.push(...CAMERA_VIEW.details(s));
   bits.push(`${fmt(s.target)} ${s.target === 1 ? "location" : "locations"}`, `${fmt(s.radius)} m`);
+  if (s.parallel !== PARALLEL) bits.push(`${fmt(s.parallel)} lookups at once`);
   if (!s.giveUpOn) bits.push("never give up");
   return bits.join(" · ");
 }
@@ -281,6 +285,7 @@ function applySettings(s) {
     "territoryTag",
     "target",
     "radius",
+    "parallel",
     "giveUpAfter",
     "sizeLimit",
     "mapName",

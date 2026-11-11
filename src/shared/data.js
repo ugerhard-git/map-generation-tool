@@ -25,7 +25,10 @@ const TARGET_DEFAULT = 300;
 const RADIUS_MIN = 50,
   RADIUS_MAX = 10000; // metres around a random spot to look for a panorama (default: RADIUS_DEFAULT)
 const MIN_SPACING = 100; // metres between any two locations, so there are no near-duplicates
-const PARALLEL = 6; // lookups running at the same time
+// Lookups running at the same time: PARALLEL unless "Lookups at the same time" under "Search" says otherwise
+// (a setting since November 2026, at the owner's request; up to PARALLEL_MAX)
+const PARALLEL = 6,
+  PARALLEL_MAX = 50;
 const ERROR_LIMIT = 20; // failed lookups in a row (not "nothing found") before the search gives up
 const ERROR_WAIT = 3000; // ms to wait after a failed lookup, before trying again
 // Locations drawn on the map. Every dot is redrawn when the map moves: measured in October 2026, 20,000

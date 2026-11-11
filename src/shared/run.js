@@ -408,7 +408,7 @@ async function runSearch(isNew = false) {
       paintSoon();
     }
   };
-  await Promise.all(Array.from({ length: PARALLEL }, worker));
+  await Promise.all(Array.from({ length: searchSettings.parallel || PARALLEL }, worker));
   clearInterval(tick);
   stats.searchedMs += Date.now() - runStartedAt;
   runStartedAt = 0;
@@ -465,17 +465,20 @@ function searchSettingsNow(key) {
     want: wanted(),
     rad: radius(),
     key,
+    parallel: parallel(),
     giveUpAfter: giveUpLimit(),
     ...toolSearchSettings(),
     view: CAMERA_VIEW ? CAMERA_VIEW.view() : DEFAULT_VIEW,
   };
 }
 /** The settings of the current search, kept for going on after "Fill the gap".
- *  @type {{want: object, rad: number, key: string, giveUpAfter: number, useOlder: boolean, view: object}} */
+ *  @type {{want: object, rad: number, key: string, parallel: number, giveUpAfter: number, useOlder: boolean,
+ *          view: object}} */
 let searchSettings = {
   want: {},
   rad: RADIUS_DEFAULT,
   key: "",
+  parallel: PARALLEL,
   giveUpAfter: GIVE_UP_DEFAULT,
   useOlder: false,
   view: DEFAULT_VIEW,
