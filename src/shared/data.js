@@ -17,10 +17,13 @@ const GOOGLE_API_KEY =
     : "";
 const TARGET_MAX = 130000; // most locations one search may ask for
 /* The settings of the running or last search, as compared for continuing it (see "continuing a stopped
-   search"); stoppedKey is set while a stopped search can be continued, "" otherwise. Here at the top, as
-   the summaries (updateMore) look at them from the start. */
+   search"); stoppedKey is set while a stopped search can be continued, "" otherwise; ranSettings are the
+   settings the locations on the map were found with, while they can be continued from (null otherwise:
+   during a search, after "Clear" or "Make it smaller", or after an error). Here at the top, as the
+   summaries (updateMore) look at them from the start. */
 let runKey = "",
-  stoppedKey = "";
+  stoppedKey = "",
+  ranSettings = null;
 const TARGET_DEFAULT = 300;
 const RADIUS_MIN = 50,
   RADIUS_MAX = 10000; // metres around a random spot to look for a panorama (default: RADIUS_DEFAULT)

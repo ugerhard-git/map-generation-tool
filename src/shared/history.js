@@ -198,6 +198,17 @@ function finishSearch(id, outcome) {
   saveHistory(list);
   if (!$("history").hidden) renderHistory();
 }
+/* Puts the settings a search goes on with on its history entry (after continuing with a changed number). */
+function updateHistorySettings(id, settings) {
+  if (!id) return;
+  const list = loadHistory(),
+    e = list.find(x => x.id === id);
+  if (!e) return;
+  e.settings = settings;
+  e.title = mapName();
+  saveHistory(list);
+  if (!$("history").hidden) renderHistory();
+}
 /* One line about an entry's settings: "Whole world · An Arbitrary World · No road name · 1,000 locations · 1,000 m". */
 function historyDetails(s) {
   const bits = [];

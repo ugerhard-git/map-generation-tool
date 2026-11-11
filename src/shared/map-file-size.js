@@ -193,8 +193,10 @@ $("pruneGo").onclick = () => {
       currentTarget,
       unfinished: results.length < currentTarget,
       stoppedKey,
+      ranSettings,
     };
     stoppedKey = ""; // the smaller set is the result: no continuing it
+    ranSettings = null;
     hideShortfall();
     replaceResults(kept);
     searchTargets = new Map(foundBy);
@@ -217,6 +219,7 @@ $("pruneUndo").onclick = () => {
   currentTarget = u.currentTarget;
   if (u.unfinished) saveSearch(); // it can be continued again
   stoppedKey = u.stoppedKey;
+  ranSettings = u.ranSettings;
   $("pruned").hidden = true;
   pruneSkipped = "";
   paint(`Back to all ${fmt(results.length)} locations.`);
@@ -240,6 +243,7 @@ $("moreMapFile").addEventListener("change", sizeSoon);
 
 $("clear").onclick = () => {
   stoppedKey = "";
+  ranSettings = null;
   forgetPrune();
   hideShortfall();
   clearSavedSearch();

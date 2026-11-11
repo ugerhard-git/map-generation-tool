@@ -227,6 +227,7 @@ $("resumeShow").onclick = () => {
   showError("");
   restoreSearch(savedSearch);
   stoppedKey = runKey; // it can be continued from here too
+  ranSettings = savedSearch.settings;
   paint(
     `${fmt(results.length)} locations from your unfinished search. Download them, or continue the search.`,
   );

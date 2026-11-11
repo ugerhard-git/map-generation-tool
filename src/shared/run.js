@@ -323,6 +323,7 @@ async function startSearch() {
   forgetPrune();
   runKey = searchKey(currentSettings());
   stoppedKey = "";
+  ranSettings = null;
   historyId = recordSearch();
   showNumber("target", target());
   showNumber("giveUpAfter", giveUpAfter());
@@ -431,6 +432,8 @@ async function runSearch(isNew = false) {
   if (!stopRequested && !fatal) showShortfall();
   // Stopped by hand before it was done: it can be continued
   stoppedKey = stopRequested && !fatal && results.length < currentTarget ? runKey : "";
+  // the settings these locations were found with, for continuing with a changed number
+  ranSettings = !fatal && results.length ? currentSettings() : null;
   updateContinue();
 }
 /* The degrees a random direction's range spans, clockwise from dirFrom to dirTo; 360 for the whole way
@@ -480,7 +483,8 @@ let searchSettings = {
 };
 $("form").onsubmit = e => {
   e.preventDefault();
-  startSearch();
+  // (with a stopped search that cannot be continued, it asks first: see "continuing a stopped search")
+  if (!confirmNewSearch()) startSearch();
 };
 $("stop").onclick = () => {
   stopRequested = true;
