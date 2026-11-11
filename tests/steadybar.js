@@ -66,6 +66,15 @@ const { openPage, search } = require("./helpers.js");
   // (a counter moves once when another one before it gets a digit more: 9 → 10, 99 → 100, …)
   ok(r.moves <= 6, "the counters and buttons hardly move: " + r.moves + " moves in 8 seconds");
   ok(r.shrank === 0, "the room for a number never shrinks during a search");
+  const edges = await p.evaluate(() =>
+    [document.getElementById("count"), document.querySelector(".count small")].map(e =>
+      Math.round(e.getBoundingClientRect().left),
+    ),
+  );
+  ok(
+    edges[0] === edges[1],
+    'the count and "locations" under it start at the same place: ' + edges.join(", "),
+  );
 
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();

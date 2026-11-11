@@ -706,9 +706,9 @@ a:focus-visible {
   line-height: 1;
   margin-right: 6px;
 }
+/* (left-aligned, as "locations" under it: the room kept for the number asked for is on the right) */
 #count {
   display: inline-block;
-  text-align: right;
 }
 .count small {
   display: block;
