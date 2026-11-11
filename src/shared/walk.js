@@ -32,15 +32,16 @@ for (const r of document.querySelectorAll("input[name=lookAlong]"))
     store.set("lookAlong", lookAlongChosen());
     updateLookAlong();
   });
-/* "Until the first match" needs something asked for; the numbers apply only to the ways that use them:
-   greyed out otherwise. */
+/* "Until the first match" needs something asked for: greyed out otherwise. Only the numbers the choice uses
+   are shown (agreed with the owner, November 2026: none when off, "Give up after" for the first match, all
+   three to follow the coverage); hidden ones keep their saved values. */
 function updateLookAlong() {
   const w = wanted(),
     mode = lookAlongMode(lookAlongChosen(), w);
   $("lookAlongFirst").disabled = !anythingWanted(w);
-  $("lookAlongDepth").disabled = mode === "off";
-  $("lookAlongSpacing").disabled = mode !== "follow";
-  $("lookAlongMax").disabled = mode !== "follow";
+  $("lookAlongDepthBox").hidden = mode === "off";
+  $("lookAlongSpacingBox").hidden = mode !== "follow";
+  $("lookAlongMaxBox").hidden = mode !== "follow";
 }
 updateLookAlong(); // (and after every change in the form: see the summary below)
 /* The settings in the form, as kept in the history (see currentSettings). */

@@ -68,13 +68,21 @@ const { openPage, search, searchEnded } = require("./helpers.js");
     await p.dispatchEvent("#" + id, "change");
   };
 
-  // The choice: off by default; "Until the first match" only with something asked for; the numbers only
-  // where they apply
+  // The choice: off by default; "Until the first match" only with something asked for; the numbers shown
+  // only where they apply
   ok((await p.isChecked("input[name=lookAlong][value=off]")) === true, "off by default");
   const state = () =>
     p.evaluate(() =>
       ["lookAlongFirst", "lookAlongDepth", "lookAlongSpacing", "lookAlongMax"]
-        .map(id => (document.getElementById(id).disabled ? "-" : "+"))
+        .map(id =>
+          (
+            id === "lookAlongFirst"
+              ? document.getElementById(id).disabled
+              : document.getElementById(id + "Box").hidden
+          )
+            ? "-"
+            : "+",
+        )
         .join(""),
     );
   ok((await state()) === "----", "nothing asked for: no first match, no numbers: " + (await state()));

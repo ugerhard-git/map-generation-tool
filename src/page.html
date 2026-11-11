@@ -586,7 +586,7 @@
             <!--SHARED how-many.html-->
             <!--SHARED more-search.html-->
             <!-- Look along the coverage (src/shared/walk.js): from the panorama found at a random spot, follow its
-                 arrows to the panoramas next to it. One choice; the numbers under it apply as the choice says. -->
+                 arrows to the panoramas next to it. One choice; only the numbers it uses are shown under it. -->
             <div class="field" role="radiogroup" aria-labelledby="lookAlongTitle">
               <div class="labelrow">
                 <div class="label" id="lookAlongTitle">Look along the coverage</div>
@@ -607,7 +607,7 @@
               <label class="radio"
                 ><input type="radio" name="lookAlong" value="follow" />Follow the coverage</label
               >
-              <div class="sub-field">
+              <div class="sub-field" id="lookAlongDepthBox" hidden>
                 <label for="lookAlongDepth">Give up after</label>
                 <div class="unit">
                   <input
@@ -619,7 +619,7 @@
                   /><span>panoramas without a match</span>
                 </div>
               </div>
-              <div class="sub-field">
+              <div class="sub-field" id="lookAlongSpacingBox" hidden>
                 <label for="lookAlongSpacing">Keep locations at least</label>
                 <div class="unit">
                   <input
@@ -631,7 +631,7 @@
                   /><span>m apart along the coverage</span>
                 </div>
               </div>
-              <div class="sub-field">
+              <div class="sub-field" id="lookAlongMaxBox" hidden>
                 <label for="lookAlongMax">At most</label>
                 <div class="unit">
                   <input
