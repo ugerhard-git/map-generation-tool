@@ -646,6 +646,8 @@ a:focus-visible {
 
 /* ---------- bottom bar: status line, counter, export ---------- */
 .bar {
+  /* digits of one width, so numbers that change while a search runs do not jitter */
+  font-variant-numeric: tabular-nums;
   background: var(--panel);
   border-top: 1px solid var(--line);
   padding: 14px 22px;
@@ -683,7 +685,13 @@ a:focus-visible {
   font-size: 0.9rem;
   color: var(--muted);
 }
+.tally span {
+  white-space: nowrap;
+}
+/* (each number keeps the room it has needed in this search: see tallyWidths) */
 .tally b {
+  display: inline-block;
+  text-align: right;
   color: var(--ink);
 }
 .out {
@@ -697,6 +705,10 @@ a:focus-visible {
   font-weight: 800;
   line-height: 1;
   margin-right: 6px;
+}
+#count {
+  display: inline-block;
+  text-align: right;
 }
 .count small {
   display: block;
@@ -869,7 +881,8 @@ a:focus-visible {
 }
 
 /* ---------- settings file ---------- */
-#settingsBox .acts {
+#settingsBox .acts,
+#newSearchBox .acts {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

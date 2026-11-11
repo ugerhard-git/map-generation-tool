@@ -66,12 +66,18 @@ function showError(text) {
   $("error").textContent = text;
   $("error").hidden = !text;
 }
+/* The widest each counter's number has been in this search, in characters: the numbers keep that room,
+   so they do not jump left and right, or make the counters wrap to another line and back, as they grow
+   (asked by the owner, November 2026; the bar also uses digits of one width, see style.css). */
+let tallyWidths = new Map();
 /* Keeps the status line, progress, counters and buttons up to date. */
 function paint(status) {
   if (status) $("now").textContent = status;
   const goal = running || stats.tries ? currentTarget : 0;
   $("fill").style.width = goal ? Math.min(100, (100 * results.length) / goal).toFixed(1) + "%" : "0";
   $("count").textContent = fmt(results.length);
+  // (room for the number asked for, so the count does not move the buttons as it grows)
+  $("count").style.minWidth = goal ? fmt(goal).length + "ch" : "";
   for (const id of ["download", "copy", "clear"]) $(id).disabled = !results.length || running;
   if (running) showSize();
   else sizeSoon();
@@ -82,6 +88,9 @@ function paint(status) {
     const s = document.createElement("span"),
       b = document.createElement("b");
     b.textContent = typeof n === "number" ? fmt(n) : n;
+    const w = Math.max(tallyWidths.get(label) || 0, b.textContent.length);
+    tallyWidths.set(label, w);
+    b.style.minWidth = w + "ch";
     s.append(b, " " + label);
     t.append(s);
   };
@@ -323,6 +332,7 @@ async function startSearch() {
   forgetPrune();
   runKey = searchKey(currentSettings());
   stoppedKey = "";
+  ranSettings = null;
   historyId = recordSearch();
   showNumber("target", target());
   showNumber("giveUpAfter", giveUpAfter());
@@ -337,6 +347,7 @@ async function startSearch() {
   cells = new Map();
   seenPanos = new Set();
   stats = emptyStats();
+  tallyWidths = new Map();
   fatal = "";
   stopRequested = false;
   const codes = [...searchTargets.keys()];
@@ -431,6 +442,8 @@ async function runSearch(isNew = false) {
   if (!stopRequested && !fatal) showShortfall();
   // Stopped by hand before it was done: it can be continued
   stoppedKey = stopRequested && !fatal && results.length < currentTarget ? runKey : "";
+  // the settings these locations were found with, for continuing with a changed number
+  ranSettings = !fatal && results.length ? currentSettings() : null;
   updateContinue();
 }
 /* The degrees a random direction's range spans, clockwise from dirFrom to dirTo; 360 for the whole way
@@ -480,7 +493,8 @@ let searchSettings = {
 };
 $("form").onsubmit = e => {
   e.preventDefault();
-  startSearch();
+  // (with a stopped search that cannot be continued, it asks first: see "continuing a stopped search")
+  if (!confirmNewSearch()) startSearch();
 };
 $("stop").onclick = () => {
   stopRequested = true;

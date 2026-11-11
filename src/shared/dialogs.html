@@ -52,6 +52,37 @@
     <p class="msg" id="settingsMsg" role="status" hidden></p>
   </div>
 </div>
+<!-- Start a new search? Asked when a stopped search cannot be continued, as settings that decide which
+     locations are found changed (app.js: continuing a stopped search) -->
+<div class="dialog" id="newSearch" hidden>
+  <div
+    class="dialog-box"
+    id="newSearchBox"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="newSearchTitle"
+    tabindex="-1"
+  >
+    <button type="button" class="dialog-x" id="newSearchX" aria-label="Close">×</button>
+    <h2 id="newSearchTitle">Start a new search?</h2>
+    <p>Since you stopped the search, you changed settings that decide which locations are found:</p>
+    <ul id="newSearchChanged"></ul>
+    <p>
+      The <span id="newSearchCount"></span> locations found so far were found with the old settings. Some of
+      them may not fit the new ones, and the page cannot tell which, so the search cannot go on with them. A
+      new search starts from scratch and replaces them.
+    </p>
+    <p>
+      To keep them, cancel and download the map file first, or change those settings back and continue the
+      stopped search. Only the number of locations, how far to look around each spot, the lookups at the same
+      time and giving up can change while keeping what was found.
+    </p>
+    <div class="acts">
+      <button type="button" class="btn primary" id="newSearchGo">Start a new search</button>
+      <button type="button" class="btn" id="newSearchCancel">Cancel</button>
+    </div>
+  </div>
+</div>
 <!-- Help dialog, opened by the "?" buttons next to settings; its text comes from the help texts below
      (app.js: help) -->
 <div class="dialog" id="help" hidden>
