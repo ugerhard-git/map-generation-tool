@@ -26,8 +26,10 @@ const RADIUS_MIN = 50,
   RADIUS_MAX = 10000; // metres around a random spot to look for a panorama (default: RADIUS_DEFAULT)
 const MIN_SPACING = 100; // metres between any two locations, so there are no near-duplicates
 // Lookups running at the same time: PARALLEL unless "Lookups at the same time" under "Search" says otherwise
-// (a setting since November 2026, at the owner's request; up to PARALLEL_MAX)
-const PARALLEL = 6,
+// (a setting since November 2026, at the owner's request; up to PARALLEL_MAX). 25 since the owner's tests
+// in Kazakhstan (November 2026, 300 locations: 2:29 at 6, 1:09 at 12, 0:36 at 25, 0:30 at 50, and one
+// failed lookup in all four); 6 before.
+const PARALLEL = 25,
   PARALLEL_MAX = 50;
 const ERROR_LIMIT = 20; // failed lookups in a row (not "nothing found") before the search gives up
 const ERROR_WAIT = 3000; // ms to wait after a failed lookup, before trying again
