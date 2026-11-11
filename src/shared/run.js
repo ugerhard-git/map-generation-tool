@@ -156,7 +156,14 @@ function miss(code) {
   const n = (missesInRow.get(code) || 0) + 1;
   missesInRow.set(code, n);
   // (a country that is already full, through another worker's lookup, does not give up)
-  if (n >= searchSettings.giveUpAfter && (foundBy.get(code) || 0) < searchTargets.get(code)) gaveUp.add(code);
+  if (
+    n >= searchSettings.giveUpAfter &&
+    (foundBy.get(code) || 0) < searchTargets.get(code) &&
+    !gaveUp.has(code)
+  ) {
+    gaveUp.add(code);
+    logEvent("gave up", { cc: code, spots: n });
+  }
 }
 /* One random spot in a country: look it up and keep the panorama if it matches (keepPanorama); if it does
    not, in a tool that looks along the coverage, look at the panoramas its arrows lead to (see
@@ -169,18 +176,21 @@ async function attempt(code, want, rad, key) {
   }
   stats.tries++;
   countPace(code);
+  logEvent("spot", { cc: code, lat: Math.round(p.lat * 1e5) / 1e5, lng: Math.round(p.lng * 1e5) / 1e5 });
   const r = await lookup(p, rad, key, lookupSources(want));
   if (keyRefused) {
     fatal = "Google refused the API key. Check that it is right and has the Maps JavaScript API enabled.";
     return;
   }
   if (r.status === "ZERO_RESULTS") {
+    logEvent("nothing");
     stats.empty++;
     stats.failedInRow = 0;
     miss(code);
     return;
   }
   if (r.status !== "OK") {
+    logEvent("failed", { status: r.status });
     stats.failed++;
     if (++stats.failedInRow >= ERROR_LIMIT)
       fatal =
@@ -191,6 +201,7 @@ async function attempt(code, want, rad, key) {
     return;
   }
   stats.failedInRow = 0;
+  logEvent("pano", logPano(r));
   const keep = pano => keepPanorama(pano, code, key, want);
   let kept = await keep(r);
   if (fatal) return;
@@ -202,28 +213,42 @@ async function attempt(code, want, rad, key) {
 /* Checks a panorama found for a country and keeps it as a location if it matches; true when kept. What a
    panorama must have is each tool's own (see "what a location must have" in its app.js): panoramaWanted()
    and laterChecks() decide, locationFields() adds what the tool keeps about a location. Counts why a
-   panorama was left out. */
+   panorama was left out, and in the search log, whether it was kept or why not (the counters it added to;
+   none when the country was full meanwhile). */
 async function keepPanorama(r, code, key, want) {
+  const before = searchLog ? { ...stats } : null;
+  const l = await checkPanorama(r, code, key, want);
+  if (before)
+    logEvent(
+      l ? "kept" : "left",
+      l
+        ? { pano: l.panoId, ...(l.panoId !== r.panoId ? { instead: r.panoId } : {}) }
+        : { pano: r.panoId, why: Object.keys(stats).filter(k => stats[k] > before[k]) },
+    );
+  return !!l;
+}
+/* The checks of keepPanorama: the location kept, or null. */
+async function checkPanorama(r, code, key, want) {
   // The panorama to use (it can be another photo at the same spot) and what its arrows say; or the name
   // of the counter for why it does not match.
   const checked = await panoramaWanted(r, code, key, want);
-  if (fatal) return false;
+  if (fatal) return null;
   if (!checked || typeof checked === "string") {
     stats[checked || "notMatching"]++;
-    return false;
+    return null;
   }
   const { pano, facts } = checked;
   if (countryAt(pano.lat, pano.lng) !== code) {
     stats.outside++;
-    return false;
+    return null;
   }
-  if (!laterChecks(pano, code, want)) return false;
+  if (!laterChecks(pano, code, want)) return null;
   if (seenPanos.has(pano.panoId) || tooClose(pano.lat, pano.lng)) {
     stats.tooClose++;
-    return false;
+    return null;
   }
   // another worker may have filled this country's last place meanwhile
-  if ((foundBy.get(code) || 0) >= searchTargets.get(code)) return false;
+  if ((foundBy.get(code) || 0) >= searchTargets.get(code)) return null;
   /** @type {Location} */
   const l = {
     lat: pano.lat,
@@ -240,7 +265,7 @@ async function keepPanorama(r, code, key, want) {
   missesInRow.set(code, 0);
   remember(l);
   if (results.length <= MAX_DRAWN) drawLocation(l);
-  return true;
+  return l;
 }
 /* Where the camera faces and how far it tilts, from the camera view settings of the search (see
    "camera view"): along the road (each tool's roadHeading), at an angle to the car, or random; level, at a set
@@ -337,7 +362,7 @@ async function startSearch() {
     paint("Ready.");
     return;
   }
-  await runSearch();
+  await runSearch(true);
 }
 /* Loads Google's script for a search. On failure, says why (and notes it in the history) and returns
    false. */
@@ -364,11 +389,12 @@ async function googleReady(key) {
 /* Runs the workers until every country has its number, has given up, or the visitor stops; then says
    how it went, and offers to fill the gap when countries fell short. Used for a new search and to go on
    after "Fill the gap". */
-async function runSearch() {
+async function runSearch(isNew = false) {
   const { want, rad, key } = searchSettings;
   setRunning(true);
   stopRequested = false;
   startPace();
+  startLog(isNew);
   runStartedAt = Date.now();
   const tick = setInterval(() => paint(), 1000); // the time spent searching goes on between finds too
   lastPaint = 0;
@@ -398,12 +424,12 @@ async function runSearch() {
       ? `Done: ${fmt(results.length)} locations found ${where}.`
       : `${stopRequested ? "Stopped" : "Search ended"}: ${fmt(results.length)} of ${fmt(currentTarget)} locations found ${where}.`,
   );
-  finishSearch(
-    historyId,
+  const outcome =
     results.length >= currentTarget
       ? `${fmt(results.length)} locations`
-      : `${stopRequested ? "Stopped after" : "Ended with"} ${fmt(results.length)} of ${fmt(currentTarget)} locations${gaveUp.size ? `; ${gaveUp.size === 1 ? "1 country" : fmt(gaveUp.size) + " countries"} gave up` : ""}`,
-  );
+      : `${stopRequested ? "Stopped after" : "Ended with"} ${fmt(results.length)} of ${fmt(currentTarget)} locations${gaveUp.size ? `; ${gaveUp.size === 1 ? "1 country" : fmt(gaveUp.size) + " countries"} gave up` : ""}`;
+  endLog(outcome);
+  finishSearch(historyId, outcome);
   // A finished search needs no resuming; any other end is kept, so it can be continued later.
   if (results.length >= currentTarget) clearSavedSearch();
   else saveSearch();

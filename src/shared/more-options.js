@@ -31,6 +31,7 @@ const MORE = {
         `${fmt(radius())} m around each spot`,
         COVERAGE_WALK?.summary(),
         $("giveUpOn").checked ? `give up after ${fmt(giveUpAfter())} spots` : "never give up",
+        $("searchLog").checked && "keeping a log",
       ]
         .filter(Boolean)
         .join(", "),
@@ -38,11 +39,13 @@ const MORE = {
       radius() !== RADIUS_DEFAULT ||
       giveUpAfter() !== GIVE_UP_DEFAULT ||
       !$("giveUpOn").checked ||
+      $("searchLog").checked ||
       !!COVERAGE_WALK?.changed(),
     reset: () => {
       setControl("radius", fmt(RADIUS_DEFAULT));
       setControl("giveUpAfter", fmt(GIVE_UP_DEFAULT));
       setControl("giveUpOn", true);
+      setControl("searchLog", false);
       COVERAGE_WALK?.reset();
     },
   },

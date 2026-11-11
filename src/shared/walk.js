@@ -78,9 +78,11 @@ async function walkAlong(start, code, key, want, keep) {
         return false;
       }
       if (a.status !== "OK") {
+        logEvent("failed", { status: a.status, pano: id });
         stats.failed++;
         continue;
       }
+      logEvent("step", { from: r.panoId, ...logPano(a) });
       // not on into another country, nor onto coverage that is not Google's own
       if (!isOfficial(a.copyright) || countryAt(a.lat, a.lng) !== code) continue;
       if (await keep(a)) return true;

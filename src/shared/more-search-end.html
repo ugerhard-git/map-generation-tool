@@ -1,4 +1,11 @@
 <!-- Shared markup: the end of the "Search" section of step 3 (it begins with src/shared/more-search.html). Used
      by both tools: the build puts it where a page.html has a line "SHARED more-search-end.html" in a comment. -->
+  <!-- The search log (src/shared/search-log.js): off by default, only for debugging -->
+  <div class="field">
+    <div class="checkrow">
+      <label class="check"><input type="checkbox" id="searchLog" /><span>Keep a log of the search</span></label>
+      <button type="button" class="help" data-help="searchLog" aria-label="Help: search log">?</button>
+    </div>
+  </div>
   <button type="button" class="linkbtn reset" data-reset="moreSearch">Reset to defaults</button>
 </details>
