@@ -502,6 +502,8 @@ const roadHeading = r => r.carHeading ?? Math.random() * 360;
 
 /*SHARED run.js*/
 
+/*SHARED search-log.js*/
+
 /*SHARED continuing.js*/
 
 /*SHARED time-left.js*/
