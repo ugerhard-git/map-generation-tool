@@ -330,6 +330,9 @@ function wantedLabel(w) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/* No number fields of its own (see "step 3"); "Look along the coverage" is the Map Generation Tool's. */
+const TOOL_NUMBER_FIELDS = {};
+
 /*SHARED how-many.js*/
 
 /* ---------- map file tags: this tool ----------
@@ -361,6 +364,9 @@ const TAG_WORDS = { tagUploader: "uploader", tagArrows: "arrows" };
    (DEFAULT_VIEW). The shared code asks CAMERA_VIEW, which is null here; the Map Generation Tool puts in
    src/shared/camera-view.js. */
 const CAMERA_VIEW = null;
+/* No "Look along the coverage" either (src/shared/walk.js): it follows Google's arrows, which link official
+   coverage; the shared code asks COVERAGE_WALK, which is null here. */
+const COVERAGE_WALK = null;
 // The camera view's settings saved before it was removed are cleared (CONTRIBUTING.md: "Never break")
 for (const id of [
   "viewDirection",

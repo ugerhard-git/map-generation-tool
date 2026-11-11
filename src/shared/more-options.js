@@ -24,14 +24,26 @@ const MORE = {
   ...MORE_TOOL,
   // "Camera view", in a tool that has it (see "camera view")
   ...(CAMERA_VIEW ? { moreView: CAMERA_VIEW.more } : {}),
+  // (with "Look along the coverage" in a tool that has it: see src/shared/walk.js)
   moreSearch: {
     summary: () =>
-      `${fmt(radius())} m around each spot, ${$("giveUpOn").checked ? `give up after ${fmt(giveUpAfter())} spots` : "never give up"}`,
-    changed: () => radius() !== RADIUS_DEFAULT || giveUpAfter() !== GIVE_UP_DEFAULT || !$("giveUpOn").checked,
+      [
+        `${fmt(radius())} m around each spot`,
+        COVERAGE_WALK?.summary(),
+        $("giveUpOn").checked ? `give up after ${fmt(giveUpAfter())} spots` : "never give up",
+      ]
+        .filter(Boolean)
+        .join(", "),
+    changed: () =>
+      radius() !== RADIUS_DEFAULT ||
+      giveUpAfter() !== GIVE_UP_DEFAULT ||
+      !$("giveUpOn").checked ||
+      !!COVERAGE_WALK?.changed(),
     reset: () => {
       setControl("radius", fmt(RADIUS_DEFAULT));
       setControl("giveUpAfter", fmt(GIVE_UP_DEFAULT));
       setControl("giveUpOn", true);
+      COVERAGE_WALK?.reset();
     },
   },
   moreMapFile: {

@@ -230,6 +230,33 @@
         finds locations faster, but favours the edges of the coverage and quiet areas.
       </p>
     </template>
+    <template id="help-lookAlong">
+      <h2>Looking along the coverage</h2>
+      <p>
+        Each random spot gives the nearest panorama. This option then follows its arrows, from one panorama to
+        the next, as you would by clicking along the road in Street View. Every panorama looked at this way is
+        one more lookup, so it is not always faster: try it where coverage is sparse.
+      </p>
+      <ul>
+        <li><b>Off:</b> only the nearest panorama to each random spot is looked at.</li>
+        <li>
+          <b>Until the first match:</b> when the nearest panorama does not have what you asked for, the search
+          looks at the panoramas along the road until one does, then takes a new random spot. With a period
+          set, it also tries the other dates of the photo at the spot. Only with something asked for under
+          "Roads and arrows" or "Photos".
+        </li>
+        <li>
+          <b>Follow the coverage:</b> the search keeps going along the roads from each location it finds, and
+          takes the next one at the distance you set. This helps where coverage runs along a few roads through
+          large empty land, such as in Kazakhstan, Bolivia, Australia, Canada or Russia, where most random
+          spots find nothing. The locations then lie along fewer roads than with random spots alone.
+        </li>
+      </ul>
+      <p>
+        "Give up after" is how many panoramas in a row may be without what you asked for before the search
+        stops going that way. Random spots are still counted for giving up on a country and for the time left.
+      </p>
+    </template>
     <template id="help-tags">
       <h2>Tags in the map file</h2>
       <p>
@@ -558,6 +585,66 @@
             <h2><span class="n">3</span>How many?</h2>
             <!--SHARED how-many.html-->
             <!--SHARED more-search.html-->
+            <!-- Look along the coverage (src/shared/walk.js): from the panorama found at a random spot, follow its
+                 arrows to the panoramas next to it. One choice; only the numbers it uses are shown under it. -->
+            <div class="field" role="radiogroup" aria-labelledby="lookAlongTitle">
+              <div class="labelrow">
+                <div class="label" id="lookAlongTitle">Look along the coverage</div>
+                <button
+                  type="button"
+                  class="help"
+                  data-help="lookAlong"
+                  aria-label="Help: looking along the coverage"
+                >
+                  ?
+                </button>
+              </div>
+              <label class="radio"><input type="radio" name="lookAlong" value="off" checked />Off</label>
+              <label class="radio"
+                ><input type="radio" name="lookAlong" id="lookAlongFirst" value="first" />Until the first
+                match</label
+              >
+              <label class="radio"
+                ><input type="radio" name="lookAlong" value="follow" />Follow the coverage</label
+              >
+              <div class="sub-field" id="lookAlongDepthBox" hidden>
+                <label for="lookAlongDepth">Give up after</label>
+                <div class="unit">
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    id="lookAlongDepth"
+                    value="3"
+                  /><span>panoramas without a match</span>
+                </div>
+              </div>
+              <div class="sub-field" id="lookAlongSpacingBox" hidden>
+                <label for="lookAlongSpacing">Keep locations at least</label>
+                <div class="unit">
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    id="lookAlongSpacing"
+                    value="1,000"
+                  /><span>m apart along the coverage</span>
+                </div>
+              </div>
+              <div class="sub-field" id="lookAlongMaxBox" hidden>
+                <label for="lookAlongMax">At most</label>
+                <div class="unit">
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    id="lookAlongMax"
+                    value="20"
+                  /><span>locations from one random spot</span>
+                </div>
+              </div>
+            </div>
+            <!--SHARED more-search-end.html-->
             <!-- More options: the map file (app.js: more options) -->
             <details class="more" id="moreMapFile">
               <summary>
