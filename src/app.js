@@ -369,6 +369,14 @@ function wantedLabel(w) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/* The number fields of "Look along the coverage" (see src/shared/walk.js), handled with the shared ones
+   (see "step 3"). The distance is in metres, as the radius: the number fields take whole numbers. */
+const TOOL_NUMBER_FIELDS = {
+  lookAlongDepth: { lo: 1, hi: 10, d: 3, step: 1 }, // panoramas in a row without a match
+  lookAlongSpacing: { lo: MIN_SPACING, hi: 50000, d: 1000, step: 100 }, // metres between locations
+  lookAlongMax: { lo: 1, hi: 1000, d: 20, step: 1 }, // locations from one random spot
+};
+
 /*SHARED how-many.js*/
 
 /* ---------- map file tags: this tool ----------
@@ -480,6 +488,8 @@ const MORE_TOOL = {
   },
 };
 
+/*SHARED walk.js*/
+
 /*SHARED more-options.js*/
 
 /*SHARED locations-per-country.js*/
@@ -499,6 +509,7 @@ const TOOL_STATS = {
   otherCamera: 0, // left out as not one of the chosen cameras
   olderLookups: 0, // older photos looked up instead of bad camera
   olderUsed: 0, // locations that are an older photo used instead of bad camera
+  walked: 0, // panoramas looked at along the coverage (see src/shared/walk.js)
 };
 /* The counter of random spots with nothing found nearby, in the counters under the progress bar. */
 const EMPTY_WORDS = "without official Street View nearby";
@@ -508,9 +519,10 @@ function toolTally(add) {
   if (stats.otherCamera) add(stats.otherCamera, "other cameras");
   if (stats.gen1) add(stats.gen1, "Gen 1");
   if (stats.olderUsed) add(stats.olderUsed, "older photos used instead");
+  if (stats.walked) add(stats.walked, "panoramas looked at along the coverage");
 }
 /* This tool's settings for a search, besides the shared ones (see searchSettingsNow). */
-const toolSearchSettings = () => ({ useOlder: useOlder() });
+const toolSearchSettings = () => ({ useOlder: useOlder(), lookAlong: COVERAGE_WALK.search() });
 /* Google's sources for a lookup: always official outdoor coverage here. */
 const lookupSources = () => LOOKUP_SOURCES;
 /* One panorama by its id, with its arrows; used for older photos at a spot. @returns {Promise<PanoAnswer>} */
@@ -674,6 +686,7 @@ const toolSettings = () => ({
   ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, $(id).checked])),
   noBadCamera: $("noBadCamera").checked,
   useOlder: $("useOlder").checked,
+  ...COVERAGE_WALK.settings(),
 });
 /* This tool's filter settings read back from outside, checked (see cleanSettings). */
 const cleanToolSettings = r => ({
@@ -683,6 +696,7 @@ const cleanToolSettings = r => ({
   ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, r[id] === true])),
   noBadCamera: r.noBadCamera === true,
   useOlder: r.useOlder === true,
+  ...COVERAGE_WALK.clean(r),
 });
 /* Puts this tool's filter settings into the form and saves them (see applySettings). */
 function applyToolSettings(s) {
@@ -693,6 +707,7 @@ function applyToolSettings(s) {
     store.set(id, s[id]);
   }
   updateOlder();
+  COVERAGE_WALK.apply(s);
 }
 /* A distribution read back from outside that is not one of your own: one of Vali's maps, or a continent's
    own map; else the default map. */
@@ -718,10 +733,12 @@ const wantedOf = s => ({
   noBadCamera: s.noBadCamera && !Object.keys(CAMERA_BOXES).some(id => s[id]),
 });
 /* More about settings in words, for the history, after what each location must have. */
-const toolDetails = s =>
-  (s.noBadCamera || Object.keys(CAMERA_BOXES).some(id => s[id])) && s.useOlder
+const toolDetails = s => [
+  ...((s.noBadCamera || Object.keys(CAMERA_BOXES).some(id => s[id])) && s.useOlder
     ? ["older photos instead"]
-    : [];
+    : []),
+  ...COVERAGE_WALK.details(s),
+];
 /* This tool's fields of a location read back from an unfinished search, checked (see cleanLocation). */
 const cleanLocationFields = l => ({
   noRoadName: l.noRoadName === true,

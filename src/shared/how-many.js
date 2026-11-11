@@ -22,6 +22,8 @@ const NUMBER_FIELDS = {
   // the largest map file, in MB (agreed with the owner, October 2026: 20 MB, as some places such as
   // Discord take no larger uploads)
   sizeLimit: { lo: 1, hi: 1000, d: SIZE_LIMIT_DEFAULT, step: 1 },
+  // each tool's own number fields (the Map Generation Tool: those of "Look along the coverage")
+  ...TOOL_NUMBER_FIELDS,
 };
 /* The number in a field, kept within its range; the saved one (or the default) if none is typed. */
 function fieldNumber(id) {

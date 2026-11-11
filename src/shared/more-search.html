@@ -1,5 +1,7 @@
-<!-- Shared markup: the "Search" section of step 3. Used by both tools: the build puts it where a page.html has a
-     line "SHARED more-search.html" in a comment (see src/assemble.js). -->
+<!-- Shared markup: the "Search" section of step 3, up to the fields a tool adds of its own. Used by both tools:
+     the build puts it where a page.html has a line "SHARED more-search.html" in a comment (see src/assemble.js).
+     The section ends with src/shared/more-search-end.html, so a tool can put its own fields in between (the Map
+     Generation Tool: "Look along the coverage"). -->
 <!-- More options: the search (app.js: more options) -->
 <details class="more" id="moreSearch">
   <summary>
@@ -33,5 +35,3 @@
       /><span>spots</span>
     </div>
   </div>
-  <button type="button" class="linkbtn reset" data-reset="moreSearch">Reset to defaults</button>
-</details>
