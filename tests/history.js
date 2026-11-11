@@ -273,6 +273,34 @@ const path = require("path");
   await p.evaluate(s => applySettings(s), oldEntry);
   ok(await p.isChecked("#arrowsEnd"), "and its settings can be used");
 
+  // "Look along the coverage" (taken out again, November 2026): the same
+  await p.evaluate(() => {
+    for (const [k, v] of Object.entries({
+      lookAlong: '"first"',
+      lookAlongDepth: "5",
+      lookAlongSpacing: "2500",
+      lookAlongMax: "20",
+    }))
+      localStorage.setItem("mapgen." + k, v);
+  });
+  await p.reload();
+  await p.waitForFunction(() => map !== null);
+  const lookAlong = await p.evaluate(() => ({
+    saved: ["lookAlong", "lookAlongDepth", "lookAlongSpacing", "lookAlongMax"].map(k =>
+      localStorage.getItem("mapgen." + k),
+    ),
+    entry: cleanSettings({ countries: ["MT"], noRoadName: true, lookAlong: "first", lookAlongDepth: 5 }),
+    older: OLDER_SETTING_NAMES.includes("lookAlong") && OLDER_SETTING_NAMES.includes("lookAlongMax"),
+  }));
+  ok(
+    lookAlong.saved.every(v => v === null) && (await p.$("#lookAlong")) === null,
+    "the removed Look along the coverage is gone, and its saved values are cleared",
+  );
+  ok(
+    !("lookAlong" in lookAlong.entry) && lookAlong.entry.noRoadName === true && lookAlong.older,
+    "a history entry or settings file with it keeps everything else, without a note",
+  );
+
   ok(errors.length === 0, "no page errors " + errors.join(" | "));
   await b.close();
   console.log(fail ? `${fail} FAILED` : "ALL PASS");

@@ -89,7 +89,15 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 36. **Lookups at the same time** (done, 11 November 2026, at the owner's request, after comparing with the Various Map Generator, which sends about 75 at once by default): a number under "Search", in both tools, 6 by default as before, 1 to 50. More are usually faster, above all where most random spots find nothing; the help says plainly what it does and the risks (Google answering slower or refusing for a while, a limit on the key reached sooner, a slow computer, a few extra lookups at the end). Kept with the settings (`parallel`; settings from before: 6) and named in the history when not 6.
 
-Later, to be discussed when they come up: more tag options.
+37. **"Look along the coverage" taken out** (done, 11 November 2026, at the owner's request, after his tests with the search log): with "No road name" and "End of coverage" in Germany, 100 locations took 1.5 minutes without it; with it, the search was stopped after 5.6 minutes at 62. It made 21,265 lookups along the coverage beside 5,026 random spots (about 424 lookups per location instead of 63), and the share of random spots that brought a location did not rise (1.2% against 1.6%). A random spot almost always lands mid-road (two arrows), and the end of the coverage, or a road without a name, is usually hundreds of panoramas away, far beyond a few steps. "Follow the coverage" had already been taken out (step 34). Its saved settings (`lookAlong`, `lookAlongDepth`, and those of step 33) are cleared, and settings files with them load without a note. The shared check of one panorama (`keepPanorama`) and the search log stay; the "Search" markup is one file again.
+
+Later, to be discussed when they come up:
+
+- More tag options.
+- **An expert mode** (noted at the owner's request, 11 November 2026; not to be built now): a place for features that make searches faster or more precise but are harder to understand, rely on undocumented parts of Google, or need the security policy loosened. It would have to be turned on on purpose by the visitor, and might be a separate version of the app with much shared code, as Unofficial is. Candidates:
+  - **Blue-line lookup:** before asking Google about a random spot, check Google's coverage map (the blue lines, as map tiles) and skip spots with none nearby, as the Various Map Generator's "Only check in areas with blue lines" does. This is the biggest speed-up for sparse countries. It loads tiles from addresses that are not part of Google's documented API and reads their pixels, which needs the security policy loosened.
+  - **Tile-based filters:** other filters read from map tiles in the same way.
+  - **Possibly the return of "Look along the coverage"** (steps 33 to 37), for the cases where it pays off; for example, jumping ahead a few kilometres along a road with one lookup instead of stepping through every panorama.
 
 ## A second tool: Unofficial
 

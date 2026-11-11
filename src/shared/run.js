@@ -165,9 +165,7 @@ function miss(code) {
     logEvent("gave up", { cc: code, spots: n });
   }
 }
-/* One random spot in a country: look it up and keep the panorama if it matches (keepPanorama); if it does
-   not, in a tool that looks along the coverage, look at the panoramas its arrows lead to (see
-   src/shared/walk.js). The spot counts as a miss for giving up only when nothing was kept from it. */
+/* One random spot in a country: look it up and keep the panorama if it matches (keepPanorama). */
 async function attempt(code, want, rad, key) {
   const p = randomPointIn(code);
   if (!p) {
@@ -202,10 +200,7 @@ async function attempt(code, want, rad, key) {
   }
   stats.failedInRow = 0;
   logEvent("pano", logPano(r));
-  const keep = pano => keepPanorama(pano, code, key, want);
-  let kept = await keep(r);
-  if (fatal) return;
-  if (!kept && COVERAGE_WALK) kept = await COVERAGE_WALK.walk(r, code, key, want, keep);
+  const kept = await keepPanorama(r, code, key, want);
   if (fatal) return;
   if (kept) countPace(code, true);
   else miss(code);

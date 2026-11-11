@@ -73,17 +73,6 @@ const { UNOFFICIAL } = require("./site.js");
   ok(log.counters.length >= 1 && log.counters.at(-1).found === 4, "the counters at the end");
   ok(text.split("\n").length > log.entries.length, "one line for each entry");
 
-  // Along the coverage, each step is noted too
-  await p.check("#lookAlong");
-  await search(p, { country: "Malta", target: 2, noRoadName: true });
-  await searchEnded(p);
-  const walked = JSON.parse((await download(p)).text).entries;
-  ok(
-    walked.some(e => e.e === "failed" && /^NEXTPANO/.test(e.pano)),
-    "a step along the coverage that failed is noted",
-  );
-  await p.uncheck("#lookAlong");
-
   // A very long search: the first and the latest entries, and how many were left out
   const cut = await p.evaluate(() => {
     startLog(true);

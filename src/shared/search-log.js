@@ -5,7 +5,7 @@
    For debugging and optimising (agreed with the owner, November 2026): with "Keep a log of the search"
    ticked under "Search" (off by default), the search notes what happens, one entry for each event: each
    random spot, Google's answer, whether the panorama was kept or why not (the counters it added to, see
-   emptyStats), each panorama looked at along the coverage, failed lookups, countries giving up, and each
+   emptyStats), failed lookups, countries giving up, and each
    run's start and end. "Download the search log" under the counters saves it as a JSON file, which can be
    read with a script.
    A search with millions of spots would make the log huge, so it keeps the first LOG_HEAD entries and the
