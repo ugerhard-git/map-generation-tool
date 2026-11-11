@@ -87,6 +87,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 35. **A search log** (done, 11 November 2026, at the owner's request, to make testing and debugging features like step 33 easier): "Keep a log of the search" under "Search", in both tools, off by default, with a help text saying it is only needed for debugging or optimising. Ticked, a search notes each random spot, Google's answer, whether it was kept or why not, each step along the coverage, failed lookups and countries giving up; "Download the search log" under the counters saves it as a JSON file to pass on. A long search keeps the first 20,000 and the latest 20,000 entries and the counters every 30 seconds (at most about 6 MB). Never the key; kept in memory only, until the next search. Saved as `searchLog` in the browser, not with the settings.
 
+36. **Lookups at the same time** (done, 11 November 2026, at the owner's request, after comparing with the Various Map Generator, which sends about 75 at once by default): a number under "Search", in both tools, 6 by default as before, 1 to 50. More are usually faster, above all where most random spots find nothing; the help says plainly what it does and the risks (Google answering slower or refusing for a while, a limit on the key reached sooner, a slow computer, a few extra lookups at the end). Kept with the settings (`parallel`; settings from before: 6) and named in the history when not 6.
+
 Later, to be discussed when they come up: more tag options.
 
 ## A second tool: Unofficial

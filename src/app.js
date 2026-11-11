@@ -24,8 +24,8 @@
  *      and the number from step 3 into a number of locations per country (`searchTargets`), shown in the
  *      table of locations per country (renderShares). Step 2 sets what each location must have (`wanted`:
  *      no road name, end of coverage, photo years), step 3 how many and how far to look around each spot.
- *   2. PARALLEL workers (runSearch) repeat attempt() until every country has its number or has given
- *      up, or the visitor stops:
+ *   2. PARALLEL workers (or as many as "Lookups at the same time" says; runSearch) repeat attempt()
+ *      until every country has its number or has given up, or the visitor stops:
  *      pickCountry() chooses a country that still needs locations, randomPointIn() a random spot inside
  *      it (from the country borders built into the page), lookup() asks Google's script for the nearest
  *      official panorama within the radius. The panorama's arrows (`links`) tell whether a road name is
