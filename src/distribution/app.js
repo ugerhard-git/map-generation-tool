@@ -24,7 +24,8 @@ const VIEWS = ["countries", "folded", "continents"];
 const NUMBER_FORMATS = ["auto", "point", "comma"];
 /* Territories that stay on their own when territories are counted with their country (the owner's
    choice, November 2026): France's overseas departments (Guadeloupe, Martinique, French Guiana, Réunion,
-   Mayotte), Hong Kong, Macao, Åland and Svalbard. Taiwan is a country of its own in the data. */
+   Mayotte), Hong Kong, Macao, Åland and Svalbard. Taiwan is a country of its own in the data. The Cook
+   Islands and Niue count with New Zealand (also the owner's choice). */
 const KEEP_SEPARATE = ["GP", "MQ", "GF", "RE", "YT", "HK", "MO", "AX", "SJ"];
 /* The continents, in the order Vali lists them, and their names. */
 const CONTINENT_NAMES = {
