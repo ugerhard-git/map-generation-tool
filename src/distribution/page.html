@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Distribution: the page's markup. The build (src/build.js) fills in the placeholders (the styles, the app
+    code, the data, the icons and the security policy) and turns this into the single published file,
+    dist/distribution/index.html. Sections are labelled with the same names as in style.css and app.js.
+    Unlike the two other tools, this page has no map, needs no Google key and talks to no server: the map
+    file is read in the browser and never leaves it.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Distribution: countries and continents of a map-making.app map</title>
+    <meta http-equiv="Content-Security-Policy" content="/*CSP*/" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!-- Icons from src/icon.svg, built into the page as data: addresses (the build fills these in) -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/*ICON_PNG*/" />
+    <link rel="icon" type="image/svg+xml" href="/*ICON_SVG*/" />
+    <link rel="apple-touch-icon" href="/*ICON_TOUCH*/" />
+    <style>
+      /*FONT_CSS*/
+    </style>
+    <style>
+      /*APP_CSS*/
+    </style>
+  </head>
+  <body>
+    <!-- Shown instead of the app when another site puts this page in a frame (the check is in the scripts at the end) -->
+    <div class="framed" id="framed" hidden>
+      <p><b>This tool cannot be used inside another page.</b></p>
+      <p><a id="framedLink" href="./" target="_top" rel="noopener">Open it on its own</a></p>
+    </div>
+    <!-- The app: settings panel on the left, the table on the right (stacked on phones) -->
+    <div class="app">
+      <div class="panel">
+        <h1>Distribution</h1>
+        <p class="lede">
+          See how the locations of a map-making.app map are spread over countries and continents, and download
+          the numbers.
+        </p>
+        <p class="other-tool">
+          Making a map? Use the <a href="../">Map Generation Tool</a> or
+          <a href="../unofficial/">Unofficial</a>.
+        </p>
+
+        <!-- Step 1: the map file (app.js: step 1) -->
+        <section class="step" id="stepFile">
+          <h2><span class="n">1</span>Choose a map file</h2>
+          <div class="drop" id="drop">
+            <label class="btn primary file-btn" for="file">Choose a file</label>
+            <input type="file" id="file" accept=".json,application/json" class="visually-hidden" />
+            <span class="drop-hint">or drop it here</span>
+          </div>
+          <p class="hint">
+            The JSON file that map-making.app exports. It is read in this browser and never uploaded.
+          </p>
+          <div class="msg error" id="fileError" role="alert" hidden></div>
+          <p class="file-info" id="fileInfo" role="status" hidden></p>
+        </section>
+
+        <!-- Step 2: which view (app.js: step 2) -->
+        <section class="step" id="stepView">
+          <h2><span class="n">2</span>Count by</h2>
+          <div role="radiogroup" aria-label="Count by">
+            <label class="radio"
+              ><input type="radio" name="view" value="countries" checked /><span
+                >Countries and territories, each on its own</span
+              ></label
+            >
+            <label class="radio"
+              ><input type="radio" name="view" value="folded" /><span
+                >Countries, with their territories counted in</span
+              ></label
+            >
+            <label class="radio"
+              ><input type="radio" name="view" value="continents" /><span>Continents</span></label
+            >
+          </div>
+          <p class="hint" id="viewHint"></p>
+        </section>
+
+        <!-- Step 3: the downloads (app.js: step 3) -->
+        <section class="step" id="stepDownload">
+          <h2><span class="n">3</span>Download</h2>
+          <div class="downloads">
+            <button type="button" class="btn primary" id="downloadCsv" disabled>This view as CSV</button>
+            <button type="button" class="btn" id="downloadXlsx" disabled>All views as Excel file</button>
+          </div>
+          <p class="hint">
+            The CSV holds the table as shown, sorted the same way. The Excel file has one tab per view and
+            opens in Google Sheets (File, Import) and Excel.
+          </p>
+          <div class="field">
+            <label for="numberFormat">Numbers in the CSV</label>
+            <select id="numberFormat">
+              <option value="auto" id="numberFormatAuto">As in this browser</option>
+              <option value="point">1234.5, columns split by commas</option>
+              <option value="comma">1234,5, columns split by semicolons</option>
+            </select>
+            <p class="hint">
+              Choose the one that matches your spreadsheet's language setting, so shares arrive as numbers.
+            </p>
+          </div>
+        </section>
+      </div>
+
+      <!-- The table of the chosen view (app.js: the table) -->
+      <main class="stage table-stage">
+        <div class="empty" id="empty">
+          <p>Choose a map file to see its distribution.</p>
+        </div>
+        <div id="result" hidden>
+          <div class="result-head">
+            <h2 id="resultTitle"></h2>
+            <p class="hint" id="resultSummary"></p>
+          </div>
+          <table class="dist">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+    <script>
+      /*COUNTRY_CODER_JS*/
+    </script>
+    <script>
+      /* Every country and territory: its English name, its continent and, for a territory, the country it
+         belongs to, worked out by the build from country-coder and the owner's list of country names
+         (src/countries.js, distributionFacts). */
+      const PLACES = /*PLACES*/;
+      /* Inside another site's frame, show only a link to open the app on its own, so nobody can lay a fake
+         page over it and trick clicks (the security policy in the page itself cannot forbid framing). */
+      let FRAMED = false;
+      try {
+        FRAMED = window.top !== window.self;
+      } catch {
+        FRAMED = true;
+      }
+      if (FRAMED) {
+        document.querySelector(".app").hidden = true;
+        document.getElementById("framed").hidden = false;
+        document.getElementById("framedLink").href = location.href.split("#")[0];
+      }
+    </script>
+    <script>
+      /*APP_JS*/
+    </script>
+  </body>
+</html>

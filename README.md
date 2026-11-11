@@ -2,7 +2,7 @@
 
 Builds maps for [map-making.app](https://map-making.app) and GeoGuessr: random official Google Street View locations in one or more countries, a continent or the whole world, optionally only where Street View shows no road name, where the coverage ends (one arrow), at intersections (three or more arrows) or where there are no arrows at all, where the photos are from a certain period (month and year), from certain camera generations (Gen 4, Gen 2/3 or the low-quality "bad camera") or without bad camera (using an older photo at the spot instead, where there is one), or any mix of these. The first camera generation (Gen 1) is always left out.
 
-A second tool lives in this repository too: **[Unofficial](#unofficial)** finds random _unofficial_ Street View coverage instead, such as photospheres, drone shots and road coverage that Google did not take itself.
+Two more tools live in this repository: **[Unofficial](#unofficial)** finds random _unofficial_ Street View coverage instead, such as photospheres, drone shots and road coverage that Google did not take itself, and **[Distribution](#distribution)** shows how the locations of any map file are spread over countries and continents, and downloads the numbers.
 
 **Work in progress.** See [the plan](docs/plan.md) for what comes next.
 
@@ -42,9 +42,19 @@ The second tool builds map-making.app maps of random **unofficial** Street View 
 
 Its settings are saved in your browser apart from the Map Generation Tool's, and each tool has its own history and settings files.
 
+## Distribution
+
+**Use it here: [ugerhard-git.github.io/map-generation-tool/distribution](https://ugerhard-git.github.io/map-generation-tool/distribution/)**
+
+The third tool reads one map-making.app map file (JSON) and counts its locations per country, territory and continent, with each one's share of the whole map. It needs no Google key: the file is read in your browser and never uploaded.
+
+- **Three views:** every country and territory on its own (Puerto Rico apart from the United States); countries with their territories counted in (France's overseas departments, Hong Kong, Macao, Åland and Svalbard still stay on their own; the table lists what each country took in); and continents, where a territory counts where it lies (Réunion in Africa). The table sorts by any column.
+- **Which country:** the country code in the map file, which map-making.app takes from Google; where a location has none, the country at its position (from country-coder's borders, which reach out to sea). A location coded as a country but lying in one of its territories (coded US, in Puerto Rico) counts as the territory.
+- **Downloads:** the view shown as CSV, in the order shown, with numbers written as your spreadsheet expects them (decimal point and commas between columns, or decimal comma and semicolons; by default as in your browser), and all views as an Excel file with one tab each and an "About" tab, which Google Sheets imports with its tabs.
+
 ## Using it
 
-Open the published page, or build it yourself (below) and open `dist/index.html` (Unofficial: `dist/unofficial/index.html`) in a browser.
+Open the published page, or build it yourself (below) and open `dist/index.html` (Unofficial: `dist/unofficial/index.html`, Distribution: `dist/distribution/index.html`) in a browser.
 
 A Google API key with the **Maps JavaScript API** enabled is needed for the Street View lookups. Either the site has one built in, or visitors enter their own. A large search makes many requests, so set a daily quota on the key.
 
@@ -58,9 +68,9 @@ npm run build                          # both pages without a key
 GOOGLE_API_KEY=your-key npm run build  # both pages with your key built in
 ```
 
-The build writes one self-contained file for each tool, `dist/index.html` and `dist/unofficial/index.html`. Each embeds the Leaflet map library, the country-coder country lookup, a land map made from Natural Earth and the Overpass font, and it adds a Content Security Policy that only allows the page's own scripts to run.
+The build writes one self-contained file for each tool, `dist/index.html`, `dist/unofficial/index.html` and `dist/distribution/index.html`. Each embeds the country-coder country lookup and the Overpass font, the two search tools also the Leaflet map library and a land map made from Natural Earth, and each page has a Content Security Policy that only allows its own scripts to run (Distribution's allows no outside connections at all).
 
-For hosting both tools on a server of your own, the build also writes them split up, in `dist/split/`: the same two pages, `index.html` and `unofficial/index.html`, with their scripts and styles as files in `dist/split/assets/`. Both pages load the same files for what they share (Leaflet, country-coder, the land map, the font and the shared styles), so a browser that opens both downloads those once; each tool's data and app code is a file of its own. The file names carry a fingerprint, so the server can let browsers keep them for a long time (for example `Cache-Control: max-age=31536000, immutable` for `assets/`). Upload the whole folder, keeping its layout. Its security policy allows scripts from the page's own server and Google's, and every script and style sheet carries its fingerprint, so a changed file is refused.
+For hosting the tools on a server of your own, the build also writes them split up, in `dist/split/`: the same pages, `index.html`, `unofficial/index.html` and `distribution/index.html`, with their scripts and styles as files in `dist/split/assets/`. Both pages load the same files for what they share (Leaflet, country-coder, the land map, the font and the shared styles), so a browser that opens both downloads those once; each tool's data and app code is a file of its own. The file names carry a fingerprint, so the server can let browsers keep them for a long time (for example `Cache-Control: max-age=31536000, immutable` for `assets/`). Upload the whole folder, keeping its layout. Its security policy allows scripts from the page's own server and Google's, and every script and style sheet carries its fingerprint, so a changed file is refused.
 
 Never commit a key. The key is inserted by the build from the `GOOGLE_API_KEY` environment variable; the published site gets it from a GitHub secret.
 
@@ -78,27 +88,28 @@ The tests drive the page in a headless browser. Google's script and the map tile
 
 ## Project layout
 
-| Path                         | What it is                                                       |
-| ---------------------------- | ---------------------------------------------------------------- |
-| `src/page.html`              | The Map Generation Tool's markup and site owner settings         |
-| `src/style.css`              | The Map Generation Tool's styles                                 |
-| `src/icon.svg`               | The page icon; `npm run icons` makes the PNG versions next to it |
-| `src/app.js`                 | The Map Generation Tool's own app code                           |
-| `src/unofficial/`            | Unofficial's markup, styles and own app code                     |
-| `src/shared/`                | Code, markup and styles both tools use                           |
-| `src/assemble.js`            | Puts a page's files and the shared parts together                |
-| `src/build.js`               | Builds both pages into `dist/`                                   |
-| `src/land.js`                | Makes the land map for the pages, during the build               |
-| `src/countries.js`           | Unofficial's land area, continent and country per place (build)  |
-| `src/data/vali.json`         | Country distributions and continents from Vali (generated)       |
-| `tools/vali.js`              | Updates `src/data/vali.json` from Vali; runs monthly on GitHub   |
-| `src/data/country-tags.json` | The tag each country gets in the map file (edited by hand)       |
-| `src/data/population.json`   | Unofficial's populations, from Natural Earth (generated)         |
-| `tools/population.js`        | Updates `src/data/population.json` from Natural Earth (by hand)  |
-| `tests/`                     | Browser tests, one file per feature area                         |
-| `docs/`                      | [How the code works](docs/how-the-code-works.md), for developers |
-| `CONTRIBUTING.md`            | How to make a change, and the rules                              |
-| `SECURITY.md`                | How to report a security problem, and the protections            |
+| Path                         | What it is                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| `src/page.html`              | The Map Generation Tool's markup and site owner settings                            |
+| `src/style.css`              | The Map Generation Tool's styles                                                    |
+| `src/icon.svg`               | The page icon; `npm run icons` makes the PNG versions next to it                    |
+| `src/app.js`                 | The Map Generation Tool's own app code                                              |
+| `src/unofficial/`            | Unofficial's markup, styles and own app code                                        |
+| `src/distribution/`          | Distribution's markup, styles and app code                                          |
+| `src/shared/`                | Code, markup and styles both tools use                                              |
+| `src/assemble.js`            | Puts a page's files and the shared parts together                                   |
+| `src/build.js`               | Builds both pages into `dist/`                                                      |
+| `src/land.js`                | Makes the land map for the pages, during the build                                  |
+| `src/countries.js`           | Land area, continent and country per place, for Unofficial and Distribution (build) |
+| `src/data/vali.json`         | Country distributions and continents from Vali (generated)                          |
+| `tools/vali.js`              | Updates `src/data/vali.json` from Vali; runs monthly on GitHub                      |
+| `src/data/country-tags.json` | The tag each country gets in the map file (edited by hand)                          |
+| `src/data/population.json`   | Unofficial's populations, from Natural Earth (generated)                            |
+| `tools/population.js`        | Updates `src/data/population.json` from Natural Earth (by hand)                     |
+| `tests/`                     | Browser tests, one file per feature area                                            |
+| `docs/`                      | [How the code works](docs/how-the-code-works.md), for developers                    |
+| `CONTRIBUTING.md`            | How to make a change, and the rules                                                 |
+| `SECURITY.md`                | How to report a security problem, and the protections                               |
 
 ## Credits
 

@@ -9,14 +9,16 @@ import path from "node:path";
 const { assemble, SHARED_DIR } = createRequire(import.meta.url)("./src/assemble.js");
 
 // Names the page itself defines: the build adds Leaflet (L), the Vali data (VALI, Map Generation Tool), the
-// country facts (COUNTRY_FACTS, Unofficial), the country tags (COUNTRY_TAGS), the land map (LAND) and the
-// framing check (FRAMED) before app.js, and Google's script adds `google` when it loads.
+// country facts (COUNTRY_FACTS, Unofficial), the places (PLACES, Distribution), the country tags
+// (COUNTRY_TAGS), the land map (LAND) and the framing check (FRAMED) before app.js, and Google's script
+// adds `google` when it loads.
 const pageGlobals = {
   L: "readonly",
   google: "readonly",
   FRAMED: "readonly",
   VALI: "readonly",
   COUNTRY_FACTS: "readonly",
+  PLACES: "readonly",
   COUNTRY_TAGS: "readonly",
   LAND: "readonly",
 };
@@ -58,8 +60,8 @@ const withSharedCode = {
   supportsAutofix: false,
 };
 
-// The two pages' app code: the Map Generation Tool's and Unofficial's.
-const APPS = ["src/app.js", "src/unofficial/app.js"];
+// The pages' app code: the Map Generation Tool's, Unofficial's and Distribution's.
+const APPS = ["src/app.js", "src/unofficial/app.js", "src/distribution/app.js"];
 
 // The tests run some code inside the pages (page.evaluate), where it uses app.js's top-level names.
 // Read those names from both pages' app code with the shared code, so this list never goes out of date.

@@ -316,6 +316,11 @@ const path = require("path");
   const m = (await openPage(b)).page;
   ok((await m.inputValue("#giveUpAfter")) === "2,000", "the Map Generation Tool still gives up after 2,000");
   ok((await m.getAttribute(".other-tool a", "href")) === "unofficial/", "the Map Generation Tool links here");
+  ok(
+    (await m.getAttribute(".other-tool a:last-child", "href")) === "distribution/" &&
+      (await p.getAttribute(".other-tool a:last-child", "href")) === "../distribution/",
+    "both tools link to Distribution",
+  );
   const mapgenOther = await m.evaluate(() =>
     readSettingsFile(JSON.stringify({ format: "unofficial settings", version: 1, settings: {} })),
   );

@@ -107,4 +107,46 @@ function countryFacts(cells, per, cc, population = {}) {
   return facts;
 }
 
-module.exports = { countryFacts };
+// ---------- Distribution ----------
+// Used by the build for Distribution (src/distribution/): for every country and territory, its name, its
+// continent and, for a territory, the country it belongs to. Unlike countryFacts above:
+//   - North and South America are two continents, as in Vali's continent lists: South America is the UN
+//     subregion 005; Central America, the Caribbean and Northern America count as North America.
+//   - Every territory names its country, Hong Kong too (CN): which territories are folded into their
+//     country is the page's choice (KEEP_SEPARATE in src/distribution/app.js).
+//   - Places without land in the land map are kept too: a map may still have locations there.
+// A territory's continent is where it lies (Réunion: Africa), not its country's.
+const SOUTH_AMERICA = "005";
+const NORTH_AMERICA = ["013", "029", "021"];
+const CONTINENT_OF_SPLIT = { ...CONTINENT_OF, US: "northamerica" };
+
+/**
+ * @param {object} cc the country-coder library
+ * @param {Record<string, string>} names English names from the owner's list (country-tags.json), by code
+ * @returns {Record<string, {name: string, continent: string, country: string}>}
+ */
+function distributionFacts(cc, names = {}) {
+  const level = id => cc.feature(id)?.properties.level;
+  const facts = {};
+  for (const f of cc.borders.features) {
+    const p = f.properties;
+    if (!p.iso1A2 || !["country", "territory"].includes(p.level)) continue;
+    const groups = p.groups || [];
+    let continent = CONTINENT_OF_SPLIT[p.iso1A2];
+    if (!continent && groups.includes(SOUTH_AMERICA)) continent = "southamerica";
+    if (!continent && groups.some(g => NORTH_AMERICA.includes(g))) continent = "northamerica";
+    if (!continent && groups.includes("019")) continent = "northamerica"; // (none left in country-coder 5)
+    if (!continent) continent = REGIONS[groups.find(g => REGIONS[g])];
+    if (!continent) throw new Error(`countries.js: ${p.iso1A2} has no continent; add it to CONTINENT_OF`);
+    facts[p.iso1A2] = {
+      name: names[p.iso1A2] || p.nameEn || p.iso1A2,
+      continent,
+      country:
+        p.level === "territory" ? groups.find(g => /^[A-Z]{2}$/.test(g) && level(g) === "country") || "" : "",
+    };
+  }
+  facts.AQ = { name: names.AQ || "Antarctica", continent: "antarctica", country: "" };
+  return facts;
+}
+
+module.exports = { countryFacts, distributionFacts };

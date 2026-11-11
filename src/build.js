@@ -1,6 +1,7 @@
-// Builds the two published pages from the files in src/: the Map Generation Tool (dist/index.html, from
-// src/page.html, src/style.css and src/app.js) and Unofficial (dist/unofficial/index.html, from the same
-// files in src/unofficial/). Each page's files get the shared parts from src/shared/ put in (see
+// Builds the three published pages from the files in src/: the Map Generation Tool (dist/index.html, from
+// src/page.html, src/style.css and src/app.js), Unofficial (dist/unofficial/index.html, from the same
+// files in src/unofficial/) and Distribution (dist/distribution/index.html, from src/distribution/; it has
+// no map and no Google, see buildPage). Each page's files get the shared parts from src/shared/ put in (see
 // src/assemble.js). Then the placeholders in the page (such as /*APP_JS*/) are filled with the styles, the
 // app code, the data, Leaflet, country-coder, the land map, the font and the icon, and the scripts are
 // fingerprinted for the Content Security Policy. The Google key comes from the GOOGLE_API_KEY environment
@@ -116,27 +117,28 @@ function asset(name, ext, text) {
   return { href: "assets/" + file, integrity };
 }
 /* Turns a finished one-file page (tpl, with its policy and placeholders filled in) into the split page
-   for dist/split/<out>/: its three script blocks and two style blocks become files under assets/. */
-function splitPage(tpl, dir, out, appJs, where) {
+   for dist/split/<out>/: its three script blocks and two style blocks become files under assets/. A page
+   without the map (map false: Distribution) has no Leaflet, land map or Google. */
+function splitPage(tpl, dir, out, appJs, where, map) {
   const up = out ? "../".repeat(out.split("/").length) : "";
   const scriptTag = a => `<script src="${up}${a.href}" integrity="${a.integrity}"></script>`;
   const styleTag = a => `<link rel="stylesheet" href="${up}${a.href}" integrity="${a.integrity}" />`;
   const blocks = [];
   tpl.replace(/<script>([\s\S]*?)<\/script>/g, (all, body) => blocks.push(body));
   if (blocks.length !== 3) throw new Error(`split build: expected 3 script blocks in ${where}`);
-  // 1. the libraries, the same for both pages
-  const leaflet = asset("leaflet", "js", leafletJs),
+  // 1. the libraries, the same for every page
+  const leaflet = map ? asset("leaflet", "js", leafletJs) : null,
     coder = asset("country-coder", "js", countryCoderJs);
-  // 2. the data and the framing check: the land map, the same for both, in a file of its own
-  const landLine = `const LAND = ${JSON.stringify({ per: land.per, runs: land.runs })};`;
-  if (blocks[1].split(landLine).length !== 2)
+  // 2. the data and the framing check: the land map, the same for both map pages, in a file of its own
+  const landLine = map ? `const LAND = ${JSON.stringify({ per: land.per, runs: land.runs })};` : "";
+  if (map && blocks[1].split(landLine).length !== 2)
     throw new Error(`split build: the land map not found in ${where}`);
-  const landFile = asset("land", "js", landLine + "\n");
+  const landFile = map ? asset("land", "js", landLine + "\n") : null;
   // 2 and 3. this tool's data, the framing check and its app code, in one file and in that order
   const tool = asset(
     out ? out.replace(/\//g, "-") : "mapgen",
     "js",
-    blocks[1].replace(landLine, "") + "\n" + appJs,
+    (map ? blocks[1].replace(landLine, "") : blocks[1]) + "\n" + appJs,
   );
   // The styles: what both share (the font, Leaflet's, src/shared/style.css), then the tool's own, if any
   const shared = asset("shared", "css", fontCss + "\n" + leafletCss + "\n" + sharedStyles);
@@ -154,8 +156,8 @@ function splitPage(tpl, dir, out, appJs, where) {
   let i = 0;
   page = page.replace(/<script>([\s\S]*?)<\/script>/g, () => {
     i++;
-    if (i === 1) return scriptTag(leaflet) + "\n    " + scriptTag(coder);
-    if (i === 2) return scriptTag(landFile) + "\n    " + scriptTag(tool);
+    if (i === 1) return map ? scriptTag(leaflet) + "\n    " + scriptTag(coder) : scriptTag(coder);
+    if (i === 2) return map ? scriptTag(landFile) + "\n    " + scriptTag(tool) : scriptTag(tool);
     return "";
   });
   const styles = page.match(/<style>[\s\S]*?<\/style>\s*<style>[\s\S]*?<\/style>/);
@@ -164,7 +166,7 @@ function splitPage(tpl, dir, out, appJs, where) {
   // The policy: scripts and style sheets from this server; the rest as in the one-file page.
   page = page.replace(
     /script-src [^;]*;/,
-    `script-src 'self' https://maps.googleapis.com https://*.gstatic.com;`,
+    map ? `script-src 'self' https://maps.googleapis.com https://*.gstatic.com;` : "script-src 'self';",
   );
   page = page.replace(/style-src [^;]*;/, "style-src 'self' 'unsafe-inline';");
   if (/<script>|<style>/.test(page)) throw new Error(`split build: inline code left in ${where}`);
@@ -182,8 +184,9 @@ function splitPage(tpl, dir, out, appJs, where) {
 // ---------- each page ----------
 
 // Builds one page from the page.html, style.css and app.js in folder `dir` into dist/<out>/, with the
-// data placeholders in `data` (name: script text) on top of what every page gets.
-function buildPage(dir, out, data) {
+// data placeholders in `data` (name: script text) on top of what every page gets. A page with `map: false`
+// (Distribution) gets no Leaflet, no land map and no Google: its policy allows no outside host at all.
+function buildPage(dir, out, data, { map = true } = {}) {
   let tpl = assemble(path.join(dir, "page.html")).code;
   const where = path.relative(__dirname, dir) || "src";
   // Fills in one placeholder. Each must appear exactly once in page.html: a second copy (in a comment,
@@ -205,10 +208,12 @@ function buildPage(dir, out, data) {
   put("/*APP_JS*/", appJs);
   for (const [mark, text] of Object.entries(icons)) put(`/*${mark}*/`, text);
   for (const [mark, text] of Object.entries(data)) put(`/*${mark}*/`, text);
-  put("/*LAND*/", JSON.stringify({ per: land.per, runs: land.runs }));
-  put("/*LEAFLET_JS*/", leafletJs);
+  if (map) {
+    put("/*LAND*/", JSON.stringify({ per: land.per, runs: land.runs }));
+    put("/*LEAFLET_JS*/", leafletJs);
+    put("/*LEAFLET_CSS*/", leafletCss);
+  }
   put("/*COUNTRY_CODER_JS*/", countryCoderJs);
-  put("/*LEAFLET_CSS*/", leafletCss);
   put("/*FONT_CSS*/", fontCss);
 
   // Content Security Policy: only the inline scripts shipped in this file may run.
@@ -223,13 +228,13 @@ function buildPage(dir, out, data) {
   const google = "https://maps.googleapis.com https://*.gstatic.com";
   const csp = [
     "default-src 'none'",
-    `script-src ${hashes.join(" ")} ${google}`,
+    map ? `script-src ${hashes.join(" ")} ${google}` : `script-src ${hashes.join(" ")}`,
     "style-src 'unsafe-inline'",
-    "img-src https://tile.openstreetmap.org data:",
+    map ? "img-src https://tile.openstreetmap.org data:" : "img-src data:",
     "font-src data:",
     // Only Google's Street View service for now. A feature that needs another service (an Overpass
-    // server, say) adds its host here, in the same pull request.
-    "connect-src https://maps.googleapis.com",
+    // server, say) adds its host here, in the same pull request. A page without the map talks to nobody.
+    map ? "connect-src https://maps.googleapis.com" : "connect-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",
     "object-src 'none'",
@@ -240,7 +245,7 @@ function buildPage(dir, out, data) {
   if (left) throw new Error(`placeholder ${left[0]} in ${where}/page.html was not filled in`);
   const folder = path.join(dist, out);
   fs.mkdirSync(folder, { recursive: true });
-  splitPage(tpl, dir, out, appJs, where);
+  splitPage(tpl, dir, out, appJs, where, map);
   const withKey = tpl.replace(/("googleApiKey": )"[^"]*"/, (all, k) => k + JSON.stringify(key));
   fs.writeFileSync(path.join(folder, "index.html"), withKey);
   // Same page without a key, for the automated tests (they enter a key of their own).
@@ -251,7 +256,7 @@ function buildPage(dir, out, data) {
     (withKey.length / 1024).toFixed(0) + " KB;",
     hashes.length,
     "script fingerprints;",
-    key ? "site key included" : "no site key (visitors enter their own)",
+    !map ? "no Google key needed" : key ? "site key included" : "no site key (visitors enter their own)",
   );
 }
 
@@ -282,3 +287,22 @@ buildPage(path.join(__dirname, "unofficial"), "unofficial", {
   COUNTRY_FACTS: asScript(facts),
   COUNTRY_TAGS: asScript(tagsByCode),
 });
+
+// Distribution, at distribution/: how the locations of a map file are spread over countries and
+// continents. No map, no Google: only country-coder, each place's name, continent and country
+// (src/countries.js), and the owner's country names (country-tags.json).
+const tagNames = Object.fromEntries(
+  Object.entries(countryTags)
+    .filter(([, entry]) => typeof entry.name === "string" && entry.name.trim())
+    .map(([code, entry]) => [code, entry.name.trim()]),
+);
+buildPage(
+  path.join(__dirname, "distribution"),
+  "distribution",
+  {
+    PLACES: asScript(
+      require("./countries.js").distributionFacts(require("@rapideditor/country-coder"), tagNames),
+    ),
+  },
+  { map: false },
+);
