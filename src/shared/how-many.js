@@ -24,8 +24,6 @@ const NUMBER_FIELDS = {
   sizeLimit: { lo: 1, hi: 1000, d: SIZE_LIMIT_DEFAULT, step: 1 },
   // lookups sent to Google at the same time ("Lookups at the same time" under "Search")
   parallel: { lo: 1, hi: PARALLEL_MAX, d: PARALLEL, step: 1 },
-  // each tool's own number fields (the Map Generation Tool: those of "Look along the coverage")
-  ...TOOL_NUMBER_FIELDS,
 };
 /* The number in a field, kept within its range; the saved one (or the default) if none is typed. */
 function fieldNumber(id) {

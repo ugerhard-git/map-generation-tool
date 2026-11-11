@@ -1,7 +1,5 @@
-<!-- Shared markup: the "Search" section of step 3, up to the fields a tool adds of its own. Used by both tools:
-     the build puts it where a page.html has a line "SHARED more-search.html" in a comment (see src/assemble.js).
-     The section ends with src/shared/more-search-end.html, so a tool can put its own fields in between (the Map
-     Generation Tool: "Look along the coverage"). -->
+<!-- Shared markup: the "Search" section of step 3. Used by both tools: the build puts it where a page.html has a
+     line "SHARED more-search.html" in a comment (see src/assemble.js). -->
 <!-- More options: the search (app.js: more options) -->
 <details class="more" id="moreSearch">
   <summary>
@@ -20,7 +18,9 @@
   <div class="field">
     <div class="labelrow">
       <label for="parallel">Lookups at the same time</label>
-      <button type="button" class="help" data-help="parallel" aria-label="Help: lookups at the same time">?</button>
+      <button type="button" class="help" data-help="parallel" aria-label="Help: lookups at the same time">
+        ?
+      </button>
     </div>
     <div class="unit">
       <input type="text" inputmode="numeric" autocomplete="off" id="parallel" value="6" /><span>lookups</span>
@@ -44,3 +44,14 @@
       /><span>spots</span>
     </div>
   </div>
+  <!-- The search log (src/shared/search-log.js): off by default, only for debugging -->
+  <div class="field">
+    <div class="checkrow">
+      <label class="check"
+        ><input type="checkbox" id="searchLog" /><span>Keep a log of the search</span></label
+      >
+      <button type="button" class="help" data-help="searchLog" aria-label="Help: search log">?</button>
+    </div>
+  </div>
+  <button type="button" class="linkbtn reset" data-reset="moreSearch">Reset to defaults</button>
+</details>

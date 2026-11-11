@@ -3,7 +3,3 @@ node_modules/
 package-lock.json
 src/data/vali.json
 src/data/population.json
-# The "Search" section is split in two, so a tool can put its own fields in between (see
-# src/shared/more-search.html): neither half is whole markup, which Prettier would close or reorder.
-src/shared/more-search.html
-src/shared/more-search-end.html
