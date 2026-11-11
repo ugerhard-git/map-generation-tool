@@ -247,7 +247,10 @@ function unzip(buf) {
   );
 
   // Files that are not maps
+  // (reading a file takes a moment: each check waits for its message or table first)
+  const settled = (test, ...arg) => p.waitForFunction(test, ...arg, { timeout: 5000 }).catch(() => {});
   await upload("bad.json", "{ not json");
+  await settled(() => !document.getElementById("fileError").hidden);
   ok(
     /not a JSON file/.test(await p.textContent("#fileError")) &&
       (await p.isHidden("#result")) &&
@@ -255,6 +258,7 @@ function unzip(buf) {
     "a file that is not JSON: a message, no table",
   );
   await upload("settings.json", JSON.stringify({ format: "map-generation-tool settings", settings: {} }));
+  await settled(() => /no list/.test(document.getElementById("fileError").textContent));
   ok(/no list of locations/.test(await p.textContent("#fileError")), "a settings file: a message");
   // map-making.app's own export: a list, with names that must stay text
   await upload(
@@ -264,6 +268,7 @@ function unzip(buf) {
       { lat: 41.9, lng: 12.5, countryCode: "IT" },
     ]),
   );
+  await settled(() => !document.getElementById("result").hidden);
   ok(
     (await p.isHidden("#fileError")) &&
       (await table()).join() === "Germany|DE|Europe|1|50.00%|,Italy|IT|Europe|1|50.00%|" &&
