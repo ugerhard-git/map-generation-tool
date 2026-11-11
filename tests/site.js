@@ -8,6 +8,8 @@ const SITE = "https://mapgen.test/";
 const PAGE = SITE + "index.nokey.html";
 // The second tool, Unofficial, at unofficial/ (src/unofficial/).
 const UNOFFICIAL = SITE + "unofficial/index.nokey.html";
+// The third tool, Distribution, at distribution/ (src/distribution/).
+const DISTRIBUTION = SITE + "distribution/index.nokey.html";
 // SITE_BUILD=split runs the tests against the split build (dist/split/: scripts and styles in files of
 // their own, see src/build.js) instead of the one-file pages.
 const SPLIT = process.env.SITE_BUILD === "split";
@@ -23,4 +25,4 @@ function serveSite(route) {
   return route.fulfill({ path: file });
 }
 
-module.exports = { SITE, PAGE, UNOFFICIAL, isSite, serveSite, SPLIT, DIST: dist };
+module.exports = { SITE, PAGE, UNOFFICIAL, DISTRIBUTION, isSite, serveSite, SPLIT, DIST: dist };

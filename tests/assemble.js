@@ -63,8 +63,9 @@ ok(
   "only a marker on a line of its own counts",
 );
 
-// The files of the two pages of this repository that can use shared files.
-const pageFiles = ["src", "src/unofficial"].flatMap(dir =>
+// The files of the pages of this repository that can use shared files (Distribution uses only the shared
+// styles).
+const pageFiles = ["src", "src/unofficial", "src/distribution"].flatMap(dir =>
   ["app.js", "style.css", "page.html"].map(f => path.join(__dirname, "..", dir, f)),
 );
 const MARKER = /^\s*(?:\/\*SHARED ([a-z0-9-]+\.(?:js|css))\*\/|<!--SHARED ([a-z0-9-]+\.html)-->)$/gm;
@@ -77,6 +78,7 @@ ok(unused.length === 0, "every file in src/shared/ is used by a page" + (unused.
 for (const [dir, built] of [
   ["src", "dist/index.nokey.html"],
   ["src/unofficial", "dist/unofficial/index.nokey.html"],
+  ["src/distribution", "dist/distribution/index.nokey.html"],
 ]) {
   const page = path.join(__dirname, "..", built);
   const html = fs.existsSync(page) ? fs.readFileSync(page, "utf8") : "";
