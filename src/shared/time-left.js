@@ -20,19 +20,14 @@ const PACE_WAIT = 20000, // ms of searching before a forecast is shown
 let pace = null;
 /* Starts learning for a run. */
 function startPace() {
-  pace = { since: Date.now(), spots: 0, tries: new Map(), found: new Map(), hits: new Map(), finishAt: 0 };
+  pace = { since: Date.now(), spots: 0, tries: new Map(), found: new Map(), finishAt: 0 };
 }
-/* Counts a random spot tried in a country (found 0), or the locations found from one (found > 0): more
-   than one when the search looks along the coverage (see src/shared/walk.js). */
-function countPace(code, found = 0) {
+/* Counts a random spot tried in a country, or (found = true) a new location there. */
+function countPace(code, found = false) {
   if (!pace) return;
-  if (!found) {
-    pace.tries.set(code, (pace.tries.get(code) || 0) + 1);
-    pace.spots++;
-    return;
-  }
-  pace.found.set(code, (pace.found.get(code) || 0) + found);
-  pace.hits.set(code, (pace.hits.get(code) || 0) + 1);
+  const m = found ? pace.found : pace.tries;
+  m.set(code, (m.get(code) || 0) + 1);
+  if (!found) pace.spots++;
 }
 /* Seconds the search still needs, or null while there is too little to go on. */
 function secondsLeft(now = Date.now()) {
@@ -43,14 +38,10 @@ function secondsLeft(now = Date.now()) {
     const need = wanted - (foundBy.get(code) || 0);
     if (need <= 0 || gaveUp.has(code) || noSpots.has(code)) continue;
     const tries = pace.tries.get(code) || 0,
-      found = pace.found.get(code) || 0,
-      // the spots that found something, and the locations each brought (one, unless the search looks
-      // along the coverage)
-      hits = pace.hits?.get(code) ?? found,
-      perHit = hits ? found / hits : 1;
+      found = pace.found.get(code) || 0;
     spots += spotsStillNeeded(
-      Math.ceil(need / perHit),
-      tries ? hits / tries : 0,
+      need,
+      tries ? found / tries : 0,
       searchSettings.giveUpAfter,
       missesInRow.get(code) || 0,
     );

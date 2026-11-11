@@ -138,7 +138,9 @@ const SETTINGS_FORMAT = "map-generation-tool settings",
   TOOL_TITLE = "the Map Generation Tool",
   // (indoor and tagIndoor: the indoor filter and tag, published from 6 to 9 November 2026 and removed, as
   // Google's answer cannot tell indoor panoramas apart; files from then load without a note)
-  OLDER_SETTING_NAMES = ["deadEnd", "indoor", "tagIndoor"];
+  // (lookAlongSpacing and lookAlongMax: "Follow the coverage", published on 11 November 2026 and taken out
+  // the same day, see src/shared/walk.js)
+  OLDER_SETTING_NAMES = ["deadEnd", "indoor", "tagIndoor", "lookAlongSpacing", "lookAlongMax"];
 /* The other tool in this repository: linked in the header, and named when its settings file is loaded here. */
 const OTHER_TOOL = {
   name: "Unofficial",
@@ -369,12 +371,10 @@ function wantedLabel(w) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/* The number fields of "Look along the coverage" (see src/shared/walk.js), handled with the shared ones
-   (see "step 3"). The distance is in metres, as the radius: the number fields take whole numbers. */
+/* The number field of "Look along the coverage" (see src/shared/walk.js), handled with the shared ones
+   (see "step 3"). */
 const TOOL_NUMBER_FIELDS = {
   lookAlongDepth: { lo: 1, hi: 10, d: 3, step: 1 }, // panoramas in a row without a match
-  lookAlongSpacing: { lo: MIN_SPACING, hi: 50000, d: 1000, step: 100 }, // metres between locations
-  lookAlongMax: { lo: 1, hi: 1000, d: 20, step: 1 }, // locations from one random spot
 };
 
 /*SHARED how-many.js*/

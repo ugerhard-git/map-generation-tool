@@ -233,28 +233,19 @@
     <template id="help-lookAlong">
       <h2>Looking along the coverage</h2>
       <p>
-        Each random spot gives the nearest panorama. This option then follows its arrows, from one panorama to
-        the next, as you would by clicking along the road in Street View. Every panorama looked at this way is
-        one more lookup, so it is not always faster: try it where coverage is sparse.
+        Each random spot gives the nearest panorama. When it does not have what you asked for, the search
+        follows its arrows to the panoramas next to it, as you would by clicking along the road in Street
+        View, and takes the first one that does. Then it goes on with a new random spot. With a period set, it
+        also tries the other dates of each photo.
       </p>
-      <ul>
-        <li><b>Off:</b> only the nearest panorama to each random spot is looked at.</li>
-        <li>
-          <b>Until the first match:</b> when the nearest panorama does not have what you asked for, the search
-          looks at the panoramas along the road until one does, then takes a new random spot. With a period
-          set, it also tries the other dates of the photo at the spot. Only with something asked for under
-          "Roads and arrows" or "Photos".
-        </li>
-        <li>
-          <b>Follow the coverage:</b> the search keeps going along the roads from each location it finds, and
-          takes the next one at the distance you set. This helps where coverage runs along a few roads through
-          large empty land, such as in Kazakhstan, Bolivia, Australia, Canada or Russia, where most random
-          spots find nothing. The locations then lie along fewer roads than with random spots alone.
-        </li>
-      </ul>
+      <p>
+        This helps when what you ask for is rare but comes in stretches, such as roads without a name or the
+        end of the coverage. Every panorama looked at is one more lookup, so it is not always faster. It can
+        only be ticked with something asked for under "Roads and arrows" or "Photos".
+      </p>
       <p>
         "Give up after" is how many panoramas in a row may be without what you asked for before the search
-        stops going that way. Random spots are still counted for giving up on a country and for the time left.
+        stops going that way.
       </p>
     </template>
     <template id="help-tags">
@@ -585,11 +576,15 @@
             <h2><span class="n">3</span>How many?</h2>
             <!--SHARED how-many.html-->
             <!--SHARED more-search.html-->
-            <!-- Look along the coverage (src/shared/walk.js): from the panorama found at a random spot, follow its
-                 arrows to the panoramas next to it. One choice; only the numbers it uses are shown under it. -->
-            <div class="field" role="radiogroup" aria-labelledby="lookAlongTitle">
-              <div class="labelrow">
-                <div class="label" id="lookAlongTitle">Look along the coverage</div>
+            <!-- Look along the coverage (src/shared/walk.js): when the panorama at a random spot does not match,
+                 follow its arrows to the next ones. "Give up after" is shown only while it is used. -->
+            <div class="field">
+              <div class="checkrow">
+                <label class="check"
+                  ><input type="checkbox" id="lookAlong" /><span
+                    >Look along the coverage until a match</span
+                  ></label
+                >
                 <button
                   type="button"
                   class="help"
@@ -599,14 +594,6 @@
                   ?
                 </button>
               </div>
-              <label class="radio"><input type="radio" name="lookAlong" value="off" checked />Off</label>
-              <label class="radio"
-                ><input type="radio" name="lookAlong" id="lookAlongFirst" value="first" />Until the first
-                match</label
-              >
-              <label class="radio"
-                ><input type="radio" name="lookAlong" value="follow" />Follow the coverage</label
-              >
               <div class="sub-field" id="lookAlongDepthBox" hidden>
                 <label for="lookAlongDepth">Give up after</label>
                 <div class="unit">
@@ -617,30 +604,6 @@
                     id="lookAlongDepth"
                     value="3"
                   /><span>panoramas without a match</span>
-                </div>
-              </div>
-              <div class="sub-field" id="lookAlongSpacingBox" hidden>
-                <label for="lookAlongSpacing">Keep locations at least</label>
-                <div class="unit">
-                  <input
-                    type="text"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    id="lookAlongSpacing"
-                    value="1,000"
-                  /><span>m apart along the coverage</span>
-                </div>
-              </div>
-              <div class="sub-field" id="lookAlongMaxBox" hidden>
-                <label for="lookAlongMax">At most</label>
-                <div class="unit">
-                  <input
-                    type="text"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    id="lookAlongMax"
-                    value="20"
-                  /><span>locations from one random spot</span>
                 </div>
               </div>
             </div>

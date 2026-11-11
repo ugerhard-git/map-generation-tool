@@ -38,16 +38,14 @@ let cells = new Map(),
   seenPanos = new Set();
 const cellKey = (row, col) => row + "," + col;
 const cellCol = (lat, lng) => Math.floor((lng * Math.max(0.01, Math.cos(toRadians(lat)))) / CELL);
-/* True if a location at this point would be closer than `within` metres (MIN_SPACING or more) to one
-   found before. */
-function tooClose(lat, lng, within = MIN_SPACING) {
-  const row = Math.floor(lat / CELL),
-    n = Math.ceil(within / MIN_SPACING); // the cells around to look in
-  for (let r = row - n; r <= row + n; r++) {
+/* True if a location at this point would be closer than MIN_SPACING to one found before. */
+function tooClose(lat, lng) {
+  const row = Math.floor(lat / CELL);
+  for (let r = row - 1; r <= row + 1; r++) {
     const col = cellCol(r * CELL, lng);
-    for (let c = col - n - 1; c <= col + n + 1; c++)
+    for (let c = col - 2; c <= col + 2; c++)
       for (const l of cells.get(cellKey(r, c)) || [])
-        if (distance(lat, lng, l.lat, l.lng) < within) return true;
+        if (distance(lat, lng, l.lat, l.lng) < MIN_SPACING) return true;
   }
   return false;
 }
@@ -160,9 +158,9 @@ function miss(code) {
   // (a country that is already full, through another worker's lookup, does not give up)
   if (n >= searchSettings.giveUpAfter && (foundBy.get(code) || 0) < searchTargets.get(code)) gaveUp.add(code);
 }
-/* One random spot in a country: look it up and keep the panorama if it matches (keepPanorama); in a tool
-   that looks along the coverage, then look at the panoramas its arrows lead to (see src/shared/walk.js).
-   The spot counts as a miss for giving up only when nothing was kept from it. */
+/* One random spot in a country: look it up and keep the panorama if it matches (keepPanorama); if it does
+   not, in a tool that looks along the coverage, look at the panoramas its arrows lead to (see
+   src/shared/walk.js). The spot counts as a miss for giving up only when nothing was kept from it. */
 async function attempt(code, want, rad, key) {
   const p = randomPointIn(code);
   if (!p) {
@@ -193,19 +191,19 @@ async function attempt(code, want, rad, key) {
     return;
   }
   stats.failedInRow = 0;
-  const keep = (pano, spacing) => keepPanorama(pano, code, key, want, spacing);
-  let kept = (await keep(r)) ? 1 : 0;
+  const keep = pano => keepPanorama(pano, code, key, want);
+  let kept = await keep(r);
   if (fatal) return;
-  if (COVERAGE_WALK) kept += await COVERAGE_WALK.walk(r, code, key, want, kept > 0, keep);
+  if (!kept && COVERAGE_WALK) kept = await COVERAGE_WALK.walk(r, code, key, want, keep);
   if (fatal) return;
-  if (kept) countPace(code, kept);
+  if (kept) countPace(code, true);
   else miss(code);
 }
-/* Checks a panorama found for a country and keeps it as a location if it matches, at least `spacing`
-   metres from every location found before; true when kept. What a panorama must have is each tool's own
-   (see "what a location must have" in its app.js): panoramaWanted() and laterChecks() decide,
-   locationFields() adds what the tool keeps about a location. Counts why a panorama was left out. */
-async function keepPanorama(r, code, key, want, spacing = MIN_SPACING) {
+/* Checks a panorama found for a country and keeps it as a location if it matches; true when kept. What a
+   panorama must have is each tool's own (see "what a location must have" in its app.js): panoramaWanted()
+   and laterChecks() decide, locationFields() adds what the tool keeps about a location. Counts why a
+   panorama was left out. */
+async function keepPanorama(r, code, key, want) {
   // The panorama to use (it can be another photo at the same spot) and what its arrows say; or the name
   // of the counter for why it does not match.
   const checked = await panoramaWanted(r, code, key, want);
@@ -220,7 +218,7 @@ async function keepPanorama(r, code, key, want, spacing = MIN_SPACING) {
     return false;
   }
   if (!laterChecks(pano, code, want)) return false;
-  if (seenPanos.has(pano.panoId) || tooClose(pano.lat, pano.lng, spacing)) {
+  if (seenPanos.has(pano.panoId) || tooClose(pano.lat, pano.lng)) {
     stats.tooClose++;
     return false;
   }
