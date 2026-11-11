@@ -95,6 +95,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 39. **Continue with a changed number** (done, 11 November 2026, at the owner's request): after a search was stopped, or after it ended, it can be continued with a changed number of locations, radius, lookups at the same time or giving up (`RUN_SETTINGS`), keeping what was found. A higher number looks for more; a lower one keeps that many, chosen at random, each country its share (no choice, as agreed). When settings that decide which locations are found changed (where, the filters, the distribution, the camera view), "Start a new search" asks first, in a dialog that says why the locations found cannot be kept and names the sections that changed.
 
+40. **A steady bar under the map** (done, 11 November 2026, at the owner's request): while a search runs, the numbers in the bar no longer jump left and right, or make the counters wrap to another line and back. The bar uses digits of one width (Overpass has them), each counter's number keeps the room it has needed in the search, and the big count keeps room for the number asked for. Measured over 15 seconds of a search: the counters and buttons moved 48 times before (114 in a narrower window), 2 times after.
+
 Later, to be discussed when they come up:
 
 - More tag options.
