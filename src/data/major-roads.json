@@ -1,6 +1,14 @@
 {
-  "about": "Major roads by the names Google shows on a panorama's arrows, for the Map Generation Tool's filter \"Not on a major road\" and its tag (plan step 42). Written by hand from the owner's search logs of 13 November 2026 (seven logs, about 25 to 500 panoramas in each country) and OpenStreetMap's table of road classes by country (wiki.openstreetmap.org/wiki/Highway:International_equivalence). Major means OpenStreetMap's motorway, trunk and primary. For each country: \"major\", a regular expression for the name of a major road (matched against the whole name Google shows); \"roads\", what counts, in words, for the help; \"partly\": true where the names tell only motorways and trunk roads apart, so only those count; and examples from the logs, which the build checks (\"major\" must match, \"other\" must not). Google sometimes writes a letter in Cyrillic that looks like a Latin one (М-4 and M-4, Р-255 and P27), so the patterns of such countries take both. The page matches them in JavaScript, where \\b only knows Latin letters: after a letter of another script, a pattern says what follows (a space, a digit or the end) instead.",
+  "about": "Major roads by the names Google shows on a panorama's arrows, for the Map Generation Tool's filter \"Not on a major road\" and its tag (plan step 42). Written by hand from the owner's search logs of 13 November 2026 (ten logs, about 25 to 500 panoramas in each country) and OpenStreetMap's table of road classes by country (wiki.openstreetmap.org/wiki/Highway:International_equivalence). Major means OpenStreetMap's motorway, trunk and primary. For each country: \"major\", a regular expression for the name of a major road (matched against the whole name Google shows); \"roads\", what counts, in words, for the help; \"partly\": true where the names tell only motorways and trunk roads apart, so only those count; and examples from the logs, which the build checks (\"major\" must match, \"other\" must not). Google sometimes writes a letter in Cyrillic that looks like a Latin one (М-4 and M-4, Р-255 and P27), so the patterns of such countries take both. The page matches them in JavaScript, where \\b only knows Latin letters: after a letter of another script, a pattern says what follows (a space, a digit or the end) instead.",
   "countries": {
+    "AD": {
+      "major": "^CG-\\d+[A-Z]?$",
+      "roads": "general roads (CG)",
+      "examples": {
+        "major": ["CG-2", "CG-2A"],
+        "other": ["CS-140", "N320", "Ctra. de la Plana"]
+      }
+    },
     "AE": {
       "major": "^E ?\\d+$",
       "roads": "federal E roads",
@@ -41,6 +49,22 @@
       "examples": {
         "major": ["A5", "A87", "M1", "National Highway 95", "National Highway A2"],
         "other": ["B7", "B400", "C624", "Stuart Hwy"]
+      }
+    },
+    "AX": {
+      "major": "^[1-4]$",
+      "roads": "main roads 1 to 4",
+      "examples": {
+        "major": ["1", "2", "4"],
+        "other": ["50", "640", "Föglövägen"]
+      }
+    },
+    "BA": {
+      "major": "^(?:(?:M|A|E) ?\\d+(?:\\.\\d+)?|Autoput .+)$",
+      "roads": "motorways (A, \"Autoput …\"), main roads (M) and E roads; regional (R) roads are not counted",
+      "examples": {
+        "major": ["M20", "M6.1", "M17.3", "E661", "Autoput 9. Januar"],
+        "other": ["R408", "R403a", "Mome Kapora"]
       }
     },
     "BD": {
@@ -164,6 +188,14 @@
         "other": ["126", "601", "Ruta Nacional Secundaria 229", "Ruta Nacional Treciaria 923", "C. 25"]
       }
     },
+    "CY": {
+      "major": "^(?:A|B) ?\\d+$",
+      "roads": "A and B roads",
+      "examples": {
+        "major": ["A1", "B9", "B2"],
+        "other": ["E912", "F929", "Old B8", "October 28th"]
+      }
+    },
     "CZ": {
       "major": "^(?:(?:D|E) ?\\d+|\\d{1,3})$",
       "roads": "D roads and class I and II roads (up to three digits)",
@@ -228,6 +260,14 @@
       "examples": {
         "major": ["A82", "A846", "M6", "A1(M)"],
         "other": ["B9074", "Newry Rd"]
+      }
+    },
+    "GE": {
+      "major": "^(?:[სS]|შ|Sh|E) ?\\d+$",
+      "roads": "international (ს, S) and domestic (შ, Sh) roads, and E roads",
+      "examples": {
+        "major": ["ს7", "S5", "შ 102", "E97", "E001"],
+        "other": ["1st St", "მე-17 ქუჩა", "M17"]
       }
     },
     "GH": {
@@ -295,6 +335,14 @@
         "other": ["9779", "רחי 7027", "Ha-Gefen St"]
       }
     },
+    "IM": {
+      "major": "^A ?\\d+$",
+      "roads": "A roads",
+      "examples": {
+        "major": ["A18", "A1"],
+        "other": ["B30", "Coast Rd"]
+      }
+    },
     "IN": {
       "major": "^(?:[A-Z]{2} )?(?:NH|SH|NE|AH) ?\\d+",
       "roads": "national (NH) and state (SH) highways",
@@ -319,6 +367,14 @@
       "examples": {
         "major": ["SS603", "SS 114 Orientale Sicula", "Strada Statale 196 di Villacidro", "A1"],
         "other": ["SP39", "SR74", "Strada Provinciale 165", "Via Roma"]
+      }
+    },
+    "JE": {
+      "major": "^A ?\\d+$",
+      "roads": "A roads",
+      "examples": {
+        "major": ["A12", "A2"],
+        "other": ["B36", "Rue du Villot"]
       }
     },
     "JO": {
@@ -362,12 +418,28 @@
         "other": ["R-265", "Р-114", "P27", "A353", "Karaganda - Karkaralinsk"]
       }
     },
+    "LA": {
+      "major": "^(?:AH ?\\d+|\\d{1,2}[A-Z]?|No\\.\\d{1,2} Road)$",
+      "roads": "national roads (one or two digits) and Asian Highways (AH)",
+      "examples": {
+        "major": ["13", "16W", "No.38 Road", "AH15"],
+        "other": ["2195", "211", "มห.4017", "Rural Rd"]
+      }
+    },
     "LK": {
       "major": "^A ?\\d+$",
       "roads": "A roads",
       "examples": {
         "major": ["A15", "A9", "A1"],
         "other": ["B111", "AB1", "Good Shed Rd"]
+      }
+    },
+    "LS": {
+      "major": "^(?:A ?\\d+|Main (?:North|South) \\d+ Rd)$",
+      "roads": "A roads (main roads)",
+      "examples": {
+        "major": ["A1", "A25", "Main South 1 Rd"],
+        "other": ["B23", "R393", "Oxbow - Mapholaneng Rd"]
       }
     },
     "LT": {
@@ -446,6 +518,14 @@
         "other": ["D3622", "M47", "M121", "Firefish Str"]
       }
     },
+    "NG": {
+      "major": "^A ?\\d+$",
+      "roads": "federal trunk roads (A)",
+      "examples": {
+        "major": ["A1", "A2", "A125"],
+        "other": ["F123", "Sokoto Rd"]
+      }
+    },
     "NL": {
       "major": "^(?:(?:A|E) ?\\d+|N ?(?:[1-9]\\d?|[1-3]\\d\\d|400))$",
       "roads": "A and E roads, and N roads up to N400",
@@ -463,12 +543,28 @@
         "other": ["Fv131", "Fjellvegen"]
       }
     },
+    "NP": {
+      "major": "^(?:NH|H|AH) ?\\d+$",
+      "roads": "national highways (NH, H) and Asian Highways (AH)",
+      "examples": {
+        "major": ["NH09", "H14", "AH2"],
+        "other": ["Yamgha Rd", "Araniko Highway"]
+      }
+    },
     "NZ": {
       "major": "^(?:SH|State Hwy|State Highway) ?\\d+",
       "roads": "state highways (SH)",
       "examples": {
         "major": ["SH 1", "State Hwy 60", "State Highway 2"],
         "other": ["Inland Scenic Rte 72", "Haast Hwy", "Coast Rd"]
+      }
+    },
+    "OM": {
+      "major": "^(?:\\d{1,2}|.*\\bExpressway)$",
+      "roads": "national routes (one or two digits) and expressways",
+      "examples": {
+        "major": ["15", "42", "Muscat - Al Batinah Expressway"],
+        "other": ["28 Lizq", "Bin Ali St", "Natih-Fuhud Rd"]
       }
     },
     "PA": {
@@ -488,6 +584,15 @@
         "other": ["LA-118", "AR-123", "LM-599", "La Libertad 805"]
       }
     },
+    "PH": {
+      "major": "^(?:Pan-Philippine Hwy|Maharlika Hwy|(?:AH|E) ?\\d+)$",
+      "roads": "the Pan-Philippine Highway, expressways (E) and Asian Highways (AH)",
+      "partly": true,
+      "examples": {
+        "major": ["Pan-Philippine Hwy", "AH26", "E1"],
+        "other": ["R-6", "Western Nautical Hwy", "Ipil-Dipolog Hwy"]
+      }
+    },
     "PL": {
       "major": "^(?:A|S|DK|E) ?\\d+$",
       "roads": "A, S and national (DK) roads",
@@ -504,6 +609,14 @@
         "other": ["PR-123", "Carretera 149", "Cll 11", "Calle 2"]
       }
     },
+    "PS": {
+      "major": "^\\d{1,3}$",
+      "roads": "highways and regional roads (up to three digits)",
+      "examples": {
+        "major": ["90", "60", "505", "5"],
+        "other": ["4775", "5060", "Ramallah-Nablus"]
+      }
+    },
     "PT": {
       "major": "^(?:A|IP|IC|E) ?\\d+$",
       "roads": "A, IP, IC and E roads",
@@ -511,6 +624,22 @@
       "examples": {
         "major": ["IC5", "A8", "E802", "IP3"],
         "other": ["N231", "EM594", "CM1393-1", "R. 1º de Maio"]
+      }
+    },
+    "PY": {
+      "major": "^(?:PY-? ?\\d+|\\d{1,2})$",
+      "roads": "national routes (PY, or one or two digits)",
+      "examples": {
+        "major": ["PY09", "PY-05", "8", "18"],
+        "other": ["D015", "Colectora PY-09", "14 de Mayo"]
+      }
+    },
+    "RE": {
+      "major": "^(?:R?N ?\\d+[A-Z]?|Route Nationale \\d+.*)$",
+      "roads": "national roads (N, RN); departmental (D) roads are not counted",
+      "examples": {
+        "major": ["N2", "RN1", "N1A", "Route Nationale 2 Sainte Anne"],
+        "other": ["D3", "D 20", "Rue N 5 Saint-Louis"]
       }
     },
     "RO": {
@@ -535,6 +664,14 @@
       "examples": {
         "major": ["М-4", "Р-255", "Р228", "А161", "Е119", "E22"],
         "other": ["86К-6", "58К-018", "64Н-1", "Ulitsa Karla Marksa"]
+      }
+    },
+    "RW": {
+      "major": "^NR ?\\d+$",
+      "roads": "national roads (NR)",
+      "examples": {
+        "major": ["NR1", "NR16"],
+        "other": ["KG 913 St", "KK 31B Ave", "Kivu Belt Rd"]
       }
     },
     "SE": {
@@ -567,6 +704,22 @@
       "examples": {
         "major": ["N2", "N6", "A. à péage", "A1"],
         "other": ["R30", "R70", "Trans-Gambia Hwy", "Kolda - Pata Rd"]
+      }
+    },
+    "ST": {
+      "major": "^EN(?: nº)? ?\\d+$",
+      "roads": "national roads (EN)",
+      "examples": {
+        "major": ["EN nº 2", "EN1"],
+        "other": ["ES5", "Estr. de Pantufo"]
+      }
+    },
+    "SZ": {
+      "major": "^MR ?\\d+$",
+      "roads": "main roads (MR)",
+      "examples": {
+        "major": ["MR9", "MR1"],
+        "other": ["D55", "Altana Rd"]
       }
     },
     "TH": {
@@ -634,6 +787,14 @@
       "examples": {
         "major": ["QL48E", "QL1A", "QL279D", "QL12"],
         "other": ["ĐT226", "Đường tỉnh 754", "TL1", "ĐH. 43", "Đ. Số 2"]
+      }
+    },
+    "XK": {
+      "major": "^(?:[MМ] ?\\d+(?:-\\d+)?|E ?\\d+|R ?[67])$",
+      "roads": "main roads (M), E roads and the motorways R6 and R7; other R roads are not counted",
+      "examples": {
+        "major": ["M25", "М9", "M25-2", "E851", "R7"],
+        "other": ["R115", "113", "B35", "Kapetan Rudi"]
       }
     },
     "ZA": {
