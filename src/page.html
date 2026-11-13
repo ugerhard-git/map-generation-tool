@@ -452,6 +452,7 @@
               <button type="button" class="linkbtn reset" data-reset="moreRoads">Reset to defaults</button>
             </details>
             <!--SHARED settlement.html-->
+            <!--SHARED landscape.html-->
             <!-- More options: where the camera faces, how far it tilts and the zoom (app.js: camera view). The drawings
                  are for the mouse and touch; the number fields next to them do the same by keyboard. -->
             <details class="more" id="moreView">
@@ -670,6 +671,12 @@
                   ></label
                 >
                 <label class="check"
+                  ><input type="checkbox" id="tagLandscape" /><span
+                    >"Forest", "Farmland", "Grassland" or "Bare ground", where it applies (see
+                    "Landscape")</span
+                  ></label
+                >
+                <label class="check"
                   ><input type="checkbox" id="tagMajorRoad" /><span
                     >"Major road", where it applies (see "Not on a major road")</span
                   ></label
@@ -726,6 +733,9 @@
       /* Where the settlement map is (src/shared/settlements.js): a file next to the page, loaded only when
          "Town or countryside" or its tag is used; made by tools/settlements.js from the GHSL. */
       const SETTLEMENTS = /*SETTLEMENTS*/;
+      /* Where the landscape map is (src/shared/landscape.js): tiles next to the page, each loaded only when
+         "Landscape" or its tag looks at a place in it; made by tools/landscape.js from ESA WorldCover. */
+      const LANDSCAPE = /*LANDSCAPE*/;
       /* Inside another site's frame, show only a link to open the app on its own, so nobody can lay a fake
          page over it and trick clicks (the security policy in the page itself cannot forbid framing). */
       let FRAMED = false;

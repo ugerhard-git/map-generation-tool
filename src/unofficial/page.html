@@ -364,6 +364,7 @@
               </button>
             </details>
             <!--SHARED settlement.html-->
+            <!--SHARED landscape.html-->
           </section>
 
           <!-- Step 3: how many, and the Google key (app.js: step 3) -->
@@ -407,6 +408,12 @@
                 <label class="check"
                   ><input type="checkbox" id="tagSettlement" /><span
                     >"Town" or "Countryside" (see "Town or countryside")</span
+                  ></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagLandscape" /><span
+                    >"Forest", "Farmland", "Grassland" or "Bare ground", where it applies (see
+                    "Landscape")</span
                   ></label
                 >
                 <label class="check"
@@ -454,6 +461,9 @@
       /* Where the settlement map is (src/shared/settlements.js): a file next to the page, loaded only when
          "Town or countryside" or its tag is used; made by tools/settlements.js from the GHSL. */
       const SETTLEMENTS = /*SETTLEMENTS*/;
+      /* Where the landscape map is (src/shared/landscape.js): tiles next to the page, each loaded only when
+         "Landscape" or its tag looks at a place in it; made by tools/landscape.js from ESA WorldCover. */
+      const LANDSCAPE = /*LANDSCAPE*/;
       /* Inside another site's frame, show only a link to open the app on its own, so nobody can lay a fake
          page over it and trick clicks (the security policy in the page itself cannot forbid framing). */
       let FRAMED = false;

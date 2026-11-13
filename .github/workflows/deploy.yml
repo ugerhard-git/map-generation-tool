@@ -38,7 +38,7 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       - name: Prepare the site
         # the Map Generation Tool at the site's main address, Unofficial at unofficial/, Distribution at
-        # distribution/, and the settlement map both map pages load when it is used at data/
+        # distribution/, and the settlement and landscape maps both map pages load when used at data/
         run: |
           mkdir -p site/unofficial site/distribution
           cp dist/index.html site/index.html

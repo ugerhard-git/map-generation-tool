@@ -1,0 +1,25 @@
+<!-- Shared markup: the "Landscape" section of step 2. Used by both tools: the build puts it where a page.html
+     has a line "SHARED landscape.html" in a comment (see src/assemble.js; the code is in
+     src/shared/landscape.js). -->
+<details class="more" id="moreLandscape">
+  <summary>
+    <span class="more-title">Landscape</span>
+    <span class="more-sum" id="sumLandscape"></span>
+  </summary>
+  <div class="field" role="radiogroup" aria-labelledby="landscapeTitle">
+    <div class="labelrow">
+      <div class="label" id="landscapeTitle">What the locations are in</div>
+      <button type="button" class="help" data-help="landscape" aria-label="Help: landscape">?</button>
+    </div>
+    <label class="radio"><input type="radio" name="landscape" value="any" checked />Any landscape</label>
+    <label class="radio"><input type="radio" name="landscape" value="forest" />Forest</label>
+    <label class="radio"><input type="radio" name="landscape" value="farmland" />Farmland</label>
+    <label class="radio"
+      ><input type="radio" name="landscape" value="grassland" />Grassland or shrubland</label
+    >
+    <label class="radio"><input type="radio" name="landscape" value="bare" />Bare ground or desert</label>
+    <!-- how the landscape map loads, loading, loaded, or why not (landscape.js: landscapeStatus) -->
+    <p class="settlement-status" id="landscapeStatus" role="status" aria-live="polite" hidden></p>
+  </div>
+  <button type="button" class="linkbtn reset" data-reset="moreLandscape">Reset to defaults</button>
+</details>

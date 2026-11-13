@@ -113,6 +113,7 @@ function cleanLocation(l) {
     date: /^\d{4}(-\d{2})?$/.test(date) ? date : "",
     cc: l.cc,
     ...(typeof l.town === "boolean" ? { town: l.town } : {}),
+    ...(LANDSCAPE.classes.includes(l.landscape) ? { landscape: l.landscape } : {}),
     ...cleanLocationFields(l),
   };
 }

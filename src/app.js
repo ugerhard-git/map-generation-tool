@@ -305,6 +305,8 @@ function distributionLabel() {
 
 /*SHARED settlements.js*/
 
+/*SHARED landscape.js*/
+
 /*SHARED where.js*/
 
 /*SHARED period.js*/
@@ -343,6 +345,7 @@ const wanted = () => ({
   notMajorRoad: $("notMajorRoad").checked,
   arrows: arrows(),
   settlement: settlementChosen(),
+  landscape: landscapeChosen(),
   years: years(),
   cameras: cameras(),
   noBadCamera: $("noBadCamera").checked && !cameras(),
@@ -427,6 +430,7 @@ function wantedLabel(w) {
   if (w.noRoadName) parts.push("no road name");
   if (w.notMajorRoad) parts.push("not on a major road");
   if (settlementWords(w.settlement)) parts.push(settlementWords(w.settlement));
+  if (landscapeWords(w.landscape)) parts.push(landscapeWords(w.landscape));
   if (w.arrows === "end") parts.push("end of coverage");
   if (w.arrows === "intersection") parts.push("intersection");
   if (w.arrows === "none") parts.push("no arrows");
@@ -450,6 +454,7 @@ const TAG_OPTIONS = {
   tagNoArrows: false,
   tagMajorRoad: false,
   tagSettlement: false,
+  tagLandscape: false,
   tagYear: false,
   tagCamera: false,
 };
@@ -472,6 +477,7 @@ function tagsFor(l) {
   if ($("tagNoArrows").checked && l.noArrows) tags.push("No arrows");
   if ($("tagMajorRoad").checked && l.majorRoad) tags.push("Major road");
   if ($("tagSettlement").checked && settlementTag(l)) tags.push(settlementTag(l));
+  if ($("tagLandscape").checked && landscapeTag(l)) tags.push(landscapeTag(l));
   if ($("tagYear").checked && l.date) tags.push(dateTagOf(l));
   if ($("tagCamera").checked && l.camera) tags.push(CAMERAS[l.camera]);
   return tags;
@@ -483,6 +489,7 @@ const TAG_WORDS = {
   tagNoArrows: "no arrows",
   tagMajorRoad: "major road",
   tagSettlement: "town or countryside",
+  tagLandscape: "landscape",
   tagCamera: "camera",
 };
 
@@ -501,7 +508,8 @@ const anythingWanted = w =>
   !!w.years ||
   !!w.cameras ||
   w.noBadCamera ||
-  (!!w.settlement && w.settlement !== "any");
+  (!!w.settlement && w.settlement !== "any") ||
+  (!!w.landscape && w.landscape !== "any");
 /* The line under step 2 when nothing is asked. */
 const ANY_LOCATION_WORDS = "Any official location. Choose more in the sections below.";
 /** @type {Record<string, {summary: () => string, changed: () => boolean, reset: () => void}>} */
@@ -803,6 +811,7 @@ const wantedOf = s => ({
   noRoadName: s.noRoadName,
   notMajorRoad: s.notMajorRoad,
   settlement: s.settlement,
+  landscape: s.landscape,
   arrows: s.arrows,
   years: s.yearsOn ? periodOf(s) : null,
   cameras: Object.entries(CAMERA_BOXES).some(([id]) => s[id])
