@@ -1,0 +1,116 @@
+# Makes the landscape map (src/data/landscape/ and src/data/landscape.json) from ESA WorldCover 2021 and
+# opens a pull request with it for the owner to review (or updates the one still open). Only started by
+# hand: Actions → Update the landscape map → Run workflow. WorldCover does not change any more, so this is
+# needed only when tools/landscape.js changes.
+#
+# WorldCover is 124 GB, in about 2,650 files on Amazon (https://registry.opendata.aws/esa-worldcover-vito/).
+# tools/landscape.js reads each from a smaller copy inside the file, so far less is fetched, and nothing is
+# kept but the result (a few MB). Two jobs, for safety: "read" (four at once, each a quarter of the world)
+# installs the packages (geotiff) and gets no write access; "propose" can push and open pull requests, but
+# runs only this repository's own tools/landscape.js (pack needs only Node itself), git and gh, so no
+# outside code ever sees its token. If anything looks wrong, tools/landscape.js stops, the run fails and
+# GitHub sends a notification.
+name: Update the landscape map
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: landscape-update
+  cancel-in-progress: false
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        part: [0, 1, 2, 3]
+    steps:
+      # Actions are pinned to exact commits, so a changed tag upstream cannot change what runs here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Read part ${{ matrix.part }} of the world
+        run: node tools/landscape.js read --part ${{ matrix.part }}/4 --out "$RUNNER_TEMP/parts"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: landscape-part-${{ matrix.part }}
+          path: ${{ runner.temp }}/parts
+          if-no-files-found: error
+          retention-days: 3
+
+  propose:
+    needs: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # push the branch landscape-update
+      pull-requests: write # open or update its pull request
+      actions: write # start the Tests workflow on that branch (see the last step)
+    env:
+      BRANCH: landscape-update
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # needed to push the branch
+      # No npm packages are installed in this job: "pack" needs only Node itself.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: landscape-part-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/parts
+      - name: Put the parts together
+        run: |
+          node tools/landscape.js pack "$RUNNER_TEMP/parts" --summary "$RUNNER_TEMP/summary.md"
+          # Only the generated files may change
+          test -z "$(git status --porcelain -- . ':!src/data/landscape' ':!src/data/landscape.json')"
+      - name: Push the branch and open or update the pull request
+        env:
+          GH_TOKEN: ${{ github.token }} # only this step gets the token for gh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add src/data/landscape src/data/landscape.json
+          if git diff --cached --quiet; then
+            echo "The landscape map is unchanged."
+            exit 0
+          fi
+          git commit -m "Update the landscape map from ESA WorldCover 2021"
+          # The branch only ever holds this one generated change, so it is replaced each time.
+          git push --force origin "$BRANCH"
+          {
+            echo "The landscape map for the setting \"Landscape\" and its tag: \`src/data/landscape/\` and \`src/data/landscape.json\`, made by \`tools/landscape.js\` from [ESA WorldCover 2021](https://esa-worldcover.org/) (CC BY 4.0)."
+            echo
+            echo "## What was found"
+            echo
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "## Checks"
+            echo
+            echo "Made in [this run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). The Tests workflow was also started on this branch, because pull requests opened by a workflow do not start it themselves; merging waits for it."
+          } > "$RUNNER_TEMP/body.md"
+          open=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh pr edit "$open" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --base main --head "$BRANCH" --title "Update the landscape map" --body-file "$RUNNER_TEMP/body.md"
+          fi
+          # Runs started with the workflow's own token do not start other workflows, except when started
+          # by hand like this, so the required "test" check gets its run on this branch.
+          gh workflow run test.yml --ref "$BRANCH"
