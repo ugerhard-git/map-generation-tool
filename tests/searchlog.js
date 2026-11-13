@@ -63,6 +63,16 @@ const { UNOFFICIAL } = require("./site.js");
   );
   const left = log.entries.find(e => e.e === "left");
   ok(left && left.why.join() === "notMatching", "why one was left out: " + (left && left.why.join()));
+  const panos = log.entries.filter(e => e.e === "pano");
+  const named = panos.find(e => e.roads);
+  ok(
+    panos.every(e => e.cc === "MT") &&
+      named &&
+      named.roads.join() === "Main St" &&
+      panos.some(e => !e.roads && e.arrows === 1),
+    "each panorama with its country, and the road name on each arrow when there is one: " +
+      JSON.stringify(named && named.roads),
+  );
   ok(
     log.entries.filter(e => e.e === "kept").length === 4 && log.entries.at(-1).e === "end",
     "the four locations kept, the end last",
