@@ -51,6 +51,29 @@
     its own.
   </p>
 </template>
+<template id="help-landscape">
+  <h2>Landscape</h2>
+  <p>
+    Keeps only locations in a forest, on farmland, in grassland or shrubland, or on bare ground or in a
+    desert. With the tag ticked in "Map file", each location also gets its landscape as a tag: "Forest",
+    "Farmland", "Grassland" or "Bare ground".
+  </p>
+  <p>
+    It goes by the European Space Agency's map of what covers the ground, for 2021, reduced to what covers
+    most of each square of about 1 km (water does not count). So a location gets what its road runs through: a
+    road through mostly fields is farmland, even beside a small wood. Where fields and woods mix, the larger
+    part wins, and about one square in four may not match what you see on the ground.
+  </p>
+  <p>
+    Towns are not a landscape here: use "Town or countryside" for those. Ice, wetland and tundra are left out
+    too, so with a landscape chosen, locations there are not kept, and they get no tag.
+  </p>
+  <p>
+    The map is loaded in pieces of 10° × 10°, only for the areas a search looks at, usually a few hundred KB
+    for a country. A line under the choice says while it loads.
+  </p>
+  <p>Source: ESA WorldCover 10 m 2021 v200, European Space Agency (Zanaga et al., 2022), CC BY 4.0.</p>
+</template>
 <template id="help-settlement">
   <h2>Town or countryside</h2>
   <p>

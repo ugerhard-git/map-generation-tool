@@ -221,6 +221,8 @@ function distributionLabel() {
 
 /*SHARED settlements.js*/
 
+/*SHARED landscape.js*/
+
 /*SHARED where.js*/
 
 /*SHARED period.js*/
@@ -267,6 +269,7 @@ function wanted() {
     uploaderMode: uploaders.length ? mode : "any",
     uploaders,
     settlement: settlementChosen(),
+    landscape: landscapeChosen(),
   };
 }
 $("full360").checked = store.get("full360", false) === true;
@@ -330,6 +333,7 @@ function wantedLabel(w) {
   if (w.uploaderMode === "exclude") parts.push("not by " + namesLabel(w.uploaders));
   if (w.uploaderMode === "only") parts.push("by " + namesLabel(w.uploaders));
   if (settlementWords(w.settlement)) parts.push(settlementWords(w.settlement));
+  if (landscapeWords(w.landscape)) parts.push(landscapeWords(w.landscape));
   const text = parts.join(", ") || "unofficial coverage";
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -344,6 +348,7 @@ const TAG_OPTIONS = {
   tagUploader: false,
   tagArrows: false,
   tagSettlement: false,
+  tagLandscape: false,
   tagYear: false,
 };
 /* The tags of a location for the export, from the ticked options: "Malta", "Jane Doe", "2023". */
@@ -354,11 +359,17 @@ function tagsFor(l) {
   // (every location gets one of the two, agreed with the owner, November 2026, so either can be filtered for)
   if ($("tagArrows").checked) tags.push(l.arrows ? "Arrows" : "No arrows");
   if ($("tagSettlement").checked && settlementTag(l)) tags.push(settlementTag(l));
+  if ($("tagLandscape").checked && landscapeTag(l)) tags.push(landscapeTag(l));
   if ($("tagYear").checked && l.date) tags.push(dateTagOf(l));
   return tags;
 }
 /* This tool's tag options in words, for the summary of "Map file" (the country and date are shared). */
-const TAG_WORDS = { tagUploader: "uploader", tagArrows: "arrows", tagSettlement: "town or countryside" };
+const TAG_WORDS = {
+  tagUploader: "uploader",
+  tagArrows: "arrows",
+  tagSettlement: "town or countryside",
+  tagLandscape: "landscape",
+};
 
 /*SHARED tags.js*/
 
@@ -394,7 +405,8 @@ const anythingWanted = w =>
   w.minHeight > 0 ||
   w.arrows !== "any" ||
   w.uploaderMode !== "any" ||
-  (!!w.settlement && w.settlement !== "any");
+  (!!w.settlement && w.settlement !== "any") ||
+  (!!w.landscape && w.landscape !== "any");
 /* The line under step 2 when nothing is asked. */
 const ANY_LOCATION_WORDS = "Any unofficial location. Choose more in the sections below.";
 /** @type {Record<string, {summary: () => string, changed: () => boolean, reset: () => void}>} */
@@ -573,6 +585,7 @@ const wantedOf = s => {
     uploaderMode: uploaders.length ? s.uploaderMode : "any",
     uploaders,
     settlement: s.settlement,
+    landscape: s.landscape,
   };
 };
 /* More about settings in words, for the history: nothing here. */

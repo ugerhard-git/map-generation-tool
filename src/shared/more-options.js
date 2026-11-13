@@ -34,6 +34,19 @@ const MORE = {
       store.set("settlement", "any");
     },
   },
+  // "Landscape" (see "landscape")
+  moreLandscape: {
+    summary: () => {
+      const words = landscapeWords(landscapeChosen());
+      return words ? words.charAt(0).toUpperCase() + words.slice(1) : "Any landscape";
+    },
+    changed: () => landscapeChosen() !== "any",
+    reset: () => {
+      setRadio("landscape", "any");
+      store.set("landscape", "any");
+      landscapeNote();
+    },
+  },
   // "Camera view", in a tool that has it (see "camera view")
   ...(CAMERA_VIEW ? { moreView: CAMERA_VIEW.more } : {}),
   moreSearch: {

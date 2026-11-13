@@ -48,6 +48,7 @@ function drawLocation(l) {
   const has = [
     ...locationFacts(l),
     l.town === true ? "In a town or village" : l.town === false ? "In the countryside" : "",
+    landscapeFact(l),
   ]
     .filter(Boolean)
     .join(", ");
