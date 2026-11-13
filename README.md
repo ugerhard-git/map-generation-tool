@@ -108,6 +108,7 @@ The tests drive the page in a headless browser. Google's script and the map tile
 | `tools/population.js`        | Updates `src/data/population.json` from Natural Earth (by hand)                     |
 | `src/data/settlements.bin`   | Where the towns and villages are, from the GHSL (generated; see `.json` beside it)  |
 | `tools/settlements.js`       | Makes `src/data/settlements.bin` from the GHSL's degree of urbanisation (by hand)   |
+| `tools/landscape.js`         | Makes the landscape map `src/data/landscape/` from ESA WorldCover (on GitHub)       |
 | `tests/`                     | Browser tests, one file per feature area                                            |
 | `docs/`                      | [How the code works](docs/how-the-code-works.md), for developers                    |
 | `CONTRIBUTING.md`            | How to make a change, and the rules                                                 |
