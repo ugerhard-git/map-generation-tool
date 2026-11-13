@@ -160,7 +160,8 @@
       <p>
         Google does not say what kind of road a panorama is on, only the road name on its arrows. Where that
         name is a road number, the number often tells the kind of road: in Germany, "B87" is a major road and
-        "K74" is not. So the filter works only in the countries below, and only where Google shows the number:
+        "K74" is not. So the filter only works where Google shows a road number, and in countries whose road
+        numbers have been looked into: <span class="major-roads-count"></span> so far.
       </p>
       <ul>
         <li>
@@ -169,13 +170,30 @@
         </li>
         <li>Locations without a road name are kept.</li>
         <li>In other countries, locations are not checked for it.</li>
+        <li>
+          In some countries, the road numbers tell motorways and trunk roads from the rest, but not primary
+          roads from smaller ones. There, only motorways and trunk roads count.
+        </li>
       </ul>
-      <p>What counts as a major road in each country:</p>
+      <p>
+        <button type="button" class="linkbtn" data-help-link="majorRoadsList">
+          Show the list of countries and what counts in each
+        </button>
+      </p>
+    </template>
+    <template id="help-majorRoadsList">
+      <h2>Major roads by country</h2>
+      <p>
+        The countries where "Not on a major road" works, and the roads that count as major in each, by the
+        road numbers Google shows. "Only motorways and trunk roads" means that primary roads are not
+        recognised there.
+      </p>
       <!-- filled from MAJOR_ROADS when the page starts (app.js: "major roads") -->
       <ul class="major-roads"></ul>
       <p>
-        Where it says "only", the road numbers tell motorways and trunk roads from the rest, but not primary
-        roads from smaller ones, so only motorways and trunk roads count.
+        <button type="button" class="linkbtn" data-help-link="notMajorRoad">
+          Back to "Not on a major road"
+        </button>
       </p>
     </template>
     <template id="help-arrows">

@@ -208,7 +208,7 @@ const path = require("path");
           outcome: "<b>bold</b>",
           settings: {
             scope: "mars",
-            countries: ["DE", "DE", "BY", "<i>", 3],
+            countries: ["DE", "DE", "MQ", "<i>", 3],
             continent: "__proto__",
             distribution: "constructor",
             target: 1e9,

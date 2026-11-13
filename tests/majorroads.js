@@ -42,17 +42,48 @@ const { UNOFFICIAL } = require("./site.js");
     "at a junction with a major road: on a major road",
   );
 
-  // The help lists the countries and what counts
+  // The help explains the limits and how many countries; its link opens the list, and the list links back
   await p.click("[data-help=notMajorRoad]");
   const help = await p.textContent("#helpBody");
+  const count = await p.evaluate(() => Object.keys(MAJOR_ROADS).length);
   ok(
-    /Germany: A, B and L roads/.test(help) &&
-      /France \(only motorways and trunk roads\): A and N roads/.test(help) &&
-      (await p.evaluate(() => document.querySelectorAll("#helpBody .major-roads li").length)) ===
-        (await p.evaluate(() => Object.keys(MAJOR_ROADS).length)),
-    "the help lists every country and what counts there",
+    help.includes(`${count} countries so far`) && /street name/.test(help) && !/Germany: A, B/.test(help),
+    `the help is short: the limits and the number of countries (${count}), not the list`,
   );
+  await p.click("#helpBody [data-help-link=majorRoadsList]");
+  const list = await p.textContent("#helpBody");
+  ok(
+    (await p.isVisible("#help")) &&
+      (await p.textContent("#helpTitle")) === "Major roads by country" &&
+      /Germany: A, B and L roads/.test(list) &&
+      /France \(only motorways and trunk roads\): A and N roads/.test(list) &&
+      /Russia: federal roads/.test(list) &&
+      (await p.evaluate(() => document.querySelectorAll("#helpBody .major-roads li").length)) === count,
+    "its link opens the list of every country and what counts there",
+  );
+  await p.click("#helpBody [data-help-link=notMajorRoad]");
+  ok((await p.textContent("#helpTitle")) === "Not on a major road", "and the list links back");
   await p.keyboard.press("Escape");
+  ok(await p.isHidden("#help"), "Escape closes it");
+
+  // Google writes some letters in Cyrillic, some in Latin: both count
+  ok(
+    (await p.evaluate(() =>
+      [
+        ["RU", "М-4"],
+        ["RU", "M-4"],
+        ["UA", "Н07"],
+        ["UA", "H08"],
+        ["KZ", "А-9"],
+        ["GR", "ΕΟ Τριπόλεως Καλαμάτας"],
+        ["CA", "ON-401"],
+        ["CA", "ON-502"],
+      ]
+        .map(([c, n]) => (onMajorRoad(c, [{ description: n }]) ? 1 : 0))
+        .join(""),
+    )) === "11111110",
+    "Cyrillic and Latin letters, Greek names, and Canada's rules per province",
+  );
 
   // A search in Germany: the panoramas on B87 and A43, or next to them, are left out
   await p.evaluate(() => {
