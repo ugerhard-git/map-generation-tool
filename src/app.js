@@ -51,7 +51,7 @@
  * SAVED IN THE BROWSER (localStorage, each name starts with "mapgen.", see `store`)
  *   scope ("countries", "continent" or "world"), countries (codes; the older single "country" is moved
  *   over on load), continent, distribution (a Vali map, "continent", "own" or "preset:<id>"), own (the distribution of one's own being
- *   edited), presets (saved distributions of one's own), noRoadName, arrows ("any", "end", "intersection" or "none"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
+ *   edited), presets (saved distributions of one's own), noRoadName, notMajorRoad, arrows ("any", "end", "intersection" or "none"; the older tick box "deadEnd" is moved over on load), yearsOn, yearFrom, monthFrom, yearTo (a year or "now"), monthTo, camGen4, camGen23, camBad, noBadCamera, useOlder, target,
  *   radius, giveUpAfter, giveUpOn, viewDirection, carAngle, dirFrom, dirTo, tiltMode, tilt, tiltMin, tiltMax, zoomMode, zoom, zoomMin, zoomMax (camera view), mapName, tagCountry, tagNoRoadName, tagDeadEnd, tagIntersection, tagNoArrows, tagYear, tagDate, sizeLimitOn, sizeLimit (the largest map file), territoryTag (how territories are tagged: "both", "own" or "parent"), tagCamera (which tags the export
  *   gets; the older single tagFeatures is moved over to both on load), openSections (the open "More options" sections), welcomed (first-visit
  *   dialog seen), history (the last 20 searches' settings, see "history of searches"; never the key) and
@@ -332,16 +332,17 @@ const arrows = () => document.querySelector("input[name=arrows]:checked")?.value
       updateMapName();
     };
 }
-/* What each location must have: { noRoadName, arrows, years: {from, to} | null, cameras, noBadCamera }.
-   "No bad camera" does not apply when cameras are chosen: the choice already says. */
+/* What each location must have: { noRoadName, notMajorRoad, arrows, years: {from, to} | null, cameras,
+   noBadCamera }. "No bad camera" does not apply when cameras are chosen: the choice already says. */
 const wanted = () => ({
   noRoadName: $("noRoadName").checked,
+  notMajorRoad: $("notMajorRoad").checked,
   arrows: arrows(),
   years: years(),
   cameras: cameras(),
   noBadCamera: $("noBadCamera").checked && !cameras(),
 });
-for (const id of ["noRoadName", "noBadCamera", ...Object.keys(CAMERA_BOXES)]) {
+for (const id of ["noRoadName", "notMajorRoad", "noBadCamera", ...Object.keys(CAMERA_BOXES)]) {
   $(id).checked = store.get(id, false) === true;
   $(id).onchange = () => {
     store.set(id, $(id).checked);
@@ -368,10 +369,54 @@ function updateOlder() {
   $("useOlder").disabled = !cameras() && !$("noBadCamera").checked;
 }
 updateOlder();
+/* ---------- major roads ----------
+   "Not on a major road" and the tag "Major road" (plan step 42, agreed with the owner in November 2026):
+   Google gives no kind of road, only the road name on each arrow. Where that is a road number, the number
+   often tells the kind of road (Germany: "B87" major, "K74" not), so MAJOR_ROADS has, for each country
+   where it does, a pattern for the names of major roads (OpenStreetMap's motorway, trunk and primary;
+   "partly": only motorways and trunk roads), from the owner's search logs (src/data/major-roads.json). A
+   panorama counts as on a major road when one of its arrows is, also at a junction with a smaller road.
+   Elsewhere, and where Google shows a street name or none, nothing is known: such locations are kept. */
+const MAJOR_ROAD_PATTERNS = new Map(
+  Object.entries(MAJOR_ROADS).map(([c, m]) => [c, new RegExp(m.major, "u")]),
+);
+/* True when one of the arrows of a panorama in this country is on a major road, as far as the names tell. */
+function onMajorRoad(code, links) {
+  const re = MAJOR_ROAD_PATTERNS.get(code);
+  return !!re && links.some(l => typeof l.description === "string" && re.test(l.description.trim()));
+}
+/* Under the tick box: in which of the countries searched it works, when not in all of them. */
+function updateMajorRoadNote() {
+  const codes = Object.keys(planTargets()),
+    known = codes.filter(c => MAJOR_ROAD_PATTERNS.has(c));
+  const note = $("majorRoadNote");
+  note.hidden = !$("notMajorRoad").checked || !codes.length || known.length === codes.length;
+  if (note.hidden) return;
+  note.textContent = !known.length
+    ? "Major roads are not recognised in the countries searched: this has no effect."
+    : codes.length <= 6
+      ? `Recognised in ${known.map(countryName).join(", ")}, not in ${codes
+          .filter(c => !MAJOR_ROAD_PATTERNS.has(c))
+          .map(countryName)
+          .join(", ")}.`
+      : `Recognised in ${fmt(known.length)} of the ${fmt(codes.length)} countries searched; locations in the others are not checked for it.`;
+}
+// The help's list of the countries and what counts (see "help-notMajorRoad")
+$("help-notMajorRoad")
+  .content.querySelector(".major-roads")
+  .append(
+    ...Object.entries(MAJOR_ROADS)
+      .map(([c, m]) => [countryName(c), m])
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, m]) =>
+        makeElement("li", {}, `${name}${m.partly ? " (only motorways and trunk roads)" : ""}: ${m.roads}`),
+      ),
+  );
 /* Short description of what is searched for, for the map name: "No road name, end of coverage, May 2015 – now". */
 function wantedLabel(w) {
   const parts = [];
   if (w.noRoadName) parts.push("no road name");
+  if (w.notMajorRoad) parts.push("not on a major road");
   if (w.arrows === "end") parts.push("end of coverage");
   if (w.arrows === "intersection") parts.push("intersection");
   if (w.arrows === "none") parts.push("no arrows");
@@ -393,6 +438,7 @@ const TAG_OPTIONS = {
   tagDeadEnd: false,
   tagIntersection: false,
   tagNoArrows: false,
+  tagMajorRoad: false,
   tagYear: false,
   tagCamera: false,
 };
@@ -413,6 +459,7 @@ function tagsFor(l) {
   if ($("tagDeadEnd").checked && l.deadEnd) tags.push("Dead end");
   if ($("tagIntersection").checked && l.intersection) tags.push("Intersection");
   if ($("tagNoArrows").checked && l.noArrows) tags.push("No arrows");
+  if ($("tagMajorRoad").checked && l.majorRoad) tags.push("Major road");
   if ($("tagYear").checked && l.date) tags.push(dateTagOf(l));
   if ($("tagCamera").checked && l.camera) tags.push(CAMERAS[l.camera]);
   return tags;
@@ -422,6 +469,7 @@ const TAG_WORDS = {
   tagDeadEnd: "dead end",
   tagIntersection: "intersection",
   tagNoArrows: "no arrows",
+  tagMajorRoad: "major road",
   tagCamera: "camera",
 };
 
@@ -433,7 +481,8 @@ const TAG_WORDS = {
    This tool's "More options" sections for its filters (see src/shared/more-options.js), and the line
    under step 2 that says what is looked for. */
 /* True when anything is asked of a location, besides official coverage. */
-const anythingWanted = w => w.noRoadName || w.arrows !== "any" || !!w.years || !!w.cameras || w.noBadCamera;
+const anythingWanted = w =>
+  w.noRoadName || w.notMajorRoad || w.arrows !== "any" || !!w.years || !!w.cameras || w.noBadCamera;
 /* The line under step 2 when nothing is asked. */
 const ANY_LOCATION_WORDS = "Any official location. Choose more in the sections below.";
 /** @type {Record<string, {summary: () => string, changed: () => boolean, reset: () => void}>} */
@@ -441,16 +490,19 @@ const MORE_TOOL = {
   moreRoads: {
     summary: () => {
       const bits = [];
+      updateMajorRoadNote(); // (after every change in the form, also of the countries)
       if ($("noRoadName").checked) bits.push("no road name");
+      if ($("notMajorRoad").checked) bits.push("not on a major road");
       if (arrows() === "end") bits.push("end of coverage");
       if (arrows() === "intersection") bits.push("intersection");
       if (arrows() === "none") bits.push("no arrows");
       const text = bits.join(", ") || "any road names, any arrows";
       return text.charAt(0).toUpperCase() + text.slice(1);
     },
-    changed: () => $("noRoadName").checked || arrows() !== "any",
+    changed: () => $("noRoadName").checked || $("notMajorRoad").checked || arrows() !== "any",
     reset: () => {
       setControl("noRoadName", false);
+      setControl("notMajorRoad", false);
       setRadio("arrows", "any");
       store.set("arrows", "any");
       updateMapName();
@@ -512,6 +564,7 @@ const TOOL_STATS = {
   otherCamera: 0, // left out as not one of the chosen cameras
   olderLookups: 0, // older photos looked up instead of bad camera
   olderUsed: 0, // locations that are an older photo used instead of bad camera
+  majorRoad: 0, // left out as on a major road (see "major roads")
 };
 /* The counter of random spots with nothing found nearby, in the counters under the progress bar. */
 const EMPTY_WORDS = "without official Street View nearby";
@@ -520,6 +573,7 @@ function toolTally(add) {
   if (stats.badCamera) add(stats.badCamera, "bad camera");
   if (stats.otherCamera) add(stats.otherCamera, "other cameras");
   if (stats.gen1) add(stats.gen1, "Gen 1");
+  if (stats.majorRoad) add(stats.majorRoad, "on a major road");
   if (stats.olderUsed) add(stats.olderUsed, "older photos used instead");
 }
 /* This tool's settings for a search, besides the shared ones (see searchSettingsNow). */
@@ -623,6 +677,7 @@ async function panoramaWanted(r, code, key, want) {
     (want.years && !inYears(r.date, want.years))
   )
     return null;
+  if (want.notMajorRoad && onMajorRoad(code, r.links)) return "majorRoad";
   return { pano: r, facts, fromOlder };
 }
 /* The checks after the one that the panorama lies in the country: never Gen 1, and the camera asked for.
@@ -645,6 +700,7 @@ const locationFields = (r, code, facts) => ({
   deadEnd: facts.deadEnd,
   intersection: facts.intersection,
   noArrows: r.links.length === 0,
+  majorRoad: onMajorRoad(code, r.links),
   camera: cameraOf(r, code),
 });
 /* What a location has, in words, for its popup on the map. */
@@ -654,6 +710,7 @@ const locationFacts = l =>
     l.deadEnd && "End of coverage",
     l.intersection && "Intersection",
     l.noArrows && "No arrows",
+    l.majorRoad && "Major road",
   ].filter(Boolean);
 /* Where the camera faces with "Along the road" (see locationView). */
 const roadHeading = (r, facts) => cameraHeading(r.links, facts);
@@ -685,6 +742,7 @@ function cameraHeading(links, facts) {
 /* This tool's filter settings in the form now (see currentSettings). */
 const toolSettings = () => ({
   noRoadName: $("noRoadName").checked,
+  notMajorRoad: $("notMajorRoad").checked,
   arrows: arrows(),
   ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, $(id).checked])),
   noBadCamera: $("noBadCamera").checked,
@@ -693,6 +751,7 @@ const toolSettings = () => ({
 /* This tool's filter settings read back from outside, checked (see cleanSettings). */
 const cleanToolSettings = r => ({
   noRoadName: r.noRoadName === true,
+  notMajorRoad: r.notMajorRoad === true,
   // (settings from before intersections have deadEnd instead)
   arrows: ARROWS.includes(r.arrows) ? r.arrows : r.deadEnd === true ? "end" : "any",
   ...Object.fromEntries(Object.keys(CAMERA_BOXES).map(id => [id, r[id] === true])),
@@ -703,7 +762,7 @@ const cleanToolSettings = r => ({
 function applyToolSettings(s) {
   document.querySelector(`input[name=arrows][value="${s.arrows}"]`).checked = true;
   store.set("arrows", s.arrows);
-  for (const id of ["noRoadName", ...Object.keys(CAMERA_BOXES), "noBadCamera", "useOlder"]) {
+  for (const id of ["noRoadName", "notMajorRoad", ...Object.keys(CAMERA_BOXES), "noBadCamera", "useOlder"]) {
     $(id).checked = s[id];
     store.set(id, s[id]);
   }
@@ -723,6 +782,7 @@ const builtInName = () => VALI.maps[$("distribution").value]?.name || "this map"
 /* What settings ask of each location, as wanted() gives it for the form. */
 const wantedOf = s => ({
   noRoadName: s.noRoadName,
+  notMajorRoad: s.notMajorRoad,
   arrows: s.arrows,
   years: s.yearsOn ? periodOf(s) : null,
   cameras: Object.entries(CAMERA_BOXES).some(([id]) => s[id])
@@ -740,6 +800,7 @@ const toolDetails = s =>
 /* This tool's fields of a location read back from an unfinished search, checked (see cleanLocation). */
 const cleanLocationFields = l => ({
   noRoadName: l.noRoadName === true,
+  majorRoad: l.majorRoad === true,
   deadEnd: l.deadEnd === true,
   intersection: l.intersection === true,
   noArrows: l.noArrows === true,

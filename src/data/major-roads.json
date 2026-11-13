@@ -1,0 +1,145 @@
+{
+  "about": "Major roads by the names Google shows on a panorama's arrows, for the Map Generation Tool's filter \"Not on a major road\" and its tag (plan step 42). Written by hand from the owner's search logs of 13 November 2026 (about 85 to 175 panoramas in each country) and OpenStreetMap's table of road classes by country (wiki.openstreetmap.org/wiki/Highway:International_equivalence). Major means OpenStreetMap's motorway, trunk and primary. For each country: \"major\", a regular expression for the name of a major road (matched against the whole name Google shows); \"roads\", what counts, in words, for the help; \"partly\": true where the names tell only motorways and trunk roads apart, so only those count; and examples from the logs, which the build checks (\"major\" must match, \"other\" must not).",
+  "countries": {
+    "AT": {
+      "major": "^(?:A|S|B|E) ?\\d+[a-z]?$",
+      "roads": "A, S and B roads",
+      "examples": { "major": ["B21", "B8a", "S36", "B130"], "other": ["L42", "LH62", "L2310", "Talstraße"] }
+    },
+    "BG": {
+      "major": "^(?:(?:A|E) ?\\d+|\\d|Републикански път I[–-]\\d+)$",
+      "roads": "A roads, E roads and first-class roads (one digit)",
+      "examples": {
+        "major": ["A1", "E871", "8", "7"],
+        "other": ["62", "103", "843", "Републикански път II–58", "ул. 1-ва", "GAB1165"]
+      }
+    },
+    "BR": {
+      "major": "^BR-\\d+",
+      "roads": "federal roads (BR-)",
+      "partly": true,
+      "examples": { "major": ["BR-432", "BR-070"], "other": ["SP-270", "MG-187", "R. Alagoas"] }
+    },
+    "CZ": {
+      "major": "^(?:(?:D|E) ?\\d+|\\d{1,3})$",
+      "roads": "D roads and class I and II roads (up to three digits)",
+      "examples": { "major": ["D1", "201", "118", "24"], "other": ["2372", "33771", "01327", "Pražská"] }
+    },
+    "DE": {
+      "major": "^(?:A|B|L|St|E) ?\\d+[a-z]?$",
+      "roads": "A, B and L roads (St roads in Bavaria)",
+      "examples": {
+        "major": ["A43", "B87", "L487", "St2035"],
+        "other": ["K74", "NU6", "OVP19", "Landsberger Str."]
+      }
+    },
+    "ES": {
+      "major": "^(?:(?:AP|N|E)-\\d+|A-\\d{1,2})$|^(?:Autovía|Autopista|Autoestrada)\\b",
+      "roads": "motorways (AP-, A- with one or two digits, \"Autovía …\") and national roads (N-)",
+      "partly": true,
+      "examples": {
+        "major": ["N-310", "A-2", "AP-7", "Autovía del Este"],
+        "other": ["A-391", "A-1227", "CM-4157", "C. Nueva"]
+      }
+    },
+    "FI": {
+      "major": "^(?:E ?\\d+|\\d{1,3}|(?:Valtatie|Kantatie|Seututie) \\d+)$",
+      "roads": "main and regional roads (up to three digits)",
+      "examples": { "major": ["6", "73", "569"], "other": ["5550", "18429", "Puutarhatie"] }
+    },
+    "FR": {
+      "major": "^(?:A|N|RN|E) ?\\d+[a-z]?$",
+      "roads": "A and N roads (D roads are not counted)",
+      "partly": true,
+      "examples": { "major": ["A71", "N7", "RN 20"], "other": ["D32", "M141", "D14.2", "Rue de l'Église"] }
+    },
+    "GB": {
+      "major": "^(?:M|A) ?\\d+(?:\\(M\\))?$",
+      "roads": "M and A roads",
+      "examples": { "major": ["A82", "A846", "M6", "A1(M)"], "other": ["B9074", "Newry Rd"] }
+    },
+    "HR": {
+      "major": "^(?:A|D|E) ?\\d+(?: Rd)?$",
+      "roads": "A, D and E roads",
+      "examples": {
+        "major": ["D36", "A8", "E71", "D41 Rd"],
+        "other": ["Ž5042", "ŽC 5125", "Neretvanska ul."]
+      }
+    },
+    "HU": {
+      "major": "^(?:(?:M|E) ?\\d+|\\d{1,3})$",
+      "roads": "M roads and main roads (up to three digits)",
+      "examples": { "major": ["24", "442", "E71", "5", "M1"], "other": ["4109", "65158", "Malom St"] }
+    },
+    "ID": {
+      "major": "\\bTol\\b",
+      "roads": "toll roads (\"Jl. Tol …\")",
+      "partly": true,
+      "examples": { "major": ["Jl. Tol Purbaleunyi"], "other": ["Jl. Gajah Mada", "Jl. Raya Tomohon"] }
+    },
+    "IE": {
+      "major": "^(?:M|N) ?\\d+\\b",
+      "roads": "M and N roads",
+      "examples": {
+        "major": ["N69", "M3", "N5"],
+        "other": ["R195", "L1024", "L5117 Rathnure", "Glanworth Rd"]
+      }
+    },
+    "IL": {
+      "major": "^(?:\\d{1,3}|(?:Hwy|Highway|כביש) \\d{1,3})$",
+      "roads": "highways and regional roads (up to three digits)",
+      "examples": {
+        "major": ["90", "581", "Hwy 2", "כביש 805"],
+        "other": ["9779", "רחי 7027", "Ha-Gefen St"]
+      }
+    },
+    "IT": {
+      "major": "^(?:(?:A|SS|RA|E) ?\\d+|Strada Statale \\d+|Autostrada)\\b",
+      "roads": "A roads and state roads (SS, \"Strada Statale …\"; provincial roads are not counted)",
+      "partly": true,
+      "examples": {
+        "major": ["SS603", "SS 114 Orientale Sicula", "Strada Statale 196 di Villacidro", "A1"],
+        "other": ["SP39", "SR74", "Strada Provinciale 165", "Via Roma"]
+      }
+    },
+    "LT": {
+      "major": "^(?:(?:A|E) ?\\d+|\\d{1,3})$",
+      "roads": "A roads and regional roads (up to three digits)",
+      "examples": { "major": ["A1", "E262", "123", "169"], "other": ["4601", "5220", "Laukų g."] }
+    },
+    "PL": {
+      "major": "^(?:A|S|DK|E) ?\\d+$",
+      "roads": "A, S and national (DK) roads",
+      "examples": { "major": ["A4", "DK65", "S7"], "other": ["DW182", "376Z", "11 Listopada", "Toruńska"] }
+    },
+    "RO": {
+      "major": "^(?:(?:A|E) ?\\d+|DN ?\\d+[A-Z]?)$",
+      "roads": "A, DN and E roads",
+      "examples": { "major": ["DN2", "DN65A", "E85", "A7"], "other": ["DJ203I", "DC142", "Strada Eroilor"] }
+    },
+    "SK": {
+      "major": "^(?:(?:D|R|E) ?\\d+|\\d{1,2}|Rte \\d{1,2})$",
+      "roads": "D, R and E roads and class I roads (one or two digits)",
+      "examples": {
+        "major": ["D3", "E572", "64", "2", "Rte 66"],
+        "other": ["504", "1335", "3839", "Mlynská", "1. ulica"]
+      }
+    },
+    "TH": {
+      "major": "^(?:AH ?\\d+|\\d{1,3})$",
+      "roads": "national highways with up to three digits, and Asian Highways (AH)",
+      "examples": { "major": ["12", "229", "AH1"], "other": ["2415", "พล.4007", "Khon Kaen 3028 Rural Road"] }
+    },
+    "US": {
+      "major": "^(?:I-\\d+|US-\\d+|Interstate \\d+|US (?:Hwy|Route) \\d+)\\b",
+      "roads": "Interstates and US highways (state and county roads are not counted)",
+      "partly": true,
+      "examples": { "major": ["US-20", "I-80"], "other": ["TX-207", "State Rte 689", "Co Rd 381"] }
+    },
+    "ZA": {
+      "major": "^(?:N ?\\d+|R ?\\d{1,2})$",
+      "roads": "N roads and R roads with one or two digits",
+      "examples": { "major": ["N1", "R63"], "other": ["R355", "P34-4", "M19", "S646", "D1836 Rd"] }
+    }
+  }
+}
