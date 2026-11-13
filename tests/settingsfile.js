@@ -112,7 +112,7 @@ const { openPage, chooseCountry } = require("./helpers.js");
     JSON.stringify({
       format: "map-generation-tool settings",
       version: 7,
-      settings: { countries: ["MT", "BY", "ZZ"], target: 300, cameraTilt: 20, presetName: "x" },
+      settings: { countries: ["MT", "MQ", "ZZ"], target: 300, cameraTilt: 20, presetName: "x" },
     }),
   );
   const note = await p.textContent("#note");

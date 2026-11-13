@@ -28,6 +28,12 @@ const path = require("path");
     `focus shows every country with official coverage, sorted: ${names.length}, first ${names[0]}`,
   );
 
+  // Belarus, Egypt, Madagascar, Mali and Pakistan: very little official coverage, but offered (November 2026)
+  ok(
+    ["Belarus", "Egypt", "Madagascar", "Mali", "Pakistan"].every(n => names.includes(n)),
+    "Belarus, Egypt, Madagascar, Mali and Pakistan are offered",
+  );
+
   // Typing narrows the list; names starting with the text come first
   await p.fill("#country", "ger");
   names = await shown();

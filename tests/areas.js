@@ -82,8 +82,8 @@ const path = require("path");
   ok(maps.includes("Yellow Belly"), "Yellow Belly is spelt as two words");
   let w = await p.evaluate(() => areaWeights());
   ok(
-    w.DE > 0 && !("BY" in w) && !("PK" in w),
-    "countries without official coverage (Belarus, Pakistan) are left out",
+    w.DE > 0 && !("UM" in w) && !("MQ" in w),
+    "countries without official coverage (US Minor Outlying Islands, Martinique) are left out",
   );
   await p.fill("#target", "1000");
   await p.press("#target", "Tab");
@@ -241,7 +241,7 @@ const path = require("path");
     localStorage.setItem("mapgen.scope", JSON.stringify("mars"));
     localStorage.setItem("mapgen.continent", JSON.stringify("__proto__"));
     localStorage.setItem("mapgen.distribution", JSON.stringify("<b>"));
-    localStorage.setItem("mapgen.countries", JSON.stringify(["DE", "DE", "BY", 7, "<i>"]));
+    localStorage.setItem("mapgen.countries", JSON.stringify(["DE", "DE", "MQ", 7, "<i>"]));
   });
   await p.reload();
   await p.waitForFunction(() => map !== null);

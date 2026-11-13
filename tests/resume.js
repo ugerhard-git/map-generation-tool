@@ -206,7 +206,7 @@ const { openPage, search, searchEnded } = require("./helpers.js");
             { lat: 35.9, lng: 14.4, heading: 90, panoId: "GOOD_ONE", cc: "MT", date: "2020-01" },
             { lat: 35.91, lng: 14.41, heading: 400, panoId: "BAD_HEADING", cc: "MT" },
             { lat: 35.92, lng: 14.42, heading: 10, panoId: "x<y", cc: "MT" },
-            { lat: 35.93, lng: 14.43, heading: 10, panoId: "WRONG_COUNTRY", cc: "BY" },
+            { lat: 35.93, lng: 14.43, heading: 10, panoId: "WRONG_COUNTRY", cc: "MQ" },
             "junk",
           ],
         },

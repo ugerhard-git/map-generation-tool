@@ -121,12 +121,14 @@ const TOOL_NAME = "Map Generation Tool";
 const STORE_PREFIX = "mapgen.",
   DB_NAME = "mapgen";
 /* Countries and territories with official Street View along roads: Lookout's list, plus Lebanon (LB),
-   added at the owner's request (October 2026). All of them are in Vali's map distributions. */
+   added at the owner's request (October 2026), and Belarus (BY), Egypt (EG), Madagascar (MG), Mali (ML)
+   and Pakistan (PK), whose official coverage is very limited (owner's request, November 2026). All of
+   them are in Vali's map distributions. */
 const COVERAGE = (
-  "AD AE AL AR AS AT AU AX BA BD BE BG BM BO BR BT BW CA CC CH CL CO CR CW CX CY CZ DE DK DO EC EE ES FI FO FR " +
-  "GB GE GH GI GL GR GT GU HK HR HU ID IE IL IM IN IS IT JE JO JP KE KG KH KR KZ LA LB LI LK LS LT LU LV MC ME MK " +
-  "MN MO MP MT MX MY NA NG NL NO NP NZ OM PA PE PH PL PR PS PT PY QA RE RO RS RU RW SE SG SI SK SM SN ST SZ TH " +
-  "TN TR TW UA UG US UY VI VN XK ZA"
+  "AD AE AL AR AS AT AU AX BA BD BE BG BM BO BR BT BW BY CA CC CH CL CO CR CW CX CY CZ DE DK DO EC EE EG ES FI " +
+  "FO FR GB GE GH GI GL GR GT GU HK HR HU ID IE IL IM IN IS IT JE JO JP KE KG KH KR KZ LA LB LI LK LS LT LU LV " +
+  "MC ME MG MK ML MN MO MP MT MX MY NA NG NL NO NP NZ OM PA PE PH PK PL PR PS PT PY QA RE RO RS RU RW SE SG SI " +
+  "SK SM SN ST SZ TH TN TR TW UA UG US UY VI VN XK ZA"
 ).split(" ");
 /* The countries offered: those with official coverage. */
 const COUNTRIES = COVERAGE;
