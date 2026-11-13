@@ -430,6 +430,11 @@ a:focus-visible {
   flex: none;
 }
 /* The chosen countries as chips; a click removes one (copied from Lookout) */
+/* "Remove all countries", under the chips */
+.clear-countries {
+  display: block;
+  margin: -2px 0 8px;
+}
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -882,7 +887,8 @@ a:focus-visible {
 
 /* ---------- settings file ---------- */
 #settingsBox .acts,
-#newSearchBox .acts {
+#newSearchBox .acts,
+#clearCountriesBox .acts {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

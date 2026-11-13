@@ -104,8 +104,28 @@ function renderCountryChips() {
     chips.append(b);
   }
   chips.hidden = !chosenCountries.length;
+  $("clearCountries").hidden = chosenCountries.length < 2;
   countryEl.placeholder = chosenCountries.length ? "Add another country" : "Start typing, for example Malta";
 }
+/* "Remove all countries" (asked for by the owner, November 2026): with two or more chosen, removes them
+   all after asking, in a dialog that names them. */
+$("clearCountries").onclick = () => {
+  const n = chosenCountries.length,
+    names = chosenCountries.map(countryName);
+  $("clearCountriesText").textContent =
+    n <= 8
+      ? `This removes the ${fmt(n)} chosen countries: ${names.join(", ")}.`
+      : `This removes the ${fmt(n)} chosen countries: ${names.slice(0, 6).join(", ")} and ${fmt(n - 6)} more.`;
+  openDialog("clearCountriesDialog");
+};
+$("clearCountriesGo").onclick = () => {
+  closeDialog();
+  chosenCountries = [];
+  whereChanged();
+  countryEl.focus();
+};
+$("clearCountriesCancel").onclick = closeDialog;
+$("clearCountriesX").onclick = closeDialog;
 countryEl.addEventListener("input", showCountryList);
 countryEl.addEventListener("focus", showCountryList);
 countryEl.addEventListener("keydown", e => {

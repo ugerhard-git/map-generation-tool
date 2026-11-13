@@ -83,6 +83,25 @@
     </div>
   </div>
 </div>
+<!-- Remove all chosen countries? Asked by "Remove all countries" in step 1 (where.js) -->
+<div class="dialog" id="clearCountriesDialog" hidden>
+  <div
+    class="dialog-box"
+    id="clearCountriesBox"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="clearCountriesTitle"
+    tabindex="-1"
+  >
+    <button type="button" class="dialog-x" id="clearCountriesX" aria-label="Close">×</button>
+    <h2 id="clearCountriesTitle">Remove all countries?</h2>
+    <p id="clearCountriesText"></p>
+    <div class="acts">
+      <button type="button" class="btn primary" id="clearCountriesGo">Remove all</button>
+      <button type="button" class="btn" id="clearCountriesCancel">Cancel</button>
+    </div>
+  </div>
+</div>
 <!-- Help dialog, opened by the "?" buttons next to settings; its text comes from the help texts below
      (app.js: help) -->
 <div class="dialog" id="help" hidden>
