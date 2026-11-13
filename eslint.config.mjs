@@ -8,7 +8,8 @@ import path from "node:path";
 
 const { assemble, SHARED_DIR } = createRequire(import.meta.url)("./src/assemble.js");
 
-// Names the page itself defines: the build adds Leaflet (L), the Vali data (VALI, Map Generation Tool), the
+// Names the page itself defines: the build adds Leaflet (L), the Vali data and the major roads (VALI,
+// MAJOR_ROADS, Map Generation Tool), the
 // country facts (COUNTRY_FACTS, Unofficial), the places (PLACES, Distribution), the country tags
 // (COUNTRY_TAGS), the land map (LAND) and the framing check (FRAMED) before app.js, and Google's script
 // adds `google` when it loads.
@@ -17,6 +18,7 @@ const pageGlobals = {
   google: "readonly",
   FRAMED: "readonly",
   VALI: "readonly",
+  MAJOR_ROADS: "readonly",
   COUNTRY_FACTS: "readonly",
   PLACES: "readonly",
   COUNTRY_TAGS: "readonly",

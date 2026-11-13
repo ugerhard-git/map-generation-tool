@@ -150,6 +150,34 @@
       <h2>No road name</h2>
       <p>Street View shows no street name on the arrows at that spot.</p>
     </template>
+    <template id="help-notMajorRoad">
+      <h2>Not on a major road</h2>
+      <p>
+        Leaves out locations on a major road: a motorway, a trunk road or a primary road, as OpenStreetMap
+        calls them. Also left out are locations where one of the arrows leads onto a major road, such as at a
+        junction.
+      </p>
+      <p>
+        Google does not say what kind of road a panorama is on, only the road name on its arrows. Where that
+        name is a road number, the number often tells the kind of road: in Germany, "B87" is a major road and
+        "K74" is not. So the filter works only in the countries below, and only where Google shows the number:
+      </p>
+      <ul>
+        <li>
+          In towns, Google usually shows the street name ("Hauptstraße"), even on a major road, so those are
+          not recognised.
+        </li>
+        <li>Locations without a road name are kept.</li>
+        <li>In other countries, locations are not checked for it.</li>
+      </ul>
+      <p>What counts as a major road in each country:</p>
+      <!-- filled from MAJOR_ROADS when the page starts (app.js: "major roads") -->
+      <ul class="major-roads"></ul>
+      <p>
+        Where it says "only", the road numbers tell motorways and trunk roads from the rest, but not primary
+        roads from smaller ones, so only motorways and trunk roads count.
+      </p>
+    </template>
     <template id="help-arrows">
       <h2>Arrows</h2>
       <p>The arrows Street View shows at a spot, one for each way the coverage goes on.</p>
@@ -362,6 +390,21 @@
                   ?
                 </button>
               </div>
+              <div class="checkrow">
+                <label class="check"
+                  ><input type="checkbox" id="notMajorRoad" /><span>Not on a major road</span></label
+                >
+                <button
+                  type="button"
+                  class="help"
+                  data-help="notMajorRoad"
+                  aria-label="Help: not on a major road"
+                >
+                  ?
+                </button>
+              </div>
+              <!-- which of the countries searched it works in (app.js: updateMajorRoadNote) -->
+              <p class="hint" id="majorRoadNote" hidden></p>
               <!-- Arrows: one choice, as "end of coverage" (one arrow), "intersection" (three or more) and
                    "no arrows at all" exclude each other -->
               <div class="field arrows" role="radiogroup" aria-labelledby="arrowsTitle">
@@ -603,6 +646,11 @@
                   ><input type="checkbox" id="tagNoArrows" /><span>"No arrows", where it applies</span></label
                 >
                 <label class="check"
+                  ><input type="checkbox" id="tagMajorRoad" /><span
+                    >"Major road", where it applies (see "Not on a major road")</span
+                  ></label
+                >
+                <label class="check"
                   ><input type="checkbox" id="tagYear" /><span
                     >The date the photos were taken, as</span
                   ></label
@@ -645,6 +693,9 @@
       /* The tag each country gets with the country tag on, from the owner's list in
          src/data/country-tags.json (code: tag). */
       const COUNTRY_TAGS = /*COUNTRY_TAGS*/;
+      /* Major roads by the names Google shows on the arrows, for "Not on a major road", written by hand in
+         src/data/major-roads.json (code: { major: pattern, roads: words, partly }). */
+      const MAJOR_ROADS = /*MAJOR_ROADS*/;
       /* Where there is land, as a grid of run lengths, from Natural Earth (public domain) via the
          world-atlas package; made by src/land.js. Random spots are only made on land. */
       const LAND = /*LAND*/;

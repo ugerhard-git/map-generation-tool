@@ -263,9 +263,29 @@ function buildPage(dir, out, data, { map = true } = {}) {
 // The Map Generation Tool, at the site's main address. Its country distributions and continents come
 // from Vali, made by tools/vali.js.
 const vali = JSON.parse(fs.readFileSync(path.join(__dirname, "data/vali.json"), "utf8"));
+// Major roads by the names Google shows, for "Not on a major road" (src/data/major-roads.json, written by
+// hand): checked here, every pattern against its examples, so a mistake stops the build. Only the
+// patterns, words and "partly" go into the page.
+const majorRoads = {};
+for (const [code, c] of Object.entries(
+  JSON.parse(fs.readFileSync(path.join(__dirname, "data/major-roads.json"), "utf8")).countries,
+)) {
+  const where = `major-roads.json, ${code}`;
+  if (!/^[A-Z]{2}$/.test(code)) throw new Error(`${where}: not a two-letter country code`);
+  if (typeof c.roads !== "string" || !c.roads) throw new Error(`${where}: "roads" must say what counts`);
+  const re = new RegExp(c.major, "u");
+  for (const n of c.examples?.major || [])
+    if (!re.test(n)) throw new Error(`${where}: the pattern does not find the major road "${n}"`);
+  for (const n of c.examples?.other || [])
+    if (re.test(n)) throw new Error(`${where}: the pattern finds "${n}", which is not a major road`);
+  if (!c.examples?.major?.length || !c.examples?.other?.length)
+    throw new Error(`${where}: needs examples of major roads and of others`);
+  majorRoads[code] = { major: c.major, roads: c.roads, partly: c.partly === true };
+}
 buildPage(__dirname, "", {
   VALI: asScript({ source: vali.source, maps: vali.maps, continents: vali.continents }),
   COUNTRY_TAGS: asScript(tagsByCode),
+  MAJOR_ROADS: asScript(majorRoads),
 });
 
 // Unofficial, at unofficial/: every country and territory, with its land area, population, continent and
