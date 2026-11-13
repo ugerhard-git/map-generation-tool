@@ -401,8 +401,12 @@ function updateMajorRoadNote() {
           .join(", ")}.`
       : `Recognised in ${fmt(known.length)} of the ${fmt(codes.length)} countries searched; locations in the others are not checked for it.`;
 }
-// The help's list of the countries and what counts (see "help-notMajorRoad")
-$("help-notMajorRoad")
+// The help: how many countries, and their list with what counts (see "help-notMajorRoad" and
+// "help-majorRoadsList", which the first links to)
+$("help-notMajorRoad").content.querySelector(".major-roads-count").textContent = `${fmt(
+  MAJOR_ROAD_PATTERNS.size,
+)} countries`;
+$("help-majorRoadsList")
   .content.querySelector(".major-roads")
   .append(
     ...Object.entries(MAJOR_ROADS)

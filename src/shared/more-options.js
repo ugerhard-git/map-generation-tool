@@ -138,7 +138,8 @@ for (const btn of document.querySelectorAll("[data-reset]"))
 updateMore();
 // Help: a "?" button opens its text in the help dialog
 for (const btn of document.querySelectorAll("button.help")) btn.onclick = () => openHelp(btn.dataset.help);
-/* Opens the help dialog with the text of <template id="help-…">: its first heading is the title. */
+/* Opens the help dialog with the text of <template id="help-…">: its first heading is the title. A
+   button in it with data-help-link="…" opens another help text in its place (a longer list, and back). */
 function openHelp(topic) {
   const t = document.getElementById("help-" + topic);
   if (!(t instanceof HTMLTemplateElement)) return;
@@ -147,5 +148,9 @@ function openHelp(topic) {
   $("helpTitle").textContent = title ? title.textContent : "Help";
   if (title) title.remove();
   $("helpBody").replaceChildren(body);
-  openDialog("help");
+  for (const link of $("helpBody").querySelectorAll("[data-help-link]"))
+    link.onclick = () => openHelp(link.dataset.helpLink);
+  // (from a link inside the help, the dialog stays open, at the top of the new text)
+  if (openDialogEl === $("help")) $("helpBody").closest(".dialog-box").scrollTop = 0;
+  else openDialog("help");
 }
