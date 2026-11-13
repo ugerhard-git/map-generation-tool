@@ -1,0 +1,23 @@
+<!-- Shared markup: the "Town or countryside" section of step 2. Used by both tools: the build puts it where a
+     page.html has a line "SHARED settlement.html" in a comment (see src/assemble.js; the code is in
+     src/shared/settlements.js). -->
+<details class="more" id="moreSettlement">
+  <summary>
+    <span class="more-title">Town or countryside</span>
+    <span class="more-sum" id="sumSettlement"></span>
+  </summary>
+  <div class="field" role="radiogroup" aria-labelledby="settlementTitle">
+    <div class="labelrow">
+      <div class="label" id="settlementTitle">Where the locations are</div>
+      <button type="button" class="help" data-help="settlement" aria-label="Help: town or countryside">
+        ?
+      </button>
+    </div>
+    <label class="radio"><input type="radio" name="settlement" value="any" checked />Anywhere</label>
+    <label class="radio"><input type="radio" name="settlement" value="town" />In a town or village</label>
+    <label class="radio"><input type="radio" name="settlement" value="country" />In the countryside</label>
+    <!-- loading the map of towns and villages, loaded, or why not (settlements.js: settlementStatus) -->
+    <p class="settlement-status" id="settlementStatus" role="status" aria-live="polite" hidden></p>
+  </div>
+  <button type="button" class="linkbtn reset" data-reset="moreSettlement">Reset to defaults</button>
+</details>

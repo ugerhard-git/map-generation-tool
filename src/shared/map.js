@@ -45,7 +45,12 @@ const linkFov = zoom => Math.round(Math.min(100, Math.max(10, 180 / 2 ** zoom)))
    date, Street View button. */
 function drawLocation(l) {
   if (!map) return;
-  const has = locationFacts(l).join(", ");
+  const has = [
+    ...locationFacts(l),
+    l.town === true ? "In a town or village" : l.town === false ? "In the countryside" : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
   L.circleMarker([l.lat, l.lng], {
     radius: 5,
     weight: 1.5,

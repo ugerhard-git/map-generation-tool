@@ -1,0 +1,22 @@
+{
+  "source": {
+    "name": "GHS-SMOD R2023A, degree of urbanisation, epoch 2020, 1 km (European Commission, Joint Research Centre)",
+    "url": "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_SMOD_GLOBE_R2023A/GHS_SMOD_E2020_GLOBE_R2023A_54009_1000/V2-0/GHS_SMOD_E2020_GLOBE_R2023A_54009_1000_V2_0.zip",
+    "licence": "CC BY 4.0",
+    "citation": "Schiavina M., Melchiorri M., Pesaresi M. (2023): GHS-SMOD R2023A - GHS settlement layers, application of the Degree of Urbanisation methodology (stage I) to GHS-POP R2023A and GHS-BUILT-S R2023A, multitemporal (1975-2030). European Commission, Joint Research Centre (JRC)."
+  },
+  "about": "Where the towns and villages are (classes 13 to 30), as stretches of 1 km squares per row of the World Mollweide grid, in settlements.bin (see tools/settlements.js). Made by tools/settlements.js; never edit by hand.",
+  "grid": {
+    "width": 36082,
+    "height": 18000,
+    "cell": 1000,
+    "x0": -18041000,
+    "y0": 9000000,
+    "radius": 6378137,
+    "rows": 18000
+  },
+  "townFrom": 13,
+  "squares": 3916679,
+  "stretches": 1611615,
+  "bytes": 1954667
+}

@@ -363,6 +363,7 @@
                 Reset to defaults
               </button>
             </details>
+            <!--SHARED settlement.html-->
           </section>
 
           <!-- Step 3: how many, and the Google key (app.js: step 3) -->
@@ -402,6 +403,11 @@
                 >
                 <label class="check"
                   ><input type="checkbox" id="tagArrows" /><span>"Arrows" or "No arrows"</span></label
+                >
+                <label class="check"
+                  ><input type="checkbox" id="tagSettlement" /><span
+                    >"Town" or "Countryside" (see "Town or countryside")</span
+                  ></label
                 >
                 <label class="check"
                   ><input type="checkbox" id="tagYear" /><span
@@ -445,6 +451,9 @@
       /* Where there is land, as a grid of run lengths, from Natural Earth (public domain) via the
          world-atlas package; made by src/land.js. Random spots are only made on land. */
       const LAND = /*LAND*/;
+      /* Where the settlement map is (src/shared/settlements.js): a file next to the page, loaded only when
+         "Town or countryside" or its tag is used; made by tools/settlements.js from the GHSL. */
+      const SETTLEMENTS = /*SETTLEMENTS*/;
       /* Inside another site's frame, show only a link to open the app on its own, so nobody can lay a fake
          page over it and trick clicks (the security policy in the page itself cannot forbid framing). */
       let FRAMED = false;

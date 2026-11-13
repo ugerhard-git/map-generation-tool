@@ -104,7 +104,7 @@ const path = require("path");
   const csp = /http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(html)?.[1] || "";
   ok(
     /script-src 'sha256-[^']+' 'sha256-[^']+' 'sha256-[^']+' https:\/\/maps\.googleapis\.com/.test(csp) &&
-      /connect-src https:\/\/maps\.googleapis\.com;/.test(csp) &&
+      /connect-src 'self' https:\/\/maps\.googleapis\.com;/.test(csp) &&
       !/\son[a-z]+="/i.test(html) &&
       !/\/\*[A-Z][A-Z_]*\*\//.test(html.replace(/<script>[\s\S]*?<\/script>/g, "")),
     "the page has the security policy, no inline event handlers and no placeholders left",

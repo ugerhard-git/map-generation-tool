@@ -38,12 +38,13 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       - name: Prepare the site
         # the Map Generation Tool at the site's main address, Unofficial at unofficial/, Distribution at
-        # distribution/
+        # distribution/, and the settlement map both map pages load when it is used at data/
         run: |
           mkdir -p site/unofficial site/distribution
           cp dist/index.html site/index.html
           cp dist/unofficial/index.html site/unofficial/index.html
           cp dist/distribution/index.html site/distribution/index.html
+          cp -r dist/data site/data
           touch site/.nojekyll
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

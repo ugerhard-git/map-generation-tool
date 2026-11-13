@@ -101,11 +101,45 @@ const key = (process.env.GOOGLE_API_KEY || "").trim();
 if (key && !/^[A-Za-z0-9_-]{20,80}$/.test(key))
   throw new Error("GOOGLE_API_KEY does not look like a Google API key");
 
+// ---------- the settlement map (dist/data/) ----------
+
+// Where the towns and villages are, for "Town or countryside" (made by tools/settlements.js from the
+// GHSL's degree of urbanisation): too big to build into the pages (2 MB), so it is published as a file
+// of its own, dist/data/settlements.<fingerprint>.bin (and the same under dist/split/data/), which a page
+// loads only when the setting or its tag is used, and checks against its integrity value. The page gets
+// where it is, that value and how to read it (SETTLEMENTS). This is the one file a page may fetch from
+// its own site: its policy allows 'self' for it (agreed with the owner, November 2026).
+const settlementsInfo = JSON.parse(fs.readFileSync(path.join(__dirname, "data/settlements.json"), "utf8"));
+const settlementsBin = fs.readFileSync(path.join(__dirname, "data/settlements.bin"));
+if (settlementsBin.length !== settlementsInfo.bytes)
+  throw new Error("src/data/settlements.bin does not match settlements.json: run tools/settlements.js again");
+const settlementsDigest = crypto.createHash("sha384").update(settlementsBin);
+const settlementsFile = `settlements.${settlementsDigest.copy().digest("hex").slice(0, 10)}.bin`;
+const settlementsIntegrity = "sha384-" + settlementsDigest.digest("base64");
+/* Writes the settlement map into a folder data/ (of dist/ or dist/split/), replacing older ones. */
+function writeSettlements(root) {
+  const folder = path.join(root, "data");
+  fs.rmSync(folder, { recursive: true, force: true });
+  fs.mkdirSync(folder, { recursive: true });
+  fs.writeFileSync(path.join(folder, settlementsFile), settlementsBin);
+}
+writeSettlements(dist);
+/* What a page needs to load and read the settlement map: its address from the page (out: the page's
+   folder under dist/ or dist/split/), its integrity value and the grid. */
+const settlementsFor = out =>
+  asScript({
+    href: (out ? "../".repeat(out.split("/").length) : "") + "data/" + settlementsFile,
+    integrity: settlementsIntegrity,
+    bytes: settlementsInfo.bytes,
+    grid: settlementsInfo.grid,
+  });
+
 // ---------- the split build (dist/split/) ----------
 
 const splitDir = path.join(dist, "split");
 fs.rmSync(splitDir, { recursive: true, force: true });
 fs.mkdirSync(path.join(splitDir, "assets"), { recursive: true });
+writeSettlements(splitDir);
 const sharedStyles = fs.readFileSync(path.join(__dirname, "shared/style.css"), "utf8");
 /* Writes one file into dist/split/assets/ under a name with its fingerprint ("leaflet.1a2b3c4d.js"), once
    even when both pages ask for it. Returns its path from the site's root and its integrity value. */
@@ -210,6 +244,7 @@ function buildPage(dir, out, data, { map = true } = {}) {
   for (const [mark, text] of Object.entries(data)) put(`/*${mark}*/`, text);
   if (map) {
     put("/*LAND*/", JSON.stringify({ per: land.per, runs: land.runs }));
+    put("/*SETTLEMENTS*/", settlementsFor(out));
     put("/*LEAFLET_JS*/", leafletJs);
     put("/*LEAFLET_CSS*/", leafletCss);
   }
@@ -232,9 +267,11 @@ function buildPage(dir, out, data, { map = true } = {}) {
     "style-src 'unsafe-inline'",
     map ? "img-src https://tile.openstreetmap.org data:" : "img-src data:",
     "font-src data:",
-    // Only Google's Street View service for now. A feature that needs another service (an Overpass
-    // server, say) adds its host here, in the same pull request. A page without the map talks to nobody.
-    map ? "connect-src https://maps.googleapis.com" : "connect-src 'none'",
+    // Only Google's Street View service, and the settlement map from the page's own site ('self', the
+    // one exception, agreed with the owner in November 2026: the page fetches nothing else from there,
+    // and checks the file's integrity). A feature that needs another service (an Overpass server, say)
+    // adds its host here, in the same pull request. A page without the map talks to nobody.
+    map ? "connect-src 'self' https://maps.googleapis.com" : "connect-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",
     "object-src 'none'",
