@@ -105,6 +105,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 44. **Major roads in 94 countries** (done, 13 November 2026, at the owner's request): from three more batch logs of the owner (Middle East and Africa; Asia, Europe and the Americas; small countries, islands and territories), 20 more for "Not on a major road", 94 in all: Lesotho, Nigeria, Oman, Palestine, Rwanda, Eswatini, Bosnia and Herzegovina, Cyprus, Georgia (ს and შ in Georgian letters, or S and Sh), Laos, Nepal, the Philippines (only the Pan-Philippine Highway, expressways and Asian Highways), Paraguay, Kosovo, Andorra, Åland, the Isle of Man, Jersey, Réunion and São Tomé and Príncipe. Not added, as Google shows (almost) no road numbers there or the numbers do not tell the class: Lebanon, Qatar, Uganda, Bhutan, South Korea (no road names at all), American Samoa, Bermuda, the Cocos and Christmas Islands, Curaçao, the Faroe Islands, Gibraltar, Greenland, Guam, Hong Kong, Liechtenstein, Macau, Malta, Monaco, the Northern Mariana Islands, San Marino, Singapore and the US Virgin Islands.
 
+45. **Remove all countries** (done, 13 November 2026, at the owner's request): with two or more chosen countries, "Remove all countries" under them removes them all, after asking in a dialog that names them (the first six and how many more, with many). In both tools.
+
 Later, to be discussed when they come up:
 
 - More tag options.
