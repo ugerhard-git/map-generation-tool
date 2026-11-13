@@ -208,7 +208,7 @@ async function attempt(code, want, rad, key) {
     return;
   }
   stats.failedInRow = 0;
-  logEvent("pano", logPano(r));
+  logEvent("pano", { cc: code, ...logPano(r) });
   const kept = await keepPanorama(r, code, key, want);
   if (fatal) return;
   if (kept) countPace(code, true);

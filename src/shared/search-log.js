@@ -49,8 +49,9 @@ const logCounters = () => {
   delete counts.failedInRow; // (it says nothing afterwards)
   return { t: Date.now() - (searchLog?.started || Date.now()), found: results.length, ...counts };
 };
-/* What the log keeps about a panorama: its id, place, date, image size, arrows, and whether it is Google's
-   own (else who took it). */
+/* What the log keeps about a panorama: its id, place, date, image size, arrows and the road name on each
+   (only when one has a name: "" for those without; added in November 2026, to find out how Google names
+   major roads, for a filter "Not on a major road"), and whether it is Google's own (else who took it). */
 const logPano = r => ({
   pano: r.panoId,
   lat: Math.round(r.lat * 1e6) / 1e6,
@@ -58,6 +59,9 @@ const logPano = r => ({
   date: r.date,
   ...(r.height ? { h: r.height, w: r.width } : {}),
   arrows: r.links.length,
+  ...(r.links.some(l => l.description)
+    ? { roads: r.links.map(l => cleanText(l.description || "", 80)) }
+    : {}),
   ...(isOfficial(r.copyright) ? {} : { by: cleanText(r.copyright, 60) }),
 });
 /* At the start of each run (a new search, "Fill the gap", continuing): a new log for a new search, or the
