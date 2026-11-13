@@ -35,8 +35,8 @@ const page = path.join(DIST, "index.nokey.html");
     "default, plugins, base address and form targets locked down",
   );
   ok(
-    /connect-src https:\/\/maps\.googleapis\.com(;|$)/.test(csp),
-    "the page may only talk to Google's Street View service",
+    /connect-src 'self' https:\/\/maps\.googleapis\.com(;|$)/.test(csp),
+    "the page may only talk to Google's Street View service, and fetch the settlement map from its own site",
   );
   ok(
     !/https?:\/\/(cdnjs|unpkg|cdn\.jsdelivr|fonts\.googleapis)/.test(html),

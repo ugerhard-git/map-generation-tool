@@ -48,6 +48,7 @@ const HISTORY_MAX = 20;
  * @property {number} zoom          0 to 4, with zoomMode "fixed"
  * @property {number} zoomMin       0 to 4, the range with zoomMode "random"
  * @property {number} zoomMax
+ * @property {"any"|"town"|"country"} settlement  "Town or countryside" (settings from before: "any")
  * @property {number} target
  * @property {number} radius
  * @property {number} parallel     lookups at the same time (settings from before: PARALLEL)
@@ -90,6 +91,7 @@ function currentSettings() {
     monthFrom: wholeNumber($("monthFrom").value, 1, 12, 1),
     yearTo: cleanYearTo($("yearTo").value),
     monthTo: wholeNumber($("monthTo").value, 1, 12, 12),
+    settlement: settlementChosen(),
     ...(CAMERA_VIEW ? CAMERA_VIEW.settings() : {}),
     target: target(),
     radius: radius(),
@@ -125,6 +127,8 @@ function cleanSettings(raw) {
     monthFrom: wholeNumber(r.monthFrom, 1, 12, 1),
     yearTo: cleanYearTo(r.yearTo),
     monthTo: wholeNumber(r.monthTo, 1, 12, 12),
+    // (settings from before "Town or countryside": anywhere)
+    settlement: SETTLEMENT_CHOICES.includes(r.settlement) ? r.settlement : "any",
     ...(CAMERA_VIEW ? CAMERA_VIEW.clean(r) : {}),
     target: wholeNumber(r.target, 1, TARGET_MAX, TARGET_DEFAULT),
     radius: wholeNumber(r.radius, RADIUS_MIN, RADIUS_MAX, RADIUS_DEFAULT),
@@ -283,6 +287,9 @@ function applySettings(s) {
     $("distribution").value = s.distribution;
   whereChanged();
   applyToolSettings(s);
+  setRadio("settlement", s.settlement);
+  store.set("settlement", s.settlement);
+  if (s.settlement !== "any") loadSettlements();
   for (const id of ["yearsOn", "giveUpOn", "sizeLimitOn", ...Object.keys(TAG_OPTIONS)]) {
     $(id).checked = s[id];
     store.set(id, s[id]);

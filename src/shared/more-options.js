@@ -22,6 +22,18 @@ const MORE = {
     reset: () => setControl("distribution", defaultDistribution()),
   },
   ...MORE_TOOL,
+  // "Town or countryside" (see "town or countryside")
+  moreSettlement: {
+    summary: () => {
+      const words = settlementWords(settlementChosen());
+      return words ? words.charAt(0).toUpperCase() + words.slice(1) : "Anywhere";
+    },
+    changed: () => settlementChosen() !== "any",
+    reset: () => {
+      setRadio("settlement", "any");
+      store.set("settlement", "any");
+    },
+  },
   // "Camera view", in a tool that has it (see "camera view")
   ...(CAMERA_VIEW ? { moreView: CAMERA_VIEW.more } : {}),
   moreSearch: {

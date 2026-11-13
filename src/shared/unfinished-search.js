@@ -112,6 +112,7 @@ function cleanLocation(l) {
     panoId: l.panoId,
     date: /^\d{4}(-\d{2})?$/.test(date) ? date : "",
     cc: l.cc,
+    ...(typeof l.town === "boolean" ? { town: l.town } : {}),
     ...cleanLocationFields(l),
   };
 }

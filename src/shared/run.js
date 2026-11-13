@@ -24,6 +24,7 @@ function emptyStats() {
     notMatching: 0, // found, but without what was asked for
     tooClose: 0, // already found, or too close to a location found before
     outside: 0, // the panorama lies in a neighbouring country
+    settlement: 0, // in a town when the countryside was asked for, or the other way round
     failed: 0, // lookups that failed (network, Google errors)
     ...TOOL_STATS,
     searchedMs: 0, // time spent searching in the runs that have ended (see searchedFor)
@@ -100,6 +101,11 @@ function paint(status) {
   if (stats.notMatching) add(stats.notMatching, "not matching");
   if (stats.tooClose) add(stats.tooClose, "too close to another");
   if (stats.outside) add(stats.outside, "across the border");
+  if (stats.settlement)
+    add(
+      stats.settlement,
+      searchSettings.want?.settlement === "town" ? "in the countryside" : "in a town or village",
+    );
   if (stats.failed) add(stats.failed, "failed lookups");
   toolTally(add);
   if (results.length > MAX_DRAWN) add(MAX_DRAWN, "shown on the map");
@@ -246,6 +252,16 @@ async function checkPanorama(r, code, key, want) {
     stats.outside++;
     return null;
   }
+  // in a town or in the countryside, as asked (the map of towns is loaded first, see settlements.js)
+  const settled = await settlementWanted(pano.lat, pano.lng, want.settlement);
+  if (settled === null) {
+    fatal = "The map of towns and villages could not be loaded. Check your connection, then search again.";
+    return null;
+  }
+  if (!settled) {
+    stats.settlement++;
+    return null;
+  }
   if (!laterChecks(pano, code, want)) return null;
   if (seenPanos.has(pano.panoId) || tooClose(pano.lat, pano.lng)) {
     stats.tooClose++;
@@ -261,6 +277,8 @@ async function checkPanorama(r, code, key, want) {
     panoId: pano.panoId,
     date: pano.date,
     cc: code,
+    // in a town or village, or not, when the map of towns is loaded (for the tag "Town" or "Countryside")
+    ...(settlementMap ? { town: townAt(pano.lat, pano.lng) } : {}),
     ...locationFields(pano, code, facts),
   };
   results.push(l);

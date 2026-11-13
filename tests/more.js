@@ -45,11 +45,11 @@ const { PAGE, isSite, serveSite } = require("./site.js");
     (await p.textContent("#whatSummary")) === "Any official location. Choose more in the sections below.",
     "a line under step 2 says what is looked for",
   );
-  // The order of step 2's sections: Photos, Roads and arrows, Camera view
+  // The order of step 2's sections: Photos, Roads and arrows, Town or countryside, Camera view
   ok(
     (await p.$$eval("#stepWhat details.more", list => list.map(d => d.id).join())) ===
-      "morePhotos,moreRoads,moreView",
-    "step 2: Photos, Roads and arrows, Camera view",
+      "morePhotos,moreRoads,moreSettlement,moreView",
+    "step 2: Photos, Roads and arrows, Town or countryside, Camera view",
   );
   ok((await p.$$("#fields .hint:visible")).length <= 2, "with little text on the page");
 

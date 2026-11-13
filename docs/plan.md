@@ -107,6 +107,8 @@ Vali ([slashP/Vali](https://github.com/slashP/Vali), GPL-3.0) is the source of t
 
 45. **Remove all countries** (done, 13 November 2026, at the owner's request): with two or more chosen countries, "Remove all countries" under them removes them all, after asking in a dialog that names them (the first six and how many more, with many). In both tools.
 
+46. **Town or countryside** (done, 13 November 2026, agreed with the owner): a section "Town or countryside" in step 2 of both tools: anywhere (the default), in a town or village, or in the countryside, and the tag "Town" or "Countryside". A town or village is a settlement of 500 people or more (the owner's definition), which matches the "rural cluster" of the European Commission's degree of urbanisation: the GHS-SMOD R2023A map of 2020, in 1 km squares (CC BY 4.0), chosen over GeoNames' points of towns, as it gives areas. Imported by `tools/settlements.js` (with the `geotiff` package, agreed); the result is 2 MB, so it is not built into the pages but published next to them and loaded only when the setting or the tag is used, with a line and a spinner while it loads (the owner's choice, with the one exception to the security policy that it needs: the pages may fetch from their own site, and check the file's integrity). If it cannot be loaded, the line says so, and a search that needs it stops with that message.
+
 Later, to be discussed when they come up:
 
 - More tag options.

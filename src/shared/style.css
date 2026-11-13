@@ -767,7 +767,36 @@ a:focus-visible {
 }
 
 /* ---------- less motion for people who ask their system for it ---------- */
+/* "Town or countryside": the line under the choice, with a spinner while the map loads */
+.settlement-status {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.settlement-status.error {
+  color: var(--red);
+}
+.settlement-status.loading::before {
+  content: "";
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.5em;
+  vertical-align: -0.12em;
+  border: 2px solid var(--line);
+  border-top-color: var(--blue-dark);
+  border-radius: 50%;
+  animation: settlement-spin 0.8s linear infinite;
+}
+@keyframes settlement-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
+  .settlement-status.loading::before {
+    animation-duration: 3s;
+  }
   .track i,
   fieldset {
     transition: none;

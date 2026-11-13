@@ -303,6 +303,8 @@ function distributionLabel() {
   return VALI.maps[$("distribution").value]?.name || "";
 }
 
+/*SHARED settlements.js*/
+
 /*SHARED where.js*/
 
 /*SHARED period.js*/
@@ -340,6 +342,7 @@ const wanted = () => ({
   noRoadName: $("noRoadName").checked,
   notMajorRoad: $("notMajorRoad").checked,
   arrows: arrows(),
+  settlement: settlementChosen(),
   years: years(),
   cameras: cameras(),
   noBadCamera: $("noBadCamera").checked && !cameras(),
@@ -423,6 +426,7 @@ function wantedLabel(w) {
   const parts = [];
   if (w.noRoadName) parts.push("no road name");
   if (w.notMajorRoad) parts.push("not on a major road");
+  if (settlementWords(w.settlement)) parts.push(settlementWords(w.settlement));
   if (w.arrows === "end") parts.push("end of coverage");
   if (w.arrows === "intersection") parts.push("intersection");
   if (w.arrows === "none") parts.push("no arrows");
@@ -445,6 +449,7 @@ const TAG_OPTIONS = {
   tagIntersection: false,
   tagNoArrows: false,
   tagMajorRoad: false,
+  tagSettlement: false,
   tagYear: false,
   tagCamera: false,
 };
@@ -466,6 +471,7 @@ function tagsFor(l) {
   if ($("tagIntersection").checked && l.intersection) tags.push("Intersection");
   if ($("tagNoArrows").checked && l.noArrows) tags.push("No arrows");
   if ($("tagMajorRoad").checked && l.majorRoad) tags.push("Major road");
+  if ($("tagSettlement").checked && settlementTag(l)) tags.push(settlementTag(l));
   if ($("tagYear").checked && l.date) tags.push(dateTagOf(l));
   if ($("tagCamera").checked && l.camera) tags.push(CAMERAS[l.camera]);
   return tags;
@@ -476,6 +482,7 @@ const TAG_WORDS = {
   tagIntersection: "intersection",
   tagNoArrows: "no arrows",
   tagMajorRoad: "major road",
+  tagSettlement: "town or countryside",
   tagCamera: "camera",
 };
 
@@ -488,7 +495,13 @@ const TAG_WORDS = {
    under step 2 that says what is looked for. */
 /* True when anything is asked of a location, besides official coverage. */
 const anythingWanted = w =>
-  w.noRoadName || w.notMajorRoad || w.arrows !== "any" || !!w.years || !!w.cameras || w.noBadCamera;
+  w.noRoadName ||
+  w.notMajorRoad ||
+  w.arrows !== "any" ||
+  !!w.years ||
+  !!w.cameras ||
+  w.noBadCamera ||
+  (!!w.settlement && w.settlement !== "any");
 /* The line under step 2 when nothing is asked. */
 const ANY_LOCATION_WORDS = "Any official location. Choose more in the sections below.";
 /** @type {Record<string, {summary: () => string, changed: () => boolean, reset: () => void}>} */
@@ -789,6 +802,7 @@ const builtInName = () => VALI.maps[$("distribution").value]?.name || "this map"
 const wantedOf = s => ({
   noRoadName: s.noRoadName,
   notMajorRoad: s.notMajorRoad,
+  settlement: s.settlement,
   arrows: s.arrows,
   years: s.yearsOn ? periodOf(s) : null,
   cameras: Object.entries(CAMERA_BOXES).some(([id]) => s[id])
