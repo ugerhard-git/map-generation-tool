@@ -10,7 +10,8 @@
 //
 // The table of the view shown downloads as CSV, in the number format of the visitor's spreadsheet; all
 // views download together as an Excel file with one tab each (Google Sheets keeps the tabs when it imports
-// one). Nothing is sent anywhere: the page has no map, no Google and talks to no server.
+// one), as an HTML page with every view, and the view shown copies as an HTML table to paste into a forum
+// post. Nothing is sent anywhere: the page has no map, no Google and talks to no server.
 //
 // Unlike the two other tools, this page does not use src/shared/: the shared code is about searches
 // (settings, history, the map, Google), and the few helpers this page needs are written here.
@@ -619,6 +620,151 @@ function workbookSheets(tally, info) {
   ];
 }
 
+/* ---------- step 3: HTML ---------- */
+/* Two kinds: a report page to keep, open, host or send (all views and where the numbers come from), and a
+   plain table of the view shown, copied to paste into a forum post or a web page. Both are made as text
+   with every value escaped, never from the page's own elements. */
+
+/* Text made safe for HTML. */
+const htmlText = s =>
+  String(s).replace(
+    /[&<>"']/g,
+    c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
+/* A value as the table on the page shows it: "12,345", "12.34%", "Puerto Rico (2), Guam (1)". */
+function cellText(value, col) {
+  if (value === null) return "";
+  if (col.type === "percent") return shareText(value);
+  if (col.type === "int") return fmt(value);
+  if (col.type === "list") return includesText(value);
+  return String(value);
+}
+
+/**
+ * A view's rows as a plain HTML table: no classes, no styles, so a forum or a page it is pasted into shows
+ * it in its own style. Numbers are right-aligned with the align attribute, which most forums keep.
+ * @param {Row[]} rows
+ * @param {keyof COLUMNS} view
+ */
+function tableHtml(rows, view, { bars = false } = {}) {
+  const cols = COLUMNS[view];
+  const numeric = c => c.type === "int" || c.type === "percent";
+  const top = Math.max(...rows.filter(r => !r.unknown).map(r => r.share), 0);
+  // In the report, a column after the share with a bar as long as its share of the largest in the table.
+  const barHead = c => (bars && c.type === "percent" ? '<th class="barcell"></th>' : "");
+  const head = cols
+    .map(c => `<th${numeric(c) ? ' align="right"' : ""}>${htmlText(c.label)}</th>${barHead(c)}`)
+    .join("");
+  const body = rows
+    .map(r => {
+      const cells = cols.map(c => {
+        const cell = `<td${numeric(c) ? ' align="right"' : ""}>${htmlText(cellText(r[c.key], c))}</td>`;
+        if (!(bars && c.type === "percent")) return cell;
+        if (r.unknown || !top) return cell + '<td class="barcell"></td>';
+        const width = ((r.share / top) * 100).toFixed(1);
+        return cell + `<td class="barcell"><span class="bar" style="width:${width}%"></span></td>`;
+      });
+      return `<tr${bars && r.unknown ? ' class="unknown"' : ""}>${cells.join("")}</tr>`;
+    })
+    .join("\n");
+  return `<table>\n<thead><tr>${head}</tr></thead>\n<tbody>\n${body}\n</tbody>\n</table>`;
+}
+
+/* The report's styles: light, readable, printable, and nothing loaded from elsewhere. */
+const REPORT_CSS = `
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1d2433; margin: 0; background: #f5f6f8; }
+main { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+h1 { font-size: 1.7rem; margin: 0 0 4px; }
+h2 { font-size: 1.25rem; margin: 36px 0 6px; }
+.sub, .note { color: #5b6475; margin: 0 0 12px; }
+table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d9dde5; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #e6e9ef; vertical-align: top; }
+th { font-size: 0.9rem; border-bottom: 2px solid #1d2433; }
+td[align="right"], th[align="right"] { text-align: right; white-space: nowrap; }
+th.barcell, td.barcell { width: 22%; padding-left: 0; }
+.bar { display: block; height: 0.9em; margin-top: 0.25em; min-width: 1px; background: #8fb2ee; border-radius: 2px; }
+tr.unknown td { color: #5b6475; font-style: italic; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; background: #fff; border: 1px solid #d9dde5; padding: 12px 16px; margin: 0; }
+dt { font-weight: 600; }
+dd { margin: 0; }
+footer { margin-top: 32px; color: #5b6475; font-size: 0.9rem; }
+@media print { body { background: #fff; } main { padding: 0; } tr { break-inside: avoid; } h2 { break-after: avoid; } }
+`;
+
+/**
+ * The report page: one self-contained HTML file with the three views, each sorted by locations (most
+ * first), and where the numbers come from. It has no scripts and loads nothing; its own security policy
+ * says so, so it is safe to open, host or send.
+ * @param {ReturnType<typeof countPlaces>} tally
+ * @param {{ name: string, fileName: string, skipped: number, date: string, toolUrl: string }} info
+ */
+function htmlReport(tally, info) {
+  const title = info.name || info.fileName.replace(/\.json$/i, "") || "Map";
+  const TITLES = {
+    countries: ["Countries and territories", "Each on its own: Puerto Rico apart from the United States."],
+    folded: [
+      "Countries, with their territories counted in",
+      "France's overseas departments, Hong Kong, Macao, Åland and Svalbard stay on their own.",
+    ],
+    continents: ["Continents", "Each location counts where it lies: Réunion in Africa."],
+  };
+  const sections = VIEWS.map(view => {
+    const rows = sortRows(viewRows(tally, view), { key: "count", descending: true });
+    const [h, note] = TITLES[view];
+    return `<section>\n<h2>${htmlText(h)}</h2>\n<p class="note">${htmlText(note)}</p>\n${tableHtml(rows, view, { bars: true })}\n</section>`;
+  }).join("\n");
+  const about = [
+    ["Map", info.name || "(no name)"],
+    ["File", info.fileName],
+    ["Locations", fmt(tally.total)],
+    ["Country from the map file", fmt(tally.fromFile)],
+    ["Country from the position", fmt(tally.fromPosition)],
+    ["No country found", fmt(tally.unknown)],
+    ["Skipped (no valid position)", fmt(info.skipped)],
+    ["Made on", info.date],
+  ]
+    .map(([k, v]) => `<dt>${htmlText(k)}</dt><dd>${htmlText(v)}</dd>`)
+    .join("");
+  const madeWith = /^https?:\/\//.test(info.toolUrl)
+    ? `<a href="${htmlText(info.toolUrl)}">Distribution</a>`
+    : "Distribution";
+  const places = Object.keys(tally.codes).filter(Boolean).length;
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta name="referrer" content="no-referrer">
+<title>${htmlText(title)}: distribution</title>
+<style>${REPORT_CSS}</style>
+</head>
+<body>
+<main>
+<h1>${htmlText(title)}</h1>
+<p class="sub">${fmt(tally.total)} location${tally.total === 1 ? "" : "s"} in ${fmt(places)} ${places === 1 ? "country or territory" : "countries and territories"} · ${htmlText(info.date)}</p>
+${sections}
+<section>
+<h2>About these numbers</h2>
+<p class="note">Each location's country is the country code in the map file; where it has none, the country at its position. A location coded as a country but lying in one of its territories counts as the territory.</p>
+<dl>${about}</dl>
+</section>
+<footer>Made with ${madeWith}.</footer>
+</main>
+</body>
+</html>
+`;
+}
+
+/* The details every download shares. */
+const exportInfo = () => ({
+  name: map.name,
+  fileName: map.fileName,
+  skipped: map.skipped,
+  date: new Date().toISOString().slice(0, 10),
+  toolUrl: location.protocol.startsWith("http") ? location.origin + location.pathname : "",
+});
+
 /* ---------- the page ---------- */
 
 /** @type {null | { name: string, fileName: string, skipped: number, tally: ReturnType<typeof countPlaces> }} */
@@ -723,18 +869,41 @@ $("downloadCsv").addEventListener("click", () => {
 });
 $("downloadXlsx").addEventListener("click", () => {
   if (!map) return;
-  const info = {
-    name: map.name,
-    fileName: map.fileName,
-    skipped: map.skipped,
-    date: new Date().toISOString().slice(0, 10),
-  };
   download(
-    xlsxFile(workbookSheets(map.tally, info)),
+    xlsxFile(workbookSheets(map.tally, exportInfo())),
     downloadBase() + ".xlsx",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   );
 });
+$("downloadHtml").addEventListener("click", () => {
+  if (!map) return;
+  download(htmlReport(map.tally, exportInfo()), downloadBase() + ".html", "text/html;charset=utf-8");
+});
+/* Copies the view shown as an HTML table: as the code (plain text, for a forum's or site's HTML field) and
+   as a table (for editors that take pasted tables, such as Google Docs). Says whether it worked. */
+$("copyTable").addEventListener("click", async () => {
+  if (!map) return;
+  const html = tableHtml(shownRows(), currentView());
+  let copied = false;
+  try {
+    if (window.ClipboardItem && navigator.clipboard?.write) {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/plain": new Blob([html], { type: "text/plain" }),
+          "text/html": new Blob([html], { type: "text/html" }),
+        }),
+      ]);
+    } else await navigator.clipboard.writeText(html);
+    copied = true;
+  } catch {}
+  $("copyStatus").textContent = copied
+    ? "Copied: the table of this view, as shown."
+    : "Copying is blocked in this browser. Download the HTML page instead.";
+  $("copyStatus").hidden = false;
+  clearTimeout(copyTimer);
+  copyTimer = setTimeout(() => ($("copyStatus").hidden = true), 6000);
+});
+let copyTimer;
 $("numberFormat").addEventListener("change", () => store.set("numberFormat", $("numberFormat").value));
 
 /* ---------- the table ---------- */
@@ -744,7 +913,7 @@ const shareText = s => (s > 0 && s < 0.00005 ? "<0.01%" : (s * 100).toFixed(2) +
 function render() {
   const view = currentView();
   $("viewHint").textContent = VIEW_HINTS[view];
-  $("downloadCsv").disabled = $("downloadXlsx").disabled = !map;
+  for (const id of ["downloadCsv", "downloadXlsx", "downloadHtml", "copyTable"]) $(id).disabled = !map;
   $("empty").hidden = !!map;
   $("result").hidden = !map;
   if (!map) return;

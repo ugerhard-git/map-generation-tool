@@ -45,7 +45,11 @@ function unzip(buf) {
     console.log((c ? "PASS " : "FAIL ") + m);
     if (!c) fail++;
   };
-  const ctx = await b.newContext({ viewport: { width: 1360, height: 860 }, acceptDownloads: true });
+  const ctx = await b.newContext({
+    viewport: { width: 1360, height: 860 },
+    acceptDownloads: true,
+    permissions: ["clipboard-read", "clipboard-write"],
+  });
   const p = await ctx.newPage();
   const errors = [],
     outside = [];
@@ -62,7 +66,9 @@ function unzip(buf) {
   ok(
     (await p.isVisible("#empty")) &&
       (await p.isDisabled("#downloadCsv")) &&
-      (await p.isDisabled("#downloadXlsx")),
+      (await p.isDisabled("#downloadXlsx")) &&
+      (await p.isDisabled("#downloadHtml")) &&
+      (await p.isDisabled("#copyTable")),
     "before a file: a note to choose one, downloads greyed out",
   );
   const links = await p.$$eval(".other-tool a", as => as.map(a => a.getAttribute("href")).join());
@@ -244,6 +250,63 @@ function unzip(buf) {
     (parts["xl/worksheets/sheet4.xml"] || "").includes("Test: World") &&
       (parts["xl/worksheets/sheet4.xml"] || "").includes("<v>12</v>"),
     "About names the map and the number of locations",
+  );
+
+  // The HTML page: every view, nothing that runs or loads
+  const [h] = await Promise.all([p.waitForEvent("download"), p.click("#downloadHtml")]);
+  ok(h.suggestedFilename() === "test-world-distribution.html", "the HTML page: " + h.suggestedFilename());
+  const report = fs.readFileSync(await h.path(), "utf8");
+  const headings = [...report.matchAll(/<h2>([^<]+)<\/h2>/g)].map(m => m[1]);
+  ok(
+    headings.join("|") ===
+      "Countries and territories|Countries, with their territories counted in|Continents|About these numbers",
+    "it has every view and where the numbers come from: " + headings.join(", "),
+  );
+  ok(
+    report.includes("<h1>Test: World</h1>") &&
+      report.includes("<td>United States</td><td>US</td><td>North America</td>") &&
+      report.includes("Puerto Rico (2), Guam (1)") &&
+      report.includes(
+        '<td align="right">33.33%</td><td class="barcell"><span class="bar" style="width:100.0%"></span></td>',
+      ),
+    "it names the map, lists the territories counted in and draws share bars",
+  );
+  ok(
+    !/<script|<link|<img|src=|url\(/i.test(report) &&
+      report.includes(`content="default-src 'none'; style-src 'unsafe-inline'"`),
+    "it has no scripts, loads nothing, and its own policy forbids both",
+  );
+  ok(
+    report.includes('Made with <a href="https://mapgen.test/distribution/index.nokey.html">Distribution</a>'),
+    "it links to the tool that made it",
+  );
+  const escaped = await p.evaluate(() =>
+    htmlReport(map.tally, {
+      ...exportInfo(),
+      name: '<script>alert("x")</script>',
+      toolUrl: "javascript:alert(1)",
+    }),
+  );
+  ok(
+    !escaped.includes("<script>alert") &&
+      escaped.includes("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;") &&
+      !escaped.includes("javascript:"),
+    "a map name is shown as text, never run, and only a web address becomes a link",
+  );
+
+  // The view shown, copied as a plain HTML table
+  await p.click("#copyTable");
+  await p.waitForSelector("#copyStatus:not([hidden])");
+  const copied = await p.evaluate(() => navigator.clipboard.readText());
+  ok(
+    copied.startsWith("<table>\n<thead><tr><th>Country</th>") &&
+      copied.includes(
+        '<tr><td>United States</td><td>US</td><td>North America</td><td align="right">4</td><td align="right">33.33%</td><td>Puerto Rico (2), Guam (1)</td></tr>',
+      ) &&
+      !/class=|style=/.test(copied) &&
+      /Copied/.test(await p.textContent("#copyStatus")),
+    "copying gives the folded view shown as a plain table, without classes or styles:\n  " +
+      copied.split("\n").slice(0, 4).join("\n  "),
   );
 
   // Files that are not maps
