@@ -85,10 +85,14 @@
           <div class="downloads">
             <button type="button" class="btn primary" id="downloadCsv" disabled>This view as CSV</button>
             <button type="button" class="btn" id="downloadXlsx" disabled>All views as Excel file</button>
+            <button type="button" class="btn" id="downloadHtml" disabled>All views as HTML page</button>
+            <button type="button" class="btn" id="copyTable" disabled>Copy this view as HTML table</button>
           </div>
+          <p class="msg note" id="copyStatus" role="status" hidden></p>
           <p class="hint">
             The CSV holds the table as shown, sorted the same way. The Excel file has one tab per view and
-            opens in Google Sheets (File, Import) and Excel.
+            opens in Google Sheets (File, Import) and Excel. The HTML page has every view, ready to open, keep
+            or put online. The copied table is plain HTML, to paste into a forum post or a web page.
           </p>
           <div class="field">
             <label for="numberFormat">Numbers in the CSV</label>
