@@ -26,6 +26,7 @@ function emptyStats() {
     outside: 0, // the panorama lies in a neighbouring country
     settlement: 0, // in a town when the countryside was asked for, or the other way round
     landscape: 0, // not the landscape asked for
+    terrain: 0, // not the terrain asked for
     failed: 0, // lookups that failed (network, Google errors)
     ...TOOL_STATS,
     searchedMs: 0, // time spent searching in the runs that have ended (see searchedFor)
@@ -108,6 +109,7 @@ function paint(status) {
       searchSettings.want?.settlement === "town" ? "in the countryside" : "in a town or village",
     );
   if (stats.landscape) add(stats.landscape, "in another landscape");
+  if (stats.terrain) add(stats.terrain, "in another terrain");
   if (stats.failed) add(stats.failed, "failed lookups");
   toolTally(add);
   if (results.length > MAX_DRAWN) add(MAX_DRAWN, "shown on the map");
@@ -274,6 +276,16 @@ async function checkPanorama(r, code, key, want) {
     stats.landscape++;
     return null;
   }
+  // the terrain asked for, or needed for its tag (the same way, see terrain.js)
+  const ground = await terrainWanted(pano.lat, pano.lng, want.terrain);
+  if (ground.terrain === null && want.terrain && want.terrain !== "any") {
+    fatal = "The terrain map could not be loaded. Check your connection, then search again.";
+    return null;
+  }
+  if (!ground.wanted) {
+    stats.terrain++;
+    return null;
+  }
   if (!laterChecks(pano, code, want)) return null;
   if (seenPanos.has(pano.panoId) || tooClose(pano.lat, pano.lng)) {
     stats.tooClose++;
@@ -293,6 +305,8 @@ async function checkPanorama(r, code, key, want) {
     ...(settlementMap ? { town: townAt(pano.lat, pano.lng) } : {}),
     // its landscape, when the setting or the tag needed it ("" for none)
     ...(typeof land.landscape === "string" ? { landscape: land.landscape } : {}),
+    // and its terrain ("" for none)
+    ...(typeof ground.terrain === "string" ? { terrain: ground.terrain } : {}),
     ...locationFields(pano, code, facts),
   };
   results.push(l);

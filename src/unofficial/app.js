@@ -221,7 +221,11 @@ function distributionLabel() {
 
 /*SHARED settlements.js*/
 
+/*SHARED tile-maps.js*/
+
 /*SHARED landscape.js*/
+
+/*SHARED terrain.js*/
 
 /*SHARED where.js*/
 
@@ -270,6 +274,7 @@ function wanted() {
     uploaders,
     settlement: settlementChosen(),
     landscape: landscapeChosen(),
+    terrain: terrainChosen(),
   };
 }
 $("full360").checked = store.get("full360", false) === true;
@@ -334,6 +339,7 @@ function wantedLabel(w) {
   if (w.uploaderMode === "only") parts.push("by " + namesLabel(w.uploaders));
   if (settlementWords(w.settlement)) parts.push(settlementWords(w.settlement));
   if (landscapeWords(w.landscape)) parts.push(landscapeWords(w.landscape));
+  if (terrainWords(w.terrain)) parts.push(terrainWords(w.terrain));
   const text = parts.join(", ") || "unofficial coverage";
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -349,6 +355,7 @@ const TAG_OPTIONS = {
   tagArrows: false,
   tagSettlement: false,
   tagLandscape: false,
+  tagTerrain: false,
   tagYear: false,
 };
 /* The tags of a location for the export, from the ticked options: "Malta", "Jane Doe", "2023". */
@@ -360,6 +367,7 @@ function tagsFor(l) {
   if ($("tagArrows").checked) tags.push(l.arrows ? "Arrows" : "No arrows");
   if ($("tagSettlement").checked && settlementTag(l)) tags.push(settlementTag(l));
   if ($("tagLandscape").checked && landscapeTag(l)) tags.push(landscapeTag(l));
+  if ($("tagTerrain").checked && terrainTag(l)) tags.push(terrainTag(l));
   if ($("tagYear").checked && l.date) tags.push(dateTagOf(l));
   return tags;
 }
@@ -369,6 +377,7 @@ const TAG_WORDS = {
   tagArrows: "arrows",
   tagSettlement: "town or countryside",
   tagLandscape: "landscape",
+  tagTerrain: "terrain",
 };
 
 /*SHARED tags.js*/
@@ -406,7 +415,8 @@ const anythingWanted = w =>
   w.arrows !== "any" ||
   w.uploaderMode !== "any" ||
   (!!w.settlement && w.settlement !== "any") ||
-  (!!w.landscape && w.landscape !== "any");
+  (!!w.landscape && w.landscape !== "any") ||
+  (!!w.terrain && w.terrain !== "any");
 /* The line under step 2 when nothing is asked. */
 const ANY_LOCATION_WORDS = "Any unofficial location. Choose more in the sections below.";
 /** @type {Record<string, {summary: () => string, changed: () => boolean, reset: () => void}>} */
@@ -586,6 +596,7 @@ const wantedOf = s => {
     uploaders,
     settlement: s.settlement,
     landscape: s.landscape,
+    terrain: s.terrain,
   };
 };
 /* More about settings in words, for the history: nothing here. */

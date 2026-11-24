@@ -49,6 +49,7 @@ function drawLocation(l) {
     ...locationFacts(l),
     l.town === true ? "In a town or village" : l.town === false ? "In the countryside" : "",
     landscapeFact(l),
+    terrainTag(l),
   ]
     .filter(Boolean)
     .join(", ");

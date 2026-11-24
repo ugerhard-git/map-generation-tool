@@ -34,6 +34,19 @@ const MORE = {
       store.set("settlement", "any");
     },
   },
+  // "Terrain" (see "terrain")
+  moreTerrain: {
+    summary: () => {
+      const words = terrainWords(terrainChosen());
+      return words ? words.charAt(0).toUpperCase() + words.slice(1) : "Any terrain";
+    },
+    changed: () => terrainChosen() !== "any",
+    reset: () => {
+      setRadio("terrain", "any");
+      store.set("terrain", "any");
+      terrainNote();
+    },
+  },
   // "Landscape" (see "landscape")
   moreLandscape: {
     summary: () => {

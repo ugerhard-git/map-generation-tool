@@ -107,8 +107,8 @@ if (key && !/^[A-Za-z0-9_-]{20,80}$/.test(key))
 // GHSL's degree of urbanisation): too big to build into the pages (2 MB), so it is published as a file
 // of its own, dist/data/settlements.<fingerprint>.bin (and the same under dist/split/data/), which a page
 // loads only when the setting or its tag is used, and checks against its integrity value. The page gets
-// where it is, that value and how to read it (SETTLEMENTS). It and the landscape map below are the only
-// files a page may fetch from its own site: its policy allows 'self' for them (agreed with the owner,
+// where it is, that value and how to read it (SETTLEMENTS). It and the landscape and terrain maps below
+// are the only files a page may fetch from its own site: its policy allows 'self' for them (agreed with the owner,
 // November 2026).
 const settlementsInfo = JSON.parse(fs.readFileSync(path.join(__dirname, "data/settlements.json"), "utf8"));
 const settlementsBin = fs.readFileSync(path.join(__dirname, "data/settlements.bin"));
@@ -118,36 +118,41 @@ const settlementsDigest = crypto.createHash("sha384").update(settlementsBin);
 const settlementsFile = `settlements.${settlementsDigest.copy().digest("hex").slice(0, 10)}.bin`;
 const settlementsIntegrity = "sha384-" + settlementsDigest.digest("base64");
 
-// The landscape map, for "Landscape" (made by tools/landscape.js from ESA WorldCover, on GitHub): tiles of
-// 10°, published the same way as data/landscape/<tile>.<fingerprint>.bin; a page loads a tile only when it
-// looks at a place in it. The page gets, for each tile, its fingerprint, integrity value and size
-// (LANDSCAPE.files), and the grid and the classes.
-const landscapeInfo = JSON.parse(fs.readFileSync(path.join(__dirname, "data/landscape.json"), "utf8"));
-const landscapeTiles = Object.entries(landscapeInfo.tiles).map(([key, bytes]) => {
-  const data = fs.readFileSync(path.join(__dirname, "data/landscape", key + ".bin"));
-  if (data.length !== bytes)
-    throw new Error(
-      `src/data/landscape/${key}.bin does not match landscape.json: run tools/landscape.js again`,
-    );
-  const digest = crypto.createHash("sha384").update(data);
-  return {
-    key,
-    data,
-    hash: digest.copy().digest("hex").slice(0, 10),
-    integrity: "sha384-" + digest.digest("base64"),
-  };
-});
-if (fs.readdirSync(path.join(__dirname, "data/landscape")).length !== landscapeTiles.length)
-  throw new Error("src/data/landscape/ has files landscape.json does not list: run tools/landscape.js again");
-/* Writes the settlement map and the landscape map into a folder data/ (of dist/ or dist/split/), replacing
+// The landscape map, for "Landscape" (made by tools/landscape.js from ESA WorldCover), and the terrain
+// map, for "Terrain" (made by tools/terrain.js from the Copernicus DEM), both on GitHub: tiles of 10°,
+// published the same way as data/<map>/<tile>.<fingerprint>.bin; a page loads a tile only when it looks at
+// a place in it (src/shared/tile-maps.js). The page gets, for each tile, its fingerprint, integrity value
+// and size (LANDSCAPE.files, TERRAIN.files), the grid, and the landscape's classes or the terrain's bands.
+function readTileMap(name) {
+  const info = JSON.parse(fs.readFileSync(path.join(__dirname, `data/${name}.json`), "utf8"));
+  const tiles = Object.entries(info.tiles).map(([key, bytes]) => {
+    const data = fs.readFileSync(path.join(__dirname, `data/${name}`, key + ".bin"));
+    if (data.length !== bytes)
+      throw new Error(`src/data/${name}/${key}.bin does not match ${name}.json: run tools/${name}.js again`);
+    const digest = crypto.createHash("sha384").update(data);
+    return {
+      key,
+      data,
+      hash: digest.copy().digest("hex").slice(0, 10),
+      integrity: "sha384-" + digest.digest("base64"),
+    };
+  });
+  if (fs.readdirSync(path.join(__dirname, `data/${name}`)).length !== tiles.length)
+    throw new Error(`src/data/${name}/ has files ${name}.json does not list: run tools/${name}.js again`);
+  return { name, info, tiles };
+}
+const tileMaps = [readTileMap("landscape"), readTileMap("terrain")];
+/* Writes the settlement map and the maps in tiles into a folder data/ (of dist/ or dist/split/), replacing
    older ones. */
 function writeData(root) {
   const folder = path.join(root, "data");
   fs.rmSync(folder, { recursive: true, force: true });
-  fs.mkdirSync(path.join(folder, "landscape"), { recursive: true });
+  fs.mkdirSync(folder, { recursive: true });
   fs.writeFileSync(path.join(folder, settlementsFile), settlementsBin);
-  for (const t of landscapeTiles)
-    fs.writeFileSync(path.join(folder, "landscape", `${t.key}.${t.hash}.bin`), t.data);
+  for (const { name, tiles } of tileMaps) {
+    fs.mkdirSync(path.join(folder, name));
+    for (const t of tiles) fs.writeFileSync(path.join(folder, name, `${t.key}.${t.hash}.bin`), t.data);
+  }
 }
 writeData(dist);
 /* What a page needs to load and read the settlement map: its address from the page (out: the page's
@@ -159,15 +164,18 @@ const settlementsFor = out =>
     bytes: settlementsInfo.bytes,
     grid: settlementsInfo.grid,
   });
-/* The same for the landscape map: where its tiles are from the page, and each tile's fingerprint,
-   integrity value and size. */
-const landscapeFor = out =>
-  asScript({
-    base: (out ? "../".repeat(out.split("/").length) : "") + "data/landscape/",
-    grid: landscapeInfo.grid,
-    classes: landscapeInfo.classes,
-    files: Object.fromEntries(landscapeTiles.map(t => [t.key, [t.hash, t.integrity, t.data.length]])),
+/* The same for a map in tiles: where its tiles are from the page, and each tile's fingerprint, integrity
+   value and size; with the landscape's classes or the terrain's bands. */
+const tileMapFor = (name, out) => {
+  const { info, tiles } = tileMaps.find(m => m.name === name);
+  return asScript({
+    base: (out ? "../".repeat(out.split("/").length) : "") + `data/${name}/`,
+    grid: info.grid,
+    ...(info.classes ? { classes: info.classes } : {}),
+    ...(info.bands ? { bands: info.bands } : {}),
+    files: Object.fromEntries(tiles.map(t => [t.key, [t.hash, t.integrity, t.data.length]])),
   });
+};
 
 // ---------- the split build (dist/split/) ----------
 
@@ -280,7 +288,8 @@ function buildPage(dir, out, data, { map = true } = {}) {
   if (map) {
     put("/*LAND*/", JSON.stringify({ per: land.per, runs: land.runs }));
     put("/*SETTLEMENTS*/", settlementsFor(out));
-    put("/*LANDSCAPE*/", landscapeFor(out));
+    put("/*LANDSCAPE*/", tileMapFor("landscape", out));
+    put("/*TERRAIN*/", tileMapFor("terrain", out));
     put("/*LEAFLET_JS*/", leafletJs);
     put("/*LEAFLET_CSS*/", leafletCss);
   }
@@ -303,7 +312,7 @@ function buildPage(dir, out, data, { map = true } = {}) {
     "style-src 'unsafe-inline'",
     map ? "img-src https://tile.openstreetmap.org data:" : "img-src data:",
     "font-src data:",
-    // Only Google's Street View service, and the settlement and landscape maps from the page's own site
+    // Only Google's Street View service, and the settlement, landscape and terrain maps from the page's own site
     // ('self', the one exception, agreed with the owner in November 2026: the page fetches nothing else
     // from there, and checks each file's integrity). A feature that needs another service (an Overpass server, say)
     // adds its host here, in the same pull request. A page without the map talks to nobody.

@@ -1,0 +1,22 @@
+<!-- Shared markup: the "Terrain" section of step 2. Used by both tools: the build puts it where a page.html
+     has a line "SHARED terrain.html" in a comment (see src/assemble.js; the code is in
+     src/shared/terrain.js). -->
+<details class="more" id="moreTerrain">
+  <summary>
+    <span class="more-title">Terrain</span>
+    <span class="more-sum" id="sumTerrain"></span>
+  </summary>
+  <div class="field" role="radiogroup" aria-labelledby="terrainTitle">
+    <div class="labelrow">
+      <div class="label" id="terrainTitle">How hilly it is around the locations</div>
+      <button type="button" class="help" data-help="terrain" aria-label="Help: terrain">?</button>
+    </div>
+    <label class="radio"><input type="radio" name="terrain" value="any" checked />Any terrain</label>
+    <label class="radio"><input type="radio" name="terrain" value="flat" />Flat</label>
+    <label class="radio"><input type="radio" name="terrain" value="hilly" />Hilly</label>
+    <label class="radio"><input type="radio" name="terrain" value="mountainous" />Mountainous</label>
+    <!-- how the terrain map loads, loading, loaded, or why not (tile-maps.js) -->
+    <p class="settlement-status" id="terrainStatus" role="status" aria-live="polite" hidden></p>
+  </div>
+  <button type="button" class="linkbtn reset" data-reset="moreTerrain">Reset to defaults</button>
+</details>
