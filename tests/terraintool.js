@@ -147,6 +147,11 @@ const name = key => `Copernicus_DSM_COG_30_${key.slice(0, 3)}_00_${key.slice(3)}
       res.writeHead(403);
       return res.end();
     }
+    // one tile cannot be read in parts (as geotiff sometimes cannot): only whole
+    if (key === "N46E007" && req.headers.range) {
+      res.writeHead(500);
+      return res.end();
+    }
     const range = /bytes=(\d+)-(\d*)/.exec(req.headers.range || "");
     if (range) {
       const start = +range[1],
@@ -171,6 +176,10 @@ const name = key => `Copernicus_DSM_COG_30_${key.slice(0, 3)}_00_${key.slice(3)}
   ok(
     a.status === 0 && b.status === 0,
     "read, in two parts: " + (a.status || b.status ? a.output + b.output : "ok"),
+  );
+  ok(
+    /N46E007: .*trying again, with the whole file/.test(a.output + b.output),
+    "a tile that cannot be read in parts is fetched whole",
   );
   ok(
     fs.readdirSync(parts).sort().join() === "N46E007.bin,N52E005.bin,N52E006.bin,part-0.json,part-1.json",
@@ -243,6 +252,7 @@ const name = key => `Copernicus_DSM_COG_30_${key.slice(0, 3)}_00_${key.slice(3)}
   ok(got.edge >= 2, "where the flat tile meets the slope, the slope beside it counts: band " + got.edge);
   const text = fs.readFileSync(summary, "utf8");
   ok(/3 DEM tiles read, 2 tiles of 10° written/.test(text), "the summary counts");
+  ok(/1 tiles fetched whole/.test(text), "and says how many were fetched whole");
   ok(/under 50 m [\d.]+%, 50–300 m [\d.]+%, 300 m or more [\d.]+%/.test(text), "and gives the three shares");
   ok(/Zermatt \(46.02, 7.75\): 300 m or more\n/.test(text), "and the known places: Zermatt in the mountains");
   ok(/Iowa \(42.3, -94.5\): the sea \(expected under 50 m\)/.test(text), "and those to look at");
