@@ -339,6 +339,107 @@ function unzip(buf) {
     "map-making.app's plain list is read; a strange country code is ignored, never shown as HTML",
   );
 
+  // Step 4: the map file again, with country tags
+  const tagged = async territories => {
+    await p.selectOption("#territoryTag", territories);
+    const [d] = await Promise.all([p.waitForEvent("download"), p.click("#downloadTagged")]);
+    return { name: d.suggestedFilename(), data: JSON.parse(fs.readFileSync(await d.path(), "utf8")) };
+  };
+  const tagMap = {
+    name: "Tags",
+    author: "someone", // a field of the file that must stay
+    customCoordinates: [
+      // San Juan, coded US, with tags of its own and other fields
+      {
+        lat: 18.45,
+        lng: -66.07,
+        heading: 90,
+        countryCode: "US",
+        extra: { tags: ["Ponce", "USA"], panoDate: "2020-01" },
+      },
+      { lat: -21.1, lng: 55.5, countryCode: "FR" }, // Réunion: always its own tag
+      { lat: 13.47, lng: 144.75, countryCode: null }, // Guam, no code: gets GU
+      { lat: 30, lng: -40, countryCode: null }, // at sea: left as it was
+      { lat: "x", lng: 3, foo: 1 }, // no valid position: left as it was
+      { lat: 52.52, lng: 13.4, countryCode: "DE", extra: { tags: "not a list" } }, // left as it was
+      { lat: 41.9, lng: 12.5, countryCode: "it" }, // Rome, code in small letters: kept as it is
+    ],
+  };
+  await upload("tags.json", JSON.stringify(tagMap));
+  await settled(() => /“Tags”/.test(document.getElementById("fileInfo").textContent));
+  const T = await p.evaluate(() => ({
+    US: countryTag("US"),
+    PR: countryTag("PR"),
+    GU: countryTag("GU"),
+    RE: countryTag("RE"),
+    IT: countryTag("IT"),
+  }));
+  ok(T.US === "USA", "the tags are the owner's: " + JSON.stringify(T));
+  let out = await tagged("both");
+  const L = out.data.customCoordinates;
+  ok(out.name === "tags-country-tags.json", "the tagged map is named after the file: " + out.name);
+  ok(
+    out.data.name === "Tags" && out.data.author === "someone" && L.length === 7,
+    "the file keeps its shape, its fields and every location",
+  );
+  ok(
+    JSON.stringify(L[0]) ===
+      JSON.stringify({
+        lat: 18.45,
+        lng: -66.07,
+        heading: 90,
+        countryCode: "US",
+        extra: { tags: ["Ponce", "USA", T.PR], panoDate: "2020-01" },
+      }),
+    "a territory gets both tags; its own tags and fields stay, and a tag it has is not added twice: " +
+      JSON.stringify(L[0]),
+  );
+  ok(JSON.stringify(L[1].extra.tags) === JSON.stringify([T.RE]), "Réunion gets only its own tag");
+  ok(
+    L[2].countryCode === "GU" && JSON.stringify(L[2].extra.tags) === JSON.stringify([T.GU, T.US]),
+    "a location without a code gets the one at its position: " + JSON.stringify(L[2]),
+  );
+  ok(
+    JSON.stringify(L.slice(3, 6)) === JSON.stringify(tagMap.customCoordinates.slice(3, 6)),
+    "at sea, without a valid position, or with tags that are not a list: left exactly as they were",
+  );
+  ok(
+    L[6].countryCode === "it" && JSON.stringify(L[6].extra.tags) === JSON.stringify([T.IT]),
+    "a country code the file has is never changed",
+  );
+  ok(
+    /^4 locations tagged, 1 given a country code\. 3 left as they were/.test(
+      await p.textContent("#tagStatus"),
+    ),
+    "the page says what was done: " + (await p.textContent("#tagStatus")),
+  );
+  out = await tagged("parent");
+  const tagsOf = l => JSON.stringify(l.extra.tags);
+  ok(
+    tagsOf(out.data.customCoordinates[0]) === JSON.stringify(["Ponce", "USA"]) &&
+      tagsOf(out.data.customCoordinates[1]) === JSON.stringify([T.RE]) &&
+      tagsOf(out.data.customCoordinates[2]) === JSON.stringify([T.US]),
+    "their country: San Juan and Guam are tagged USA (once), Réunion still its own",
+  );
+  out = await tagged("own");
+  ok(
+    JSON.stringify(out.data.customCoordinates[2].extra.tags) === JSON.stringify([T.GU]) &&
+      JSON.stringify(out.data.customCoordinates[0].extra.tags) === JSON.stringify(["Ponce", "USA", T.PR]),
+    "their own name: Guam is tagged Guam",
+  );
+  ok(
+    (await p.evaluate(() => localStorage.getItem("distribution.territoryTag"))) === '"own"',
+    "the choice is remembered",
+  );
+  // map-making.app's plain list stays a list
+  await upload("plain-list.json", JSON.stringify([{ lat: 41.9, lng: 12.5, countryCode: "IT" }]));
+  await settled(() => /plain-list|1 location/.test(document.getElementById("fileInfo").textContent));
+  out = await tagged("both");
+  ok(
+    Array.isArray(out.data) && JSON.stringify(out.data[0].extra) === JSON.stringify({ tags: [T.IT] }),
+    "map-making.app's plain list comes back as a list: " + JSON.stringify(out.data),
+  );
+
   // A tampered saved view falls back to the default
   await p.evaluate(() => localStorage.setItem("distribution.view", JSON.stringify("<img>")));
   await p.reload();

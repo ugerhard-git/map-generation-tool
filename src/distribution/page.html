@@ -106,6 +106,31 @@
             </p>
           </div>
         </section>
+
+        <!-- Step 4: the map file again, with country tags (app.js: step 4) -->
+        <section class="step" id="stepTags">
+          <h2><span class="n">4</span>Add country tags</h2>
+          <p class="hint">
+            Downloads the map file again with each location's country as a tag, the same tags as the Map
+            Generation Tool's. Tags the locations already have are kept, and missing country codes are filled
+            in. Import the file into map-making.app to use it.
+          </p>
+          <div class="field">
+            <label for="territoryTag">Tag territories with</label>
+            <select id="territoryTag">
+              <option value="both">both: Puerto Rico and USA</option>
+              <option value="own">their own name: Puerto Rico</option>
+              <option value="parent">their country: USA</option>
+            </select>
+            <p class="hint">
+              France's overseas departments, Hong Kong, Macao, Åland and Svalbard always get their own name.
+            </p>
+          </div>
+          <button type="button" class="btn primary" id="downloadTagged" disabled>
+            Download map with country tags
+          </button>
+          <p class="msg note" id="tagStatus" role="status" hidden></p>
+        </section>
       </div>
 
       <!-- The table of the chosen view (app.js: the table) -->
@@ -133,6 +158,9 @@
          belongs to, worked out by the build from country-coder and the owner's list of country names
          (src/countries.js, distributionFacts). */
       const PLACES = /*PLACES*/;
+      /* The tag each country gets in a map file, from the owner's list (src/data/country-tags.json), the
+         same as in the two other tools: "USA" for the United States. */
+      const COUNTRY_TAGS = /*COUNTRY_TAGS*/;
       /* Inside another site's frame, show only a link to open the app on its own, so nobody can lay a fake
          page over it and trick clicks (the security policy in the page itself cannot forbid framing). */
       let FRAMED = false;

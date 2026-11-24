@@ -84,6 +84,7 @@ A new feature for both tools goes into the shared file of its section; one for a
 - **Which country** (`placeOf`): the file's `countryCode` first; the position (country-coder, territory level) where it is missing, and to make a country's code exact where a location lies in one of its territories.
 - **Views** (`viewRows`): every place on its own; territories counted with their country (`PLACES[code].country`) except `KEEP_SEPARATE`; continents (`PLACES[code].continent`, from `distributionFacts` in `src/countries.js`).
 - **Downloads:** `csvText` (the view shown, in the number format chosen: `point` or `comma`, detected from the browser for `auto`); `xlsxFile`, which writes an Excel workbook itself (XML files in a zip archive stored without compression, `zipFiles`), with the tabs from `workbookSheets`; `htmlReport`, the HTML page with every view (no scripts, its own policy loads nothing, every value through `htmlText`); and `tableHtml`, the plain table the copy button puts on the clipboard (as code and as a table).
+- **Country tags** (step 4, `taggedMap`): the file as read (`readMap` keeps it and where each location is in it), each location with a country given `countryTags` (the owner's tags, `COUNTRY_TAGS` in the page, by the same rule as `countryTag` in `src/shared/helpers.js`; territories by `foldedCode`), missing country codes filled in; everything else copied unchanged. Saved setting: `distribution.territoryTag`.
 
 Tests: `tests/distribution.js`.
 
