@@ -101,9 +101,9 @@ async function each(items, atOnce, fn) {
 }
 
 /* Reads one DEM tile: the lowest and highest height of each of its 120 × 120 squares. */
-async function readTile(fromUrl, url, key) {
+async function readTile(open, url, key) {
   const corner = tileCorner(key);
-  const tiff = await fromUrl(url);
+  const tiff = await open(url);
   const base = await tiff.getImage(0);
   const [x0, y0] = base.getOrigin(),
     [rx, ry] = base.getResolution();
@@ -166,28 +166,37 @@ async function read(args) {
   if (keys.includes(null)) fail("the list of tiles has names this script does not know.");
   if (only) keys = keys.filter(k => only.split(",").includes(k));
   keys = keys.sort().filter((_, k) => k % n === i);
-  const { fromUrl } = await import("geotiff");
+  const { fromUrl, fromArrayBuffer } = await import("geotiff");
+  // A tile is read first in parts (only the copy needed); if that fails, as geotiff 2.1.3 can when a part
+  // ends exactly at the end of one of its blocks ("Cannot read properties of undefined (reading
+  // 'offset')"), the whole file is fetched and read from memory instead.
+  const wholeFile = async url => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`the server answered ${res.status}`);
+    return fromArrayBuffer(await res.arrayBuffer());
+  };
   fs.mkdirSync(out, { recursive: true });
   const done = [];
   const started = Date.now();
   await each(keys, 6, async key => {
-    let r;
+    let r, whole;
     for (let attempt = 1; ; attempt++) {
+      whole = attempt > 1;
       try {
-        r = await readTile(fromUrl, sourceUrl(source, key), key);
+        r = await readTile(attempt === 1 ? fromUrl : wholeFile, sourceUrl(source, key), key);
         break;
       } catch (e) {
         // a wrong tile stops at once; a network error is tried again
         if (/not its 1° tile|too coarse|cannot be right/.test(e.message) || attempt >= 4) fail(e.message);
-        console.log(`  ${key}: ${e.message}; trying again`);
-        await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
+        console.log(`  ${key}: ${e.message}; trying again, with the whole file`);
+        if (attempt > 1) await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
       }
     }
     const both = new Int16Array(2 * CELLS * CELLS);
     both.set(r.low);
     both.set(r.high, CELLS * CELLS);
     fs.writeFileSync(path.join(out, key + ".bin"), zlib.gzipSync(Buffer.from(both.buffer)));
-    done.push({ key, height: r.height });
+    done.push({ key, height: r.height, ...(whole ? { whole } : {}) });
     if (done.length % 500 === 0) console.log(`  ${done.length} of ${keys.length}`);
   });
   done.sort((a, b) => (a.key < b.key ? -1 : 1));
@@ -430,7 +439,7 @@ function pack(args) {
         .map(([w, s]) => `${w} ${s}%`)
         .join(", ")}.`,
       `- So: under 50 m ${inBand(1, 3)}%, 50–300 m ${inBand(4, 6)}%, 300 m or more ${inBand(7, 7)}%.`,
-      `- Copies read: ${[...new Set(read.map(t => t.height))].join(", ")} pixels north to south in a 1° tile.`,
+      `- Copies read: ${[...new Set(read.map(t => t.height))].join(", ")} pixels north to south in a 1° tile; ${read.filter(t => t.whole).length} tiles fetched whole, after reading them in parts failed.`,
       "- Known places (please look at any that differ):",
       ...places.map(p => {
         const ok =
