@@ -114,6 +114,7 @@ function cleanLocation(l) {
     cc: l.cc,
     ...(typeof l.town === "boolean" ? { town: l.town } : {}),
     ...(LANDSCAPE.classes.includes(l.landscape) ? { landscape: l.landscape } : {}),
+    ...(["", ...TERRAIN_CHOICES.slice(1)].includes(l.terrain) ? { terrain: l.terrain } : {}),
     ...cleanLocationFields(l),
   };
 }

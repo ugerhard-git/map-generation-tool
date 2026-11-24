@@ -51,6 +51,31 @@
     its own.
   </p>
 </template>
+<template id="help-terrain">
+  <h2>Terrain</h2>
+  <p>
+    Keeps only flat, hilly or mountainous locations. With the tag ticked in "Map file", each location also
+    gets its terrain as a tag: "Flat", "Hilly" or "Mountainous".
+  </p>
+  <p>
+    It goes by how much the land rises and falls around a location: the highest point minus the lowest within
+    about 1.5 km. Flat is under 50 m, hilly 50 to 300 m, mountainous 300 m or more. So it says what you see
+    from the road: a road on the floor of an Alpine valley is mountainous, with the mountains all around it,
+    and a road along a cliff above the sea counts the drop to the sea.
+  </p>
+  <p>
+    The heights include trees and buildings, so the edge of a forest or a town can add a little to the rise;
+    that is why flat goes up to 50 m.
+  </p>
+  <p>
+    The map is loaded in pieces of 10° × 10°, only for the areas a search looks at, usually a few hundred KB
+    for a country. A line under the choice says while it loads.
+  </p>
+  <p>
+    Source: Copernicus DEM GLO-90, © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018,
+    provided under COPERNICUS by the European Union and ESA.
+  </p>
+</template>
 <template id="help-landscape">
   <h2>Landscape</h2>
   <p>
