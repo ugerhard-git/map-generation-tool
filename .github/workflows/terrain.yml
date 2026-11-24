@@ -1,0 +1,116 @@
+# Makes the terrain map (src/data/terrain/ and src/data/terrain.json) from the Copernicus DEM GLO-90 and
+# opens a pull request with it for the owner to review (or updates the one still open). Only started by
+# hand: Actions → Update the terrain map → Run workflow. The DEM does not change, so this is needed only
+# when tools/terrain.js changes.
+#
+# The DEM is about 26,000 files of 1° on Amazon (https://registry.opendata.aws/copernicus-dem/).
+# tools/terrain.js reads each from a smaller copy inside the file, so less is fetched, and nothing is kept
+# but the result (a few MB). Two jobs, for safety, as for the landscape map: "read" (eight at once, each
+# an eighth of the tiles) installs the packages (geotiff) and gets no write access; "propose" can push and
+# open pull requests, but runs only this repository's own tools/terrain.js (pack needs only Node itself),
+# git and gh, so no outside code ever sees its token. If anything looks wrong, tools/terrain.js stops, the
+# run fails and GitHub sends a notification.
+name: Update the terrain map
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-update
+  cancel-in-progress: false
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        part: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      # Actions are pinned to exact commits, so a changed tag upstream cannot change what runs here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Read part ${{ matrix.part }} of the tiles
+        run: node tools/terrain.js read --part ${{ matrix.part }}/8 --out "$RUNNER_TEMP/parts"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: terrain-part-${{ matrix.part }}
+          path: ${{ runner.temp }}/parts
+          if-no-files-found: error
+          retention-days: 3
+
+  propose:
+    needs: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write # push the branch terrain-update
+      pull-requests: write # open or update its pull request
+      actions: write # start the Tests workflow on that branch (see the last step)
+    env:
+      BRANCH: terrain-update
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # needed to push the branch
+      # No npm packages are installed in this job: "pack" needs only Node itself.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: terrain-part-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/parts
+      - name: Put the parts together
+        run: |
+          node tools/terrain.js pack "$RUNNER_TEMP/parts" --summary "$RUNNER_TEMP/summary.md"
+          # Only the generated files may change
+          test -z "$(git status --porcelain -- . ':!src/data/terrain' ':!src/data/terrain.json')"
+      - name: Push the branch and open or update the pull request
+        env:
+          GH_TOKEN: ${{ github.token }} # only this step gets the token for gh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add src/data/terrain src/data/terrain.json
+          if git diff --cached --quiet; then
+            echo "The terrain map is unchanged."
+            exit 0
+          fi
+          git commit -m "Update the terrain map from the Copernicus DEM GLO-90"
+          # The branch only ever holds this one generated change, so it is replaced each time.
+          git push --force origin "$BRANCH"
+          {
+            echo "The terrain map for a setting \"Terrain\" (flat, hilly or mountainous) and its tag: \`src/data/terrain/\` and \`src/data/terrain.json\`, made by \`tools/terrain.js\` from the [Copernicus DEM GLO-90](https://registry.opendata.aws/copernicus-dem/): the relief within about 1.5 km of each square of about 1 km, in bands."
+            echo
+            echo "## What was found"
+            echo
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "## Checks"
+            echo
+            echo "Made in [this run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). The Tests workflow was also started on this branch, because pull requests opened by a workflow do not start it themselves; merging waits for it."
+          } > "$RUNNER_TEMP/body.md"
+          open=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh pr edit "$open" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --base main --head "$BRANCH" --title "Update the terrain map" --body-file "$RUNNER_TEMP/body.md"
+          fi
+          # Runs started with the workflow's own token do not start other workflows, except when started
+          # by hand like this, so the required "test" check gets its run on this branch.
+          gh workflow run test.yml --ref "$BRANCH"

@@ -110,6 +110,7 @@ The tests drive the page in a headless browser. Google's script and the map tile
 | `tools/settlements.js`       | Makes `src/data/settlements.bin` from the GHSL's degree of urbanisation (by hand)   |
 | `src/data/landscape/`        | The landscape map, from ESA WorldCover (generated; see `landscape.json` beside it)  |
 | `tools/landscape.js`         | Makes the landscape map `src/data/landscape/` from ESA WorldCover (on GitHub)       |
+| `tools/terrain.js`           | Makes the terrain map `src/data/terrain/` from the Copernicus DEM (on GitHub)       |
 | `tests/`                     | Browser tests, one file per feature area                                            |
 | `docs/`                      | [How the code works](docs/how-the-code-works.md), for developers                    |
 | `CONTRIBUTING.md`            | How to make a change, and the rules                                                 |
