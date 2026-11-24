@@ -17,12 +17,18 @@
 // (settings, history, the map, Google), and the few helpers this page needs are written here.
 //
 // Shared state: `map` (the file read, or null) and `sort` (the column the table is sorted by).
-// Saved in the browser (localStorage, "distribution." + name): `view` and `numberFormat`.
+// Step 4 downloads the map file again, every location tagged with its country (the same tags as the other
+// tools), its other tags and fields kept, and missing country codes filled in.
+//
+// Saved in the browser (localStorage, "distribution." + name): `view`, `numberFormat` and `territoryTag`.
 
 /* ---------- constants ---------- */
 const STORE_PREFIX = "distribution.";
 const VIEWS = ["countries", "folded", "continents"];
 const NUMBER_FORMATS = ["auto", "point", "comma"];
+/* How territories are tagged in step 4, as in the other tools: "both" (Puerto Rico and USA), "own" or
+   "parent". */
+const TERRITORY_TAGS = ["both", "own", "parent"];
 /* Territories that stay on their own when territories are counted with their country (the owner's
    choice, November 2026): France's overseas departments (Guadeloupe, Martinique, French Guiana, Réunion,
    Mayotte), Hong Kong, Macao, Åland and Svalbard. Taiwan is a country of its own in the data. The Cook
@@ -116,8 +122,10 @@ const continentName = c => (Object.hasOwn(CONTINENT_NAMES, c) ? CONTINENT_NAMES[
  * countryCode, … }]) and GeoGuessr's shape ({ name, customCoordinates: [...] }), which the two other tools
  * write. Locations without a valid position are skipped and counted.
  * @param {string} text the file's content
- * @returns {{ error: string } | { name: string, locations: { lat: number, lng: number, code: string }[],
- *   skipped: number }}
+ * @returns {{ error: string } | { name: string, data: object | object[], list: object[],
+ *   locations: { lat: number, lng: number, code: string, index: number }[], skipped: number }}
+ * `data` is the whole file and `list` its locations, as read, for step 4; `index` is where in `list` a
+ * location is.
  */
 function readMap(text) {
   let data;
@@ -138,7 +146,7 @@ function readMap(text) {
     };
   const locations = [];
   let skipped = 0;
-  for (const l of list) {
+  for (const [index, l] of list.entries()) {
     const lat = l && l.lat,
       lng = l && l.lng;
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
@@ -146,7 +154,7 @@ function readMap(text) {
       continue;
     }
     const code = typeof l.countryCode === "string" ? l.countryCode.trim().toUpperCase() : "";
-    locations.push({ lat, lng, code: /^[A-Z]{2}$/.test(code) ? code : "" });
+    locations.push({ lat, lng, code: /^[A-Z]{2}$/.test(code) ? code : "", index });
   }
   if (!locations.length)
     return {
@@ -156,7 +164,7 @@ function readMap(text) {
     };
   const name =
     data && !Array.isArray(data) && typeof data.name === "string" ? data.name.trim().slice(0, 200) : "";
-  return { name, locations, skipped };
+  return { name, data, list, locations, skipped };
 }
 
 /* ---------- counting ---------- */
@@ -183,23 +191,23 @@ function placeOf(location) {
 }
 
 /**
- * Counts the locations per country and per continent.
+ * Counts the locations per country and per continent. `places` are the locations' countries (placeOf),
+ * worked out once for this and for step 4.
  * @returns {{ total: number, codes: Record<string, number>, continents: Record<string, number>,
  *   continentPlaces: Record<string, string[]>, fromFile: number, fromPosition: number, unknown: number }}
  */
-function countPlaces(locations) {
+function countPlaces(locations, places = locations.map(placeOf)) {
   const codes = {},
     continents = {},
-    places = {};
+    sets = {};
   const from = { file: 0, position: 0, none: 0 };
-  for (const l of locations) {
-    const p = placeOf(l);
+  for (const p of places) {
     from[p.from]++;
     codes[p.code] = (codes[p.code] || 0) + 1;
     continents[p.continent] = (continents[p.continent] || 0) + 1;
-    if (p.code) (places[p.continent] ??= new Set()).add(p.code);
+    if (p.code) (sets[p.continent] ??= new Set()).add(p.code);
   }
-  const continentPlaces = Object.fromEntries(Object.entries(places).map(([c, s]) => [c, [...s]]));
+  const continentPlaces = Object.fromEntries(Object.entries(sets).map(([c, s]) => [c, [...s]]));
   return {
     total: locations.length,
     codes,
@@ -765,6 +773,87 @@ const exportInfo = () => ({
   toolUrl: location.protocol.startsWith("http") ? location.origin + location.pathname : "",
 });
 
+/* ---------- step 4: country tags ---------- */
+
+let regionNamesForTags;
+try {
+  regionNamesForTags = new Intl.DisplayNames(["en"], { type: "region" });
+} catch {}
+/* A country's tag: from the owner's list ("USA"), else the browser's English name ("Jersey"), else the
+   code. The same rule as the other tools' countryTag (src/shared/helpers.js), so the tags match. */
+function countryTag(code) {
+  if (Object.hasOwn(COUNTRY_TAGS, code)) return COUNTRY_TAGS[code];
+  try {
+    const n = regionNamesForTags && regionNamesForTags.of(code);
+    return n && n !== code ? n : code;
+  } catch {
+    return code;
+  }
+}
+/* The tags for a place: a territory gets its own tag, its country's or both, as chosen. Which places are
+   territories, and of which country, follows this page's rules (foldedCode): France's overseas
+   departments, Hong Kong, Macao, Åland and Svalbard only ever get their own tag. */
+function countryTags(code, territories) {
+  const country = foldedCode(code);
+  if (country === code || territories === "own") return [countryTag(code)];
+  if (territories === "parent") return [countryTag(country)];
+  return [countryTag(code), countryTag(country)];
+}
+
+/**
+ * The map file again, every location with a country tagged with it. Nothing else changes: the file keeps
+ * its shape (map-making.app's list, or { name, customCoordinates }), its fields and each location's other
+ * fields and tags. A tag a location already has is not added twice. A location without a country code
+ * gets the one found at its position; a country code it has is never changed. Locations in no country,
+ * without a valid position, or with tags that are not a list are left as they are.
+ * @param {ReturnType<typeof readMap>} read
+ * @param {ReturnType<typeof placeOf>[]} places
+ * @param {"both" | "own" | "parent"} territories
+ * @returns {{ text: string, tagged: number, filled: number, left: number }}
+ */
+function taggedMap(read, places, territories) {
+  const list = read.list.slice();
+  let tagged = 0,
+    filled = 0;
+  read.locations.forEach((l, i) => {
+    const p = places[i],
+      item = read.list[l.index];
+    if (!p.code) return;
+    const extra =
+      item.extra && typeof item.extra === "object" && !Array.isArray(item.extra) ? item.extra : {};
+    if (extra.tags !== undefined && !Array.isArray(extra.tags)) return;
+    const old = extra.tags || [];
+    const added = countryTags(p.code, territories).filter(t => !old.includes(t));
+    const copy = { ...item, extra: { ...extra, tags: [...old, ...added] } };
+    if (item.countryCode === undefined || item.countryCode === null || item.countryCode === "") {
+      copy.countryCode = p.code;
+      filled++;
+    }
+    list[l.index] = copy;
+    tagged++;
+  });
+  const out = Array.isArray(read.data) ? list : { ...read.data, customCoordinates: list };
+  return { text: JSON.stringify(out), tagged, filled, left: read.list.length - tagged };
+}
+
+$("territoryTag").addEventListener("change", () => store.set("territoryTag", $("territoryTag").value));
+$("downloadTagged").addEventListener("click", () => {
+  if (!map) return;
+  const choice = TERRITORY_TAGS.includes($("territoryTag").value) ? $("territoryTag").value : "both";
+  const result = taggedMap(map.read, map.places, choice);
+  download(
+    result.text,
+    fileBase(map.fileName.replace(/\.json$/i, "")) + "-country-tags.json",
+    "application/json",
+  );
+  $("tagStatus").textContent =
+    `${fmt(result.tagged)} location${result.tagged === 1 ? "" : "s"} tagged` +
+    (result.filled ? `, ${fmt(result.filled)} given a country code` : "") +
+    "." +
+    (result.left ? ` ${fmt(result.left)} left as they were (no country or no valid position).` : "");
+  $("tagStatus").hidden = false;
+});
+
 /* ---------- the page ---------- */
 
 /** @type {null | { name: string, fileName: string, skipped: number, tally: ReturnType<typeof countPlaces> }} */
@@ -800,12 +889,16 @@ async function loadFile(file) {
   }
   const read = readMap(text);
   if (read.error) return showError(read.error);
+  const places = read.locations.map(placeOf);
   map = {
     name: read.name,
     fileName: file.name.slice(0, 200),
     skipped: read.skipped,
-    tally: countPlaces(read.locations),
+    tally: countPlaces(read.locations, places),
+    read,
+    places,
   };
+  $("tagStatus").hidden = true;
   render();
 }
 function showError(text) {
@@ -913,7 +1006,8 @@ const shareText = s => (s > 0 && s < 0.00005 ? "<0.01%" : (s * 100).toFixed(2) +
 function render() {
   const view = currentView();
   $("viewHint").textContent = VIEW_HINTS[view];
-  for (const id of ["downloadCsv", "downloadXlsx", "downloadHtml", "copyTable"]) $(id).disabled = !map;
+  for (const id of ["downloadCsv", "downloadXlsx", "downloadHtml", "copyTable", "downloadTagged"])
+    $(id).disabled = !map;
   $("empty").hidden = !!map;
   $("result").hidden = !map;
   if (!map) return;
@@ -1000,6 +1094,8 @@ function render() {
   if (r) r.checked = true;
   const format = store.get("numberFormat", "auto");
   $("numberFormat").value = NUMBER_FORMATS.includes(format) ? format : "auto";
+  const territories = store.get("territoryTag", "both");
+  $("territoryTag").value = TERRITORY_TAGS.includes(territories) ? territories : "both";
   $("numberFormatAuto").textContent =
     "As in this browser (" +
     (browserNumberFormat() === "comma" ? "1234,5, semicolons" : "1234.5, commas") +

@@ -383,7 +383,7 @@ buildPage(path.join(__dirname, "unofficial"), "unofficial", {
 
 // Distribution, at distribution/: how the locations of a map file are spread over countries and
 // continents. No map, no Google: only country-coder, each place's name, continent and country
-// (src/countries.js), and the owner's country names (country-tags.json).
+// (src/countries.js), and the owner's country names and tags (country-tags.json).
 const tagNames = Object.fromEntries(
   Object.entries(countryTags)
     .filter(([, entry]) => typeof entry.name === "string" && entry.name.trim())
@@ -396,6 +396,7 @@ buildPage(
     PLACES: asScript(
       require("./countries.js").distributionFacts(require("@rapideditor/country-coder"), tagNames),
     ),
+    COUNTRY_TAGS: asScript(tagsByCode),
   },
   { map: false },
 );

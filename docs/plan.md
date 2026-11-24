@@ -173,6 +173,7 @@ Agreed with the owner on 11 November 2026. A third page, **Distribution**, at `â
 
 1. **First version** (11 November 2026): all of the above. The page has no map, no Google key and no outside connections; it uses the shared styles but none of the shared code, which is about searches. The other two tools link to it.
 2. **HTML export** (16 November 2026, asked by the owner): all views as one HTML page (map name, totals, each view sorted by locations with share bars, where the numbers come from), self-contained with no scripts and a policy that loads nothing; and a button that copies the view shown, as shown, as a plain HTML table without classes or styles, for forum posts and web pages.
+3. **Country tags** (24 November 2026, asked by the owner): step 4 downloads the map file again with each location's country as a tag. The owner's choices: territories tagged as in the other tools ("Tag territories with": both, own name, their country), with this page's rules for which places are territories; no continent tags; tags already there are kept (none added twice); a missing country code is filled in from the position, an existing one never changed. Everything else in the file stays as it was.
 
 ## Known limits
 
